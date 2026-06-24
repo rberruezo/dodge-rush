@@ -46,6 +46,7 @@ export class PreloadScene extends Phaser.Scene {
     // Fill in anything that did not load (or loaded broken), then slice frames.
     TextureFactory.ensureFallbacks(this, this.failed);
     TextureFactory.registerObstacleFrames(this);
+    TextureFactory.ensureParticleTexture(this);
 
     // Build character animations from whichever sheet we ended up with.
     AnimationManager.create(this);

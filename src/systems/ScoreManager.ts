@@ -5,7 +5,7 @@ import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
  * Pure data/logic — no rendering — so it is trivial to unit test or reuse.
  */
 export class ScoreManager {
-  private elapsedMs = 0;
+  private elapsedMs_ = 0;
   private bonus = 0;
   private highScore = 0;
 
@@ -14,27 +14,31 @@ export class ScoreManager {
   }
 
   reset(): void {
-    this.elapsedMs = 0;
+    this.elapsedMs_ = 0;
     this.bonus = 0;
   }
 
   /** Advance the survival clock. `dt` is the frame delta in milliseconds. */
   update(dt: number): void {
-    this.elapsedMs += dt;
+    this.elapsedMs_ += dt;
   }
 
-  /** Award the per-obstacle bonus when the player threads a hole. */
-  addPass(): void {
-    this.bonus += SCORE_CFG.pointsPerPass;
+  /** Award arbitrary bonus points (combo-multiplied passes, golden rewards…). */
+  addBonus(points: number): void {
+    this.bonus += Math.round(points);
+  }
+
+  get elapsedMs(): number {
+    return this.elapsedMs_;
   }
 
   get current(): number {
-    const timeScore = Math.floor((this.elapsedMs / 1000) * SCORE_CFG.pointsPerSecond);
+    const timeScore = Math.floor((this.elapsedMs_ / 1000) * SCORE_CFG.pointsPerSecond);
     return timeScore + this.bonus;
   }
 
   get elapsedSeconds(): number {
-    return this.elapsedMs / 1000;
+    return this.elapsedMs_ / 1000;
   }
 
   get high(): number {

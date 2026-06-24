@@ -109,22 +109,34 @@ export class TextureFactory {
     g.destroy();
   }
 
-  /** Colored blocks-with-holes mirroring the real obstacle pack frame names. */
+  /** Colored tiles-with-holes mirroring the real obstacle atlas frame names. */
   private static makeObstaclePack(scene: Phaser.Scene): void {
     const palette = [
-      0x4aa3ff, 0x4ad36a, 0xb15cff, 0xffa24a, 0x7fe0ff, 0xff4a4a, 0xff4a4a, 0x9aa0b0,
-      0x4ad0ff, 0xffd54a
+      0x0ca8d8, 0x30cca8, 0x903c78, 0xe47800, 0x54e4e4, 0xf02430, 0xe40c24, 0x84849c,
+      0x24d8fc, 0xfca800
     ];
-    const w = 1024;
-    const h = 1024;
+    const w = Math.max(...OBSTACLE_FRAMES.map((f) => f.x + f.width));
+    const h = Math.max(...OBSTACLE_FRAMES.map((f) => f.y + f.height));
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
     OBSTACLE_FRAMES.forEach((f, idx) => {
       g.fillStyle(palette[idx % palette.length], 1);
-      g.fillRoundedRect(f.x, f.y, f.width, f.height, 10);
-      g.fillStyle(0x000000, 1); // the "hole" detail
-      g.fillRect(f.x + f.width * 0.4, f.y + f.height * 0.3, f.width * 0.2, f.height * 0.4);
+      g.fillRect(f.x, f.y, f.width, f.height);
+      g.fillStyle(0x111118, 1); // the "hole" detail
+      g.fillRect(f.x + f.width * 0.34, f.y + f.height * 0.3, f.width * 0.32, f.height * 0.4);
     });
     g.generateTexture(ASSET_KEYS.OBSTACLES, w, h);
+    g.destroy();
+  }
+
+  /** A small soft dot used by the particle emitters. */
+  static ensureParticleTexture(scene: Phaser.Scene): void {
+    if (scene.textures.exists(ASSET_KEYS.PARTICLE)) return;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(5, 5, 5);
+    g.fillStyle(0xffffff, 0.4);
+    g.fillCircle(5, 5, 8);
+    g.generateTexture(ASSET_KEYS.PARTICLE, 16, 16);
     g.destroy();
   }
 

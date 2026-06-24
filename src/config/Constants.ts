@@ -16,7 +16,8 @@ export const TARGET_FPS = 60;
 export const ASSET_KEYS = {
   CHARACTER: 'character',
   BACKGROUND: 'background',
-  OBSTACLES: 'obstacles'
+  OBSTACLES: 'obstacles',
+  PARTICLE: 'spark' // generated at runtime, never loaded from disk
 } as const;
 
 export const ANIM_KEYS = {
@@ -72,9 +73,9 @@ export const CHARACTER_ANIMS = {
 } as const;
 
 /**
- * Obstacle pack slicing (named sub-rectangles inside the single packed PNG).
- * Coordinates are for a 1024x1024 source sheet. The barrier walls use these as
- * stretched tiles, so approximate values still render cleanly — fine-tune for polish.
+ * Obstacle atlas slicing (named sub-rectangles inside the packed PNG).
+ * These match the clean pixel-art atlas produced by scripts/build-obstacles.py
+ * (a single 545x50 row of tightly-packed tiles).
  */
 export interface ObstacleFrameDef {
   name: string;
@@ -85,16 +86,16 @@ export interface ObstacleFrameDef {
 }
 
 export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
-  { name: 'blue_bar', x: 88, y: 70, width: 232, height: 118 },
-  { name: 'green_bar', x: 362, y: 68, width: 316, height: 122 },
-  { name: 'purple_pillar', x: 790, y: 52, width: 104, height: 156 },
-  { name: 'orange_block', x: 118, y: 268, width: 176, height: 172 },
-  { name: 'ice_block', x: 332, y: 268, width: 182, height: 168 },
-  { name: 'red_arrow', x: 612, y: 288, width: 400, height: 128 },
-  { name: 'red_spike', x: 66, y: 508, width: 244, height: 176 },
-  { name: 'stone_crack', x: 372, y: 512, width: 286, height: 160 },
-  { name: 'blue_tile', x: 700, y: 520, width: 250, height: 140 },
-  { name: 'gold_block', x: 392, y: 742, width: 232, height: 148 }
+  { name: 'blue_bar', x: 0, y: 0, width: 53, height: 28 },
+  { name: 'green_bar', x: 55, y: 0, width: 78, height: 30 },
+  { name: 'purple_pillar', x: 135, y: 0, width: 25, height: 42 },
+  { name: 'orange_block', x: 162, y: 0, width: 44, height: 47 },
+  { name: 'ice_block', x: 208, y: 0, width: 45, height: 50 },
+  { name: 'red_arrow', x: 255, y: 0, width: 40, height: 33 },
+  { name: 'red_spike', x: 297, y: 0, width: 59, height: 42 },
+  { name: 'stone_crack', x: 358, y: 0, width: 68, height: 34 },
+  { name: 'blue_tile', x: 428, y: 0, width: 57, height: 34 },
+  { name: 'gold_block', x: 487, y: 0, width: 58, height: 39 }
 ];
 
 /** Player tuning. Speeds are in pixels-per-millisecond for frame-rate independence. */
@@ -109,27 +110,49 @@ export const PLAYER_CFG = {
   tiltDegrees: 7 // gentle bank into the direction of travel
 } as const;
 
-/** Barrier / hole tuning. */
+/** Barrier / hole tuning. The base gap & spacing shrink with difficulty. */
 export const OBSTACLE_CFG = {
-  bandHeight: 76, // thickness of each wall band
-  spacing: 330, // vertical gap between consecutive barriers
-  gapWidthStart: 220, // safe-passage width at game start
-  gapWidthMin: 132, // hardest (narrowest) passage
-  gapShrinkPerSec: 1.6, // how fast the passage tightens
-  edgePadding: 18, // keep the hole away from the very screen edges
-  poolSize: 8 // recycled barrier instances
+  bandHeight: 88, // thickness of each wall band
+  spacingStart: 360, // vertical distance between barriers at game start
+  spacingMin: 280, // closest spacing at high difficulty
+  spacingShrinkPerSec: 0.9, // how fast barriers get more frequent
+  gapStart: 210, // base safe-passage width at game start
+  gapMin: 150, // narrowest base passage at high difficulty
+  gapShrinkPerSec: 0.9, // how fast the base passage tightens
+  edgePadding: 26, // keep the hole away from the very screen edges
+  reactionMinMs: 600, // guaranteed minimum reaction window (fairness)
+  reachFactor: 0.82, // fraction of cross-screen travel a gap may shift per barrier
+  poolSize: 10 // recycled barrier instances
 } as const;
 
-/** Scrolling / difficulty curve. */
+/** Scrolling / fall-speed curve. */
 export const SCROLL_CFG = {
-  startSpeed: 0.2, // initial fall speed
-  maxSpeed: 0.64, // speed cap
-  accelPerSec: 0.0065, // speed gained each second survived
+  startSpeed: 0.2, // initial fall speed (px/ms)
+  maxSpeed: 0.6, // speed cap
+  accelPerSec: 0.006, // speed gained each second survived
   bgParallax: 0.55 // background scrolls slower than obstacles for depth
+} as const;
+
+/** Difficulty ramps in 30s steps (values interpolate smoothly between steps). */
+export const DIFFICULTY_CFG = {
+  stepSeconds: 30,
+  maxStep: 8 // difficulty stops ramping past this step
 } as const;
 
 /** Scoring. */
 export const SCORE_CFG = {
-  pointsPerSecond: 10,
-  pointsPerPass: 5
+  pointsPerSecond: 10, // survival score
+  pointsPerPass: 10, // base points per cleared obstacle (before combo multiplier)
+  goldenBonus: 250, // instant points for threading a golden obstacle
+  goldenBoostMs: 5000, // duration of the golden score boost
+  goldenBoostMult: 2 // score multiplier while the golden boost is active
+} as const;
+
+/** Combo multiplier thresholds (checked high-to-low). */
+export const COMBO_CFG = {
+  tiers: [
+    { at: 20, mult: 5 },
+    { at: 10, mult: 3 },
+    { at: 5, mult: 2 }
+  ]
 } as const;

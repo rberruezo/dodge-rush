@@ -1,80 +1,67 @@
 import Phaser from 'phaser';
 import { Barrier } from '../objects/Barrier';
-import { ScoreManager } from './ScoreManager';
-import { Sound } from './SoundManager';
-import { OBSTACLE_CFG, OBSTACLE_FRAMES, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { DifficultySnapshot, DifficultyManager } from './DifficultyManager';
+import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
+import { OBSTACLE_CFG, PLAYER_CFG, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 
 /**
- * Infinite obstacle stream.
+ * Infinite, fair, procedural obstacle stream.
  *
- * Maintains a fixed pool of Barrier instances and recycles them as they scroll
- * off the top, so a never-ending run allocates nothing after startup. Keeps the
- * vertical spacing constant, tightens the hole as difficulty rises, and awards
- * the survival/pass bonus when the player clears a barrier.
+ * - Pools/recycles Barrier instances (no allocation after warm-up).
+ * - Picks types by difficulty-weighted random.
+ * - Sizes/positions the gap per type, then clamps each gap so it is always
+ *   reachable from the previous one within the inter-barrier travel time
+ *   (guaranteeing the design's "no unavoidable deaths" rule).
+ * - Returns the barriers cleared this frame so the scene can score/combo/FX.
  */
 export class ObstacleGenerator {
   private pool: Barrier[] = [];
   private active: Barrier[] = [];
-  private gapWidth: number = OBSTACLE_CFG.gapWidthStart;
+  private lastGapX = GAME_WIDTH / 2;
 
   constructor(scene: Phaser.Scene) {
-    for (let i = 0; i < OBSTACLE_CFG.poolSize; i++) {
-      this.pool.push(new Barrier(scene));
-    }
+    for (let i = 0; i < OBSTACLE_CFG.poolSize; i++) this.pool.push(new Barrier(scene));
   }
 
-  /** Currently on-screen barriers (read by the collision system). */
   get barriers(): Barrier[] {
     return this.active;
   }
 
-  /** Reset for a fresh run: recycle everything, seed the first barrier. */
-  reset(): void {
+  reset(snapshot: DifficultySnapshot): void {
     [...this.active].forEach((b) => this.release(b));
-    this.gapWidth = OBSTACLE_CFG.gapWidthStart;
-    // Seed one barrier just below the screen; the update loop fills the rest.
-    this.spawnAt(GAME_HEIGHT + OBSTACLE_CFG.bandHeight);
+    this.lastGapX = GAME_WIDTH / 2;
+    this.spawnAt(GAME_HEIGHT + OBSTACLE_CFG.bandHeight, snapshot);
   }
 
   /**
-   * Advance the stream.
-   * @param dt     frame delta (ms)
-   * @param speed  current fall speed (px/ms)
-   * @param playerY player's fixed vertical line (for pass detection)
-   * @param score  score manager to credit passes
+   * Advance the stream. Returns barriers whose centre rose past `playerY` this
+   * frame (i.e. cleared) so the caller can award score / combo / effects.
    */
-  update(dt: number, speed: number, playerY: number, score: ScoreManager): void {
-    const move = speed * dt;
+  update(dt: number, snapshot: DifficultySnapshot, playerY: number): Barrier[] {
+    const spacing = DifficultyManager.effectiveSpacing(snapshot.speed, snapshot.spacing);
+    const rise = snapshot.speed * dt;
+    const passed: Barrier[] = [];
 
-    // Tighten the hole over time, never below the minimum.
-    this.gapWidth = Math.max(
-      OBSTACLE_CFG.gapWidthMin,
-      this.gapWidth - OBSTACLE_CFG.gapShrinkPerSec * (dt / 1000)
-    );
-
-    // Move active barriers upward; recycle and score as appropriate.
     for (let i = this.active.length - 1; i >= 0; i--) {
       const b = this.active[i];
-      b.setY(b.y - move);
+      b.advance(dt, rise);
 
       if (!b.scored && b.y < playerY) {
         b.scored = true;
-        score.addPass();
-        Sound.pass();
+        passed.push(b);
       }
-
-      if (b.y < -OBSTACLE_CFG.bandHeight) {
-        this.release(b);
-      }
+      if (b.y < -b.bandHeight) this.release(b);
     }
 
-    // Spawn new barriers below the lowest one, keeping spacing constant.
+    // Keep the screen+below populated at the (difficulty-driven) spacing.
     let maxY = this.lowestY();
-    while (maxY <= GAME_HEIGHT - OBSTACLE_CFG.spacing) {
-      const nextY = maxY + OBSTACLE_CFG.spacing;
-      this.spawnAt(nextY);
+    while (maxY <= GAME_HEIGHT - spacing) {
+      const nextY = maxY + spacing;
+      this.spawnAt(nextY, snapshot);
       maxY = nextY;
     }
+
+    return passed;
   }
 
   private lowestY(): number {
@@ -83,18 +70,61 @@ export class ObstacleGenerator {
     return maxY === -Infinity ? GAME_HEIGHT : maxY;
   }
 
-  private spawnAt(y: number): void {
+  private spawnAt(y: number, snapshot: DifficultySnapshot): void {
     const b = this.pool.pop();
-    if (!b) return; // pool exhausted (shouldn't happen with constant spacing)
+    if (!b) return;
 
-    const half = this.gapWidth / 2;
+    const def = this.pickType(snapshot.weights);
+    const gapWidth = Phaser.Math.Clamp(
+      snapshot.baseGap * def.gapFactor,
+      OBSTACLE_CFG.gapMin * 0.66,
+      GAME_WIDTH - OBSTACLE_CFG.edgePadding * 2
+    );
+    const band = OBSTACLE_CFG.bandHeight * def.bandFactor;
+
+    const half = gapWidth / 2;
     const minX = OBSTACLE_CFG.edgePadding + half;
     const maxX = GAME_WIDTH - OBSTACLE_CFG.edgePadding - half;
-    const gapX = Phaser.Math.Between(minX, maxX);
-    const frame = OBSTACLE_FRAMES[Phaser.Math.Between(0, OBSTACLE_FRAMES.length - 1)].name;
 
-    b.spawn(y, gapX, this.gapWidth, OBSTACLE_CFG.bandHeight, frame);
+    // Desired centre by type (diagonal types bias toward a side).
+    let desired: number;
+    if (def.diagonal < 0) desired = Phaser.Math.Linear(minX, GAME_WIDTH * 0.42, Math.random());
+    else if (def.diagonal > 0) desired = Phaser.Math.Linear(GAME_WIDTH * 0.58, maxX, Math.random());
+    else desired = Phaser.Math.Between(minX, maxX);
+
+    // Reachability clamp: limit how far the gap can shift from the previous one.
+    const spacing = DifficultyManager.effectiveSpacing(snapshot.speed, snapshot.spacing);
+    const travelTime = spacing / snapshot.speed; // ms for the next barrier to arrive
+    const maxShift = PLAYER_CFG.moveSpeed * travelTime * OBSTACLE_CFG.reachFactor;
+    let center = Phaser.Math.Clamp(
+      desired,
+      this.lastGapX - maxShift,
+      this.lastGapX + maxShift
+    );
+    center = Phaser.Math.Clamp(center, minX, maxX);
+
+    // Motion for the moving type (kept inside bounds & gentle enough to be fair).
+    let amp = 0;
+    let omega = 0;
+    if (def.moving) {
+      amp = Math.min(80, center - minX, maxX - center);
+      omega = (2 * Math.PI) / 2400; // ~2.4s period
+    }
+
+    b.spawn(def, y, center, gapWidth, band, amp, omega);
     this.active.push(b);
+    this.lastGapX = center;
+  }
+
+  private pickType(weights: Map<ObstacleType, number>): ObstacleTypeDef {
+    let total = 0;
+    weights.forEach((w) => (total += w));
+    let r = Math.random() * total;
+    for (const [type, w] of weights) {
+      r -= w;
+      if (r <= 0) return OBSTACLE_TYPES[type];
+    }
+    return OBSTACLE_TYPES[ObstacleType.Straight];
   }
 
   private release(b: Barrier): void {

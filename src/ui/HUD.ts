@@ -9,6 +9,7 @@ export class HUD {
   private scene: Phaser.Scene;
   private scoreText: Phaser.GameObjects.Text;
   private bestText: Phaser.GameObjects.Text;
+  private comboText: Phaser.GameObjects.Text;
   private pauseBtn: Phaser.GameObjects.Container;
 
   constructor(scene: Phaser.Scene, best: number, onPause: () => void) {
@@ -30,6 +31,17 @@ export class HUD {
         fontFamily: 'monospace',
         fontSize: '24px',
         color: COLORS.gold,
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#00000088', 0, true, true)
+      .setDepth(100);
+
+    this.comboText = scene.add
+      .text(GAME_WIDTH / 2, 150, '', {
+        fontFamily: 'monospace',
+        fontSize: '30px',
+        color: COLORS.accent,
         fontStyle: 'bold'
       })
       .setOrigin(0.5)
@@ -64,19 +76,33 @@ export class HUD {
     return c;
   }
 
-  update(score: number): void {
+  update(score: number, combo: number, multiplier: number, boost: boolean): void {
     this.scoreText.setText(String(score));
+
+    if (multiplier > 1) {
+      this.comboText.setText(`COMBO ${combo}  x${multiplier}`);
+      this.comboText.setColor(boost ? COLORS.gold : COLORS.accent);
+      this.comboText.setVisible(true);
+    } else if (boost) {
+      this.comboText.setText('SCORE BOOST!');
+      this.comboText.setColor(COLORS.gold);
+      this.comboText.setVisible(true);
+    } else {
+      this.comboText.setVisible(false);
+    }
   }
 
   setVisible(v: boolean): void {
     this.scoreText.setVisible(v);
     this.bestText.setVisible(v);
+    this.comboText.setVisible(v);
     this.pauseBtn.setVisible(v);
   }
 
   destroy(): void {
     this.scoreText.destroy();
     this.bestText.destroy();
+    this.comboText.destroy();
     this.pauseBtn.destroy();
   }
 }
