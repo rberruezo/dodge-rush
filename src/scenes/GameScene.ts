@@ -11,7 +11,7 @@ import { DifficultyManager } from '../systems/DifficultyManager';
 import { InputController } from '../systems/InputController';
 import { HUD } from '../ui/HUD';
 import { EffectsLayer } from '../ui/EffectsLayer';
-import { Sound } from '../systems/SoundManager';
+import { Sound, MUSIC } from '../systems/SoundManager';
 
 /**
  * The playable scene. Orchestrates the difficulty curve, obstacle stream,
@@ -61,6 +61,9 @@ export class GameScene extends Phaser.Scene {
     this.fx = new EffectsLayer(this);
     this.controls = new InputController(this);
     this.controls.onFirstInput = () => Sound.unlock();
+
+    // Cross-dissolve from the menu loop into the gameplay track.
+    Sound.playMusic(MUSIC.GAME);
 
     this.hud = new HUD(this, this.score.high, () => this.pauseGame());
 

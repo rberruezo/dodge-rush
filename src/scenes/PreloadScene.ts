@@ -9,6 +9,7 @@ import {
 } from '../config/Constants';
 import { AnimationManager } from '../systems/AnimationManager';
 import { TextureFactory } from '../utils/TextureFactory';
+import { Sound, MUSIC } from '../systems/SoundManager';
 
 /**
  * Loads all art with a progress bar, then builds frames + animations.
@@ -51,6 +52,11 @@ export class PreloadScene extends Phaser.Scene {
 
     // Build character animations from whichever sheet we ended up with.
     AnimationManager.create(this);
+
+    // Stream + decode music in the background (Web Audio, for seamless looping).
+    // Fire-and-forget: playback waits until decoded AND the audio is unlocked.
+    void Sound.loadMusic(MUSIC.MENU, 'assets/menu.mp3');
+    void Sound.loadMusic(MUSIC.GAME, 'assets/bgmusic.mp3');
 
     this.scene.start('MainMenu');
   }

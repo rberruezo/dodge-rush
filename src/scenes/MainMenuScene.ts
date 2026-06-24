@@ -3,7 +3,7 @@ import { ASSET_KEYS, ANIM_KEYS, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../confi
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
 import { ScoreManager } from '../systems/ScoreManager';
-import { Sound } from '../systems/SoundManager';
+import { Sound, MUSIC } from '../systems/SoundManager';
 
 /**
  * Title screen: animated hero, branding, best score, Play button and a mute
@@ -23,7 +23,8 @@ export class MainMenuScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const score = new ScoreManager();
 
-    // Unlock audio on the very first tap/click anywhere.
+    // Request the menu loop now; it actually starts on the first tap (unlock).
+    Sound.playMusic(MUSIC.MENU);
     this.input.once(Phaser.Input.Events.POINTER_DOWN, () => Sound.unlock());
 
     // Title
