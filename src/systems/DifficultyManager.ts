@@ -72,11 +72,8 @@ export class DifficultyManager {
         return w + 2 * level; // more dynamic threats
       case ObstacleType.Danger:
         return w + 1.5 * level;
-      case ObstacleType.DiagonalLeft:
-      case ObstacleType.DiagonalRight:
-        return w + 1 * level; // more angled navigation
       case ObstacleType.Narrow:
-        return w + 0.5 * level;
+        return w + 1 * level;
       default:
         return w; // broken / glowing / golden stay rare & constant
     }

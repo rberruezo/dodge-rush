@@ -86,11 +86,8 @@ export class ObstacleGenerator {
     const minX = OBSTACLE_CFG.edgePadding + half;
     const maxX = GAME_WIDTH - OBSTACLE_CFG.edgePadding - half;
 
-    // Desired centre by type (diagonal types bias toward a side).
-    let desired: number;
-    if (def.diagonal < 0) desired = Phaser.Math.Linear(minX, GAME_WIDTH * 0.42, Math.random());
-    else if (def.diagonal > 0) desired = Phaser.Math.Linear(GAME_WIDTH * 0.58, maxX, Math.random());
-    else desired = Phaser.Math.Between(minX, maxX);
+    // Random gap centre (clamped below so it stays reachable from the previous one).
+    const desired = Phaser.Math.Between(minX, maxX);
 
     // Reachability clamp: limit how far the gap can shift from the previous one.
     const spacing = DifficultyManager.effectiveSpacing(snapshot.speed, snapshot.spacing);
