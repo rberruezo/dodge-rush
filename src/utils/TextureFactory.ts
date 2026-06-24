@@ -3,6 +3,7 @@ import {
   ASSET_KEYS,
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
+  OBSTACLE_CFG,
   GAME_WIDTH,
   GAME_HEIGHT
 } from '../config/Constants';
@@ -140,13 +141,24 @@ export class TextureFactory {
     g.destroy();
   }
 
-  /** Register named sub-frames on the obstacle texture (real or fallback). */
+  /**
+   * Register named sub-frames on the obstacle texture (real or fallback),
+   * including the 3-slice pieces used to build bars: `<name>_l` / `<name>_r`
+   * (fixed end-caps) and `<name>_c` (a solid cross-section column that tiles to
+   * fill the bar's length without distortion or a repeated hole).
+   */
   static registerObstacleFrames(scene: Phaser.Scene): void {
     const tex = scene.textures.get(ASSET_KEYS.OBSTACLES);
     OBSTACLE_FRAMES.forEach((f) => {
-      if (!tex.has(f.name)) {
-        tex.add(f.name, 0, f.x, f.y, f.width, f.height);
-      }
+      if (!tex.has(f.name)) tex.add(f.name, 0, f.x, f.y, f.width, f.height);
+
+      const capW = Math.max(8, Math.round(f.width * OBSTACLE_CFG.capFraction));
+      const stripW = Math.min(4, f.width);
+      const stripX = Math.max(f.x, f.x + capW - stripW); // solid column just inside the left cap
+
+      if (!tex.has(`${f.name}_l`)) tex.add(`${f.name}_l`, 0, f.x, f.y, capW, f.height);
+      if (!tex.has(`${f.name}_r`)) tex.add(`${f.name}_r`, 0, f.x + f.width - capW, f.y, capW, f.height);
+      if (!tex.has(`${f.name}_c`)) tex.add(`${f.name}_c`, 0, stripX, f.y, stripW, f.height);
     });
   }
 }

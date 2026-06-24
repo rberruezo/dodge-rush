@@ -120,6 +120,7 @@ export const OBSTACLE_CFG = {
   gapMin: 150, // narrowest base passage at high difficulty
   gapShrinkPerSec: 0.9, // how fast the base passage tightens
   edgePadding: 26, // keep the hole away from the very screen edges
+  capFraction: 0.32, // 3-slice: each fixed end-cap is this fraction of the tile width
   reactionMinMs: 600, // guaranteed minimum reaction window (fairness)
   reachFactor: 0.82, // fraction of cross-screen travel a gap may shift per barrier
   poolSize: 10 // recycled barrier instances
