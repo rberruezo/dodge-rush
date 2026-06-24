@@ -15,9 +15,21 @@ export const TARGET_FPS = 60;
 /** Texture / animation lookup keys (avoid magic strings around the codebase). */
 export const ASSET_KEYS = {
   CHARACTER: 'character',
-  BACKGROUND: 'background',
   OBSTACLES: 'obstacles',
   PARTICLE: 'spark' // generated at runtime, never loaded from disk
+} as const;
+
+/**
+ * Background themes (a sunset -> twilight -> night day-cycle). Each is a
+ * mirror-doubled, vertically-seamless texture (see scripts/build-backgrounds.py)
+ * loaded from background_0/1/2.png.
+ */
+export const BG_THEME_KEYS = ['bg_sunset', 'bg_twilight', 'bg_night'] as const;
+
+export const BG_CFG = {
+  loopHeight: 1920, // height of the doubled texture (scroll wraps on this)
+  changeEveryPasses: 12, // switch theme every N cleared obstacles
+  crossfadeMs: 2400 // how long the scene cross-dissolve takes
 } as const;
 
 export const ANIM_KEYS = {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, PLAYER_CFG, SCORE_CFG } from '../config/Constants';
+import { GAME_WIDTH, GAME_HEIGHT, PLAYER_CFG, SCORE_CFG, BG_CFG, BG_THEME_KEYS } from '../config/Constants';
 import { Background } from '../objects/Background';
 import { Player } from '../objects/Player';
 import { Barrier } from '../objects/Barrier';
@@ -33,6 +33,7 @@ export class GameScene extends Phaser.Scene {
   private running = false;
   private lastMoveDir: -1 | 0 | 1 = 0;
   private boostUntilMs = -1;
+  private passCount = 0;
 
   constructor() {
     super('Game');
@@ -42,8 +43,10 @@ export class GameScene extends Phaser.Scene {
     this.running = true;
     this.lastMoveDir = 0;
     this.boostUntilMs = -1;
+    this.passCount = 0;
 
-    this.bg = new Background(this).setDepth(0);
+    // Start each run on a random point in the day-cycle for variety.
+    this.bg = new Background(this, Phaser.Math.Between(0, BG_THEME_KEYS.length - 1)).setDepth(0);
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
@@ -145,6 +148,10 @@ export class GameScene extends Phaser.Scene {
 
     const label = mult > 1 ? `+${Math.round(points)}  x${mult}` : `+${Math.round(points)}`;
     this.fx.popup(px, py, label, mult > 1 ? '#ffd54a' : '#ffffff', mult > 1 ? 32 : 26);
+
+    // Drift the world through the day-cycle every so many cleared obstacles.
+    this.passCount += 1;
+    if (this.passCount % BG_CFG.changeEveryPasses === 0) this.bg.nextTheme();
   }
 
   private gameOver(): void {

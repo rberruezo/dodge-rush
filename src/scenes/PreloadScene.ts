@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
+  BG_THEME_KEYS,
   CHARACTER_FRAME,
   GAME_WIDTH,
   GAME_HEIGHT,
@@ -33,7 +34,7 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
-    this.load.image(ASSET_KEYS.BACKGROUND, 'assets/background.png');
+    BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {

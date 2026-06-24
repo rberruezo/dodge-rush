@@ -1,12 +1,20 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
+  BG_THEME_KEYS,
+  BG_CFG,
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
   OBSTACLE_CFG,
-  GAME_WIDTH,
-  GAME_HEIGHT
+  GAME_WIDTH
 } from '../config/Constants';
+
+/** Fallback gradient palette per background theme (top sky → bottom horizon). */
+const THEME_FALLBACK: Record<string, [number, number]> = {
+  bg_sunset: [0x2a1a4a, 0xff9e5c],
+  bg_twilight: [0x3a2a5a, 0xff9ecf],
+  bg_night: [0x0a1030, 0x4f7bff]
+};
 
 /**
  * Procedurally generates stand-in textures when the real art assets are missing
@@ -38,9 +46,12 @@ export class TextureFactory {
       reset(ASSET_KEYS.CHARACTER);
       TextureFactory.makeCharacterSheet(scene);
     }
-    if (need(ASSET_KEYS.BACKGROUND)) {
-      reset(ASSET_KEYS.BACKGROUND);
-      TextureFactory.makeBackground(scene);
+    for (const key of BG_THEME_KEYS) {
+      if (need(key)) {
+        reset(key);
+        const [top, bot] = THEME_FALLBACK[key] ?? [0x2a1a4a, 0xff9ecf];
+        TextureFactory.makeBackgroundTheme(scene, key, top, bot);
+      }
     }
     if (need(ASSET_KEYS.OBSTACLES)) {
       reset(ASSET_KEYS.OBSTACLES);
@@ -85,28 +96,35 @@ export class TextureFactory {
     }
   }
 
-  /** A soft vertical gradient that reads as a dreamy sky for the scrolling bg. */
-  private static makeBackground(scene: Phaser.Scene): void {
+  /**
+   * A mirror-symmetric vertical gradient (sky at top & bottom, horizon glow in
+   * the middle) so it loops seamlessly like the real doubled backgrounds.
+   */
+  private static makeBackgroundTheme(
+    scene: Phaser.Scene,
+    key: string,
+    topColor: number,
+    botColor: number
+  ): void {
     const w = GAME_WIDTH;
-    const h = GAME_HEIGHT;
+    const h = BG_CFG.loopHeight;
+    const mid = h / 2;
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    const steps = 48;
-    const top = Phaser.Display.Color.ValueToColor(0x2a1a4a);
-    const bot = Phaser.Display.Color.ValueToColor(0xff9ecf);
+    const top = Phaser.Display.Color.ValueToColor(topColor);
+    const bot = Phaser.Display.Color.ValueToColor(botColor);
+    const steps = 96;
     for (let i = 0; i < steps; i++) {
-      const t = i / (steps - 1);
+      const y = (h / steps) * i;
+      const t = 1 - Math.abs(y - mid) / mid; // 0 at edges, 1 at the middle horizon
       const col = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, 1, t);
       g.fillStyle(Phaser.Display.Color.GetColor(col.r, col.g, col.b), 1);
-      g.fillRect(0, Math.floor((h / steps) * i), w, Math.ceil(h / steps) + 1);
+      g.fillRect(0, Math.floor(y), w, Math.ceil(h / steps) + 1);
     }
-    // A few twinkles for texture.
-    g.fillStyle(0xffffff, 0.6);
-    for (let i = 0; i < 40; i++) {
-      const x = (i * 97) % w;
-      const y = (i * 211) % h;
-      g.fillRect(x, y, 2, 2);
+    g.fillStyle(0xffffff, 0.5); // twinkles
+    for (let i = 0; i < 80; i++) {
+      g.fillRect((i * 97) % w, (i * 211) % h, 2, 2);
     }
-    g.generateTexture(ASSET_KEYS.BACKGROUND, w, h);
+    g.generateTexture(key, w, h);
     g.destroy();
   }
 
