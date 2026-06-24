@@ -16,11 +16,15 @@ import { TextureFactory } from '../utils/TextureFactory';
  * generated fallback (see TextureFactory) so the game always reaches the menu.
  */
 export class PreloadScene extends Phaser.Scene {
+  private failed = new Set<string>();
+
   constructor() {
     super('Preload');
   }
 
   preload(): void {
+    this.failed.clear();
+
     this.buildLoadingBar();
 
     // Real assets live in /public/assets. Missing files trigger 'loaderror',
@@ -33,13 +37,14 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
+      this.failed.add(file.key);
       console.warn(`[DodgeRush] Missing asset "${file.key}" — using generated fallback.`);
     });
   }
 
   create(): void {
-    // Fill in anything that did not load, then slice obstacle sub-frames.
-    TextureFactory.ensureFallbacks(this);
+    // Fill in anything that did not load (or loaded broken), then slice frames.
+    TextureFactory.ensureFallbacks(this, this.failed);
     TextureFactory.registerObstacleFrames(this);
 
     // Build character animations from whichever sheet we ended up with.

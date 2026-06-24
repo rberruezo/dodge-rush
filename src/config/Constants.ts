@@ -46,18 +46,22 @@ export const COLORS = {
 /**
  * Character sprite-sheet slicing.
  *
- * The supplied sheet is a 6-column grid of cute pixel poses. Frames are numbered
- * left-to-right, top-to-bottom starting at 0:
- *   row 0 (0-5)   idle / look around
- *   row 1 (6-11)  jet/propeller flight  -> used as the falling loop
+ * NOTE: the raw art is an irregular AI grid (varying pitch). It is re-packed by
+ * `scripts/build-character.py` into a clean, uniform 6-column x 5-row sheet at
+ * `public/assets/character.png` with these exact cell dimensions. Frames are
+ * numbered left-to-right, top-to-bottom starting at 0:
+ *   row 0 (0-5)   idle (front-facing)
+ *   row 1 (6-11)  jet flight  -> the falling loop (faces RIGHT by default)
  *   row 2 (12-17) flight variant
  *   row 3 (18-23) dizzy / hurt
  *   row 4 (24-29) cheer / celebrate
- * If your sheet's cell size differs, only change `width`/`height` here.
+ * The sprite's natural orientation faces RIGHT, so we mirror (flipX) when moving
+ * left — see Player.steer(). Cells are small (downscaled to a pixel-art palette);
+ * the game upscales them nearest-neighbour for crisp pixels.
  */
 export const CHARACTER_FRAME = {
-  width: 170,
-  height: 248
+  width: 48,
+  height: 60
 } as const;
 
 export const CHARACTER_ANIMS = {
@@ -95,12 +99,14 @@ export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
 
 /** Player tuning. Speeds are in pixels-per-millisecond for frame-rate independence. */
 export const PLAYER_CFG = {
-  displayWidth: 84, // on-screen width; height scales proportionally
+  displayWidth: 108, // on-screen cell width; the sprite itself sits ~70% of this
   startYRatio: 0.26, // vertical screen position the player holds while "falling"
   moveSpeed: 0.62, // horizontal travel speed
-  hitboxScaleX: 0.42, // forgiving collision box (fraction of display size)
-  hitboxScaleY: 0.5,
-  tiltDegrees: 14 // lean angle when moving sideways
+  // Forgiving collision box. The re-packed cell has transparent padding, so the
+  // hitbox is a small fraction of the cell (≈ the character's solid body).
+  hitboxScaleX: 0.34,
+  hitboxScaleY: 0.4,
+  tiltDegrees: 7 // gentle bank into the direction of travel
 } as const;
 
 /** Barrier / hole tuning. */

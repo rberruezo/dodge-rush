@@ -41,7 +41,7 @@ export class GameOverScene extends Phaser.Scene {
       .setShadow(0, 5, '#00000099', 0, true, true);
 
     // Reaction sprite: cheering on a new best, otherwise dizzy.
-    const hero = this.add.sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? 24 : 18).setScale(1.2);
+    const hero = this.add.sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? 24 : 18).setScale(2.6);
     const anim = isNewBest ? ANIM_KEYS.CHEER : ANIM_KEYS.HURT;
     if (this.anims.exists(anim)) hero.play(anim);
 

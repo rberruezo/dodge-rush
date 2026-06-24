@@ -40,16 +40,19 @@ export class Player extends Phaser.GameObjects.Sprite {
     }
   }
 
-  /** Steer + tilt. `dt` is the frame delta in ms, `dir` is -1/0/1. */
+  /** Steer, face the travel direction, and bank. `dir` is -1/0/1. */
   steer(dt: number, dir: -1 | 0 | 1): void {
     if (dir !== 0) {
       this.x += dir * PLAYER_CFG.moveSpeed * dt;
+      // Art faces RIGHT by default -> mirror when heading left.
+      this.setFlipX(dir === -1);
+      // Bank into the turn (mirror the lean too, so it reads naturally flipped).
       this.targetTilt = dir * PLAYER_CFG.tiltDegrees;
     } else {
-      this.targetTilt = 0;
+      this.targetTilt = 0; // ease back to level when coasting (keep last facing)
     }
 
-    const margin = this.displayWidth * 0.42;
+    const margin = this.displayWidth * 0.34;
     this.x = Phaser.Math.Clamp(this.x, margin, GAME_WIDTH - margin);
 
     // Ease toward the target lean for smooth, springy motion.

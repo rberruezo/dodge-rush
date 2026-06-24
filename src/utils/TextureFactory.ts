@@ -13,15 +13,36 @@ import {
  * broken asset path degrades gracefully instead of crashing the boot sequence.
  */
 export class TextureFactory {
-  /** Build any textures that did not load, matching the expected frame layouts. */
-  static ensureFallbacks(scene: Phaser.Scene): void {
-    if (!scene.textures.exists(ASSET_KEYS.CHARACTER)) {
+  /**
+   * True when a texture key is unusable: not registered, or registered but
+   * pointing at Phaser's __MISSING placeholder (which is what a failed load
+   * leaves behind — `textures.exists()` alone returns true for it).
+   */
+  private static isUnusable(scene: Phaser.Scene, key: string): boolean {
+    if (!scene.textures.exists(key)) return true;
+    return scene.textures.get(key).key !== key;
+  }
+
+  /**
+   * Build any textures that did not load, matching the expected frame layouts.
+   * `failed` is the set of keys whose load errored (tracked by the preloader).
+   */
+  static ensureFallbacks(scene: Phaser.Scene, failed?: Set<string>): void {
+    const need = (key: string) => failed?.has(key) || TextureFactory.isUnusable(scene, key);
+    const reset = (key: string) => {
+      if (scene.textures.exists(key)) scene.textures.remove(key);
+    };
+
+    if (need(ASSET_KEYS.CHARACTER)) {
+      reset(ASSET_KEYS.CHARACTER);
       TextureFactory.makeCharacterSheet(scene);
     }
-    if (!scene.textures.exists(ASSET_KEYS.BACKGROUND)) {
+    if (need(ASSET_KEYS.BACKGROUND)) {
+      reset(ASSET_KEYS.BACKGROUND);
       TextureFactory.makeBackground(scene);
     }
-    if (!scene.textures.exists(ASSET_KEYS.OBSTACLES)) {
+    if (need(ASSET_KEYS.OBSTACLES)) {
+      reset(ASSET_KEYS.OBSTACLES);
       TextureFactory.makeObstaclePack(scene);
     }
   }
