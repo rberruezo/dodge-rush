@@ -81,8 +81,8 @@ export class GameOverScene extends Phaser.Scene {
 
     // Opt-in double-coins via rewarded ad (only when there's something to double).
     if (this.coinsEarned > 0) {
-      this.doubleBtn = new Button(this, cx, 632, '▶  DOUBLE COINS', () => this.doubleCoins(), {
-        width: 340,
+      this.doubleBtn = new Button(this, cx, 632, '▶ DOUBLE COINS', () => this.doubleCoins(), {
+        width: 408,
         height: 64,
         fontSize: 24,
         fill: 0xffa726,
@@ -121,7 +121,7 @@ export class GameOverScene extends Phaser.Scene {
     this.doubleBtn?.setLabel('LOADING…');
     Rewarded.show('double_coins').then((earned) => {
       if (!earned) {
-        this.doubleBtn?.setLabel('▶  DOUBLE COINS');
+        this.doubleBtn?.setLabel('▶ DOUBLE COINS');
         return;
       }
       this.coinsDoubled = true;

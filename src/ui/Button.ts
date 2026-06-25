@@ -25,6 +25,7 @@ export class Button extends Phaser.GameObjects.Container {
   private hit: Phaser.GameObjects.Rectangle;
   private btnW: number;
   private btnH: number;
+  private baseFontSize: number;
   private fillColor: number;
   private pressed = false;
 
@@ -41,6 +42,7 @@ export class Button extends Phaser.GameObjects.Container {
 
     this.btnW = style.width ?? 300;
     this.btnH = style.height ?? 88;
+    this.baseFontSize = style.fontSize ?? 28;
     this.fillColor = style.fill ?? 0xff4f9a;
 
     this.bg = scene.add.graphics();
@@ -49,11 +51,12 @@ export class Button extends Phaser.GameObjects.Container {
     this.label = scene.add
       .text(0, 0, text, {
         fontFamily: FONT_HEAD,
-        fontSize: `${style.fontSize ?? 28}px`,
+        fontSize: `${this.baseFontSize}px`,
         color: style.textColor ?? COLORS.white
       })
       .setOrigin(0.5)
       .setShadow(0, 3, '#00000088', 0, true, true);
+    this.fitLabel();
 
     // Transparent, generously-sized hit target (centred via origin 0.5).
     this.hit = scene.add
@@ -84,7 +87,19 @@ export class Button extends Phaser.GameObjects.Container {
 
   setLabel(text: string): this {
     this.label.setText(text);
+    this.fitLabel();
     return this;
+  }
+
+  /** Shrink the font (from its base size) so the label always fits the button. */
+  private fitLabel(): void {
+    const maxW = this.btnW - 32; // inner horizontal padding
+    let size = this.baseFontSize;
+    this.label.setFontSize(size);
+    while (this.label.width > maxW && size > 8) {
+      size -= 1;
+      this.label.setFontSize(size);
+    }
   }
 
   /** Visual-only press feedback (hit target is never scaled). */
