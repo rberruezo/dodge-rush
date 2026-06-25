@@ -25,22 +25,25 @@ NORM_W = 150
 
 # out-category order -> source row index
 # out-category order = [hover, move, move_hard, boost, cheer, combo, specials].
-# These sheets draw their side-flight poses facing RIGHT, but the game's facing
-# logic expects move/move_hard art to face LEFT (like the main character), so we
-# horizontally flip those two output rows (indices 1 and 2).
-FLIP_ROWS = {1, 2}
+# The game's facing logic expects move/move_hard art to face LEFT and the rest
+# (hover/boost/combo) to face RIGHT. These source sheets vary per row, so each
+# sheet lists which OUTPUT rows to horizontally flip to match that convention.
 SHEETS = [
     {
         'src': '/Users/rama/Downloads/Gemini_Generated_Image_ai2qqlai2qqlai2q.png',
         'out': 'public/assets/character_cat.png',
         'cols': 6, 'rows': 7,
         'row_map': [1, 0, 2, 3, 4, 5, 6],
+        # cat: hover(0) faces left + move/move_hard(1,2) face right -> flip all three
+        'flip': {0, 1, 2},
     },
     {
         'src': '/Users/rama/Downloads/Gemini_Generated_Image_42wiqe42wiqe42wi.png',
         'out': 'public/assets/character_unicorn.png',
         'cols': 6, 'rows': 5,
         'row_map': [2, 0, 1, 0, 3, 3, 4],
+        # unicorn: hover already faces right; only move/move_hard need flipping
+        'flip': {1, 2},
     },
 ]
 
@@ -148,7 +151,7 @@ def build(cfg):
             x0, y0 = round(col * cw), round(src_row * ch)
             cell = im.crop((x0, y0, x0 + round(cw), y0 + round(ch)))
             tile = normalize(extract(cell))
-            if out_row in FLIP_ROWS:
+            if out_row in cfg['flip']:
                 tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
             big.paste(tile, (col * WINDOW, out_row * WINDOW))
     final = pixelate(big)
