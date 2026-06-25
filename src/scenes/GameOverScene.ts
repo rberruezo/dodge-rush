@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
@@ -36,10 +36,10 @@ export class GameOverScene extends Phaser.Scene {
 
     this.add.text(cx, 140, 'GAME OVER', Text.title(40)).setOrigin(0.5);
 
-    const hero = this.add
-      .sprite(cx, 280, ASSET_KEYS.CHARACTER, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
-      .setScale(1.15);
     const skin = getSkin(Profile.selected);
+    const hero = this.add
+      .sprite(cx, 280, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .setScale(1.15);
     if (skin.tint !== null) hero.setTint(skin.tint);
     this.tweens.add({
       targets: hero,

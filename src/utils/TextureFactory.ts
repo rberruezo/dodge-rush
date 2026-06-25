@@ -8,6 +8,14 @@ import {
   OBSTACLE_CFG,
   GAME_WIDTH
 } from '../config/Constants';
+import { SKIN_SHEETS } from '../config/Skins';
+
+/** Fallback body colour per character sheet key. */
+const SHEET_FALLBACK: Record<string, number> = {
+  character: 0xff4f9a,
+  character_cat: 0xffa24a,
+  character_unicorn: 0x9fe6d2
+};
 
 /** Fallback gradient palette per background theme (top sky → bottom horizon). */
 const THEME_FALLBACK: Record<string, [number, number]> = {
@@ -42,9 +50,11 @@ export class TextureFactory {
       if (scene.textures.exists(key)) scene.textures.remove(key);
     };
 
-    if (need(ASSET_KEYS.CHARACTER)) {
-      reset(ASSET_KEYS.CHARACTER);
-      TextureFactory.makeCharacterSheet(scene);
+    for (const sheet of SKIN_SHEETS) {
+      if (need(sheet)) {
+        reset(sheet);
+        TextureFactory.makeCharacterSheet(scene, sheet, SHEET_FALLBACK[sheet] ?? 0xff4f9a);
+      }
     }
     for (const key of BG_THEME_KEYS) {
       if (need(key)) {
@@ -59,10 +69,10 @@ export class TextureFactory {
     }
   }
 
-  /** A 6x5 grid of simple animated blobs so character animations still work. */
-  private static makeCharacterSheet(scene: Phaser.Scene): void {
+  /** A 6x7 grid of simple animated blobs so character animations still work. */
+  private static makeCharacterSheet(scene: Phaser.Scene, key: string, color: number): void {
     const cols = 6;
-    const rows = 5;
+    const rows = 7;
     const fw = CHARACTER_FRAME.width;
     const fh = CHARACTER_FRAME.height;
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
@@ -72,7 +82,7 @@ export class TextureFactory {
         const ox = c * fw;
         const oy = r * fh;
         const bob = (c % 3) * 6; // subtle per-frame motion
-        g.fillStyle(0xff4f9a, 1);
+        g.fillStyle(color, 1);
         g.fillRoundedRect(ox + fw * 0.2, oy + fh * 0.22 + bob, fw * 0.6, fh * 0.55, 24);
         g.fillStyle(0xffe0b8, 1); // face
         g.fillCircle(ox + fw * 0.5, oy + fh * 0.4 + bob, fw * 0.18);
@@ -81,12 +91,10 @@ export class TextureFactory {
         g.fillCircle(ox + fw * 0.57, oy + fh * 0.38 + bob, 6);
       }
     }
-    g.generateTexture(ASSET_KEYS.CHARACTER, cols * fw, rows * fh);
+    g.generateTexture(key, cols * fw, rows * fh);
     g.destroy();
 
-    // Register the sheet's frame grid so it behaves like a loaded spritesheet.
-    // (generateTexture already created the implicit __BASE frame.)
-    const tex = scene.textures.get(ASSET_KEYS.CHARACTER);
+    const tex = scene.textures.get(key);
     let i = 0;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {

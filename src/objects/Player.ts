@@ -34,6 +34,7 @@ export class Player extends Phaser.GameObjects.Sprite {
   private poseKey = '';
   private faceDir: 1 | -1 = 1; // last horizontal facing (+1 right, -1 left)
   private natFacesRight = true; // natural facing of the current pose
+  private sheetKey: string = ASSET_KEYS.CHARACTER; // skin sprite sheet
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ASSET_KEYS.CHARACTER, 0);
@@ -50,7 +51,9 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.setPose({ kind: 'hover' });
   }
 
-  private playSafe(key: string): void {
+  /** Play a base animation for the current skin sheet (`<sheet>:<base>`). */
+  private playSafe(base: string): void {
+    const key = `${this.sheetKey}:${base}`;
     if (this.scene.anims.exists(key)) this.play(key, true);
   }
 
@@ -126,10 +129,13 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.refreshFlip();
   }
 
-  /** Apply a skin recolour (null = original art). */
-  applySkin(tint: number | null): void {
+  /** Equip a skin: switch sprite sheet, recolour tint, and re-arm the pose. */
+  applySkin(sheet: string, tint: number | null): void {
+    this.sheetKey = sheet;
+    if (this.scene.textures.exists(sheet)) this.setTexture(sheet, 0);
     if (tint === null) this.clearTint();
     else this.setTint(tint);
+    this.poseKey = ''; // force setPose to replay the anim on the new sheet
   }
 
   getHitbox(): Hitbox {

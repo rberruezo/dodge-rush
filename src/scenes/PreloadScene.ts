@@ -35,6 +35,15 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
+    // Alternate skin sheets (same 6x7 / 120px layout as the main character).
+    this.load.spritesheet('character_cat', 'assets/character_cat.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
+    this.load.spritesheet('character_unicorn', 'assets/character_unicorn.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
     BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
 

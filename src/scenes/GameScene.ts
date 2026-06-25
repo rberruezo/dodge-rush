@@ -112,9 +112,9 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
 
-    // Apply the selected skin (recolour + trail colour).
+    // Apply the selected skin (sprite sheet + recolour + trail colour).
     const skin = getSkin(Profile.selected);
-    this.player.applySkin(skin.tint);
+    this.player.applySkin(skin.sheet, skin.tint);
     this.trailColor = skin.trail;
 
     this.score = new ScoreManager();

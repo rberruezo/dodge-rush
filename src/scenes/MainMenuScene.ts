@@ -24,6 +24,7 @@ import { Sound, MUSIC } from '../systems/SoundManager';
 export class MainMenuScene extends Phaser.Scene {
   private bg!: Background;
   private hero!: Phaser.GameObjects.Sprite;
+  private heroSheet = 'character';
   private muteText!: Phaser.GameObjects.Text;
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
   private launching = false;
@@ -48,11 +49,13 @@ export class MainMenuScene extends Phaser.Scene {
     const t1 = this.add.text(cx, 125, 'DODGE', Text.title(54)).setOrigin(0.5);
     const t2 = this.add.text(cx, 205, 'RUSH', Text.title(54, COLORS.accent)).setOrigin(0.5);
 
-    // Hovering hero with the equipped skin.
-    this.hero = this.add.sprite(cx, 340, ASSET_KEYS.CHARACTER, 0).setScale(1.0).setDepth(10);
+    // Hovering hero wearing the equipped skin (its own sheet + optional tint).
     const skin = getSkin(Profile.selected);
+    this.heroSheet = skin.sheet;
+    this.hero = this.add.sprite(cx, 340, skin.sheet, 0).setScale(1.0).setDepth(10);
     if (skin.tint !== null) this.hero.setTint(skin.tint);
-    if (this.anims.exists(ANIM_KEYS.HOVER)) this.hero.play(ANIM_KEYS.HOVER);
+    const hoverKey = `${skin.sheet}:${ANIM_KEYS.HOVER}`;
+    if (this.anims.exists(hoverKey)) this.hero.play(hoverKey);
     this.tweens.add({
       targets: this.hero,
       y: 324,
@@ -134,7 +137,8 @@ export class MainMenuScene extends Phaser.Scene {
       .setDepth(9);
 
     this.tweens.killTweensOf(this.hero);
-    if (this.anims.exists(ANIM_KEYS.BOOST)) this.hero.play(ANIM_KEYS.BOOST);
+    const boostKey = `${this.heroSheet}:${ANIM_KEYS.BOOST}`;
+    if (this.anims.exists(boostKey)) this.hero.play(boostKey);
 
     const startY = GAME_HEIGHT * PLAYER_CFG.startYRatio;
     this.tweens.add({
