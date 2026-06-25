@@ -136,16 +136,15 @@ def face(d, fx, fy, expr="calm", eyescale=1.0):
     oval(d, fx, fy, 14, 15, CREAM_SH)
     oval(d, fx, fy - 0.6, 13, 14, CREAM)
     oval(d, fx - 4, fy - 5, 6, 5.5, CREAM_HI)
-    le, re = fx - 5, fx + 5
+    le, re = fx - 6, fx + 6
     ey = fy + 1
     if expr in ("calm", "happy"):
-        for ox, rr in ((le, 5.0 * eyescale), (re, 5.4 * eyescale)):
-            oval(d, ox, ey, rr, rr + 0.6, EYE)
-            oval(d, ox - 1.5, ey - 1.8, rr * 0.42, rr * 0.42, WHITE)
-            oval(d, ox + 1.3, ey + 1.8, rr * 0.22, rr * 0.22, WHITE)
-        oval(d, le - 4, ey + 5, 2.6, 1.7, BLUSH)
-        oval(d, re + 4, ey + 5, 2.6, 1.7, BLUSH)
-        arc(d, fx, ey + 5, 2.6, 2.2, 25, 155, 1.4, EYE)
+        for ox, rr in ((le, 4.2 * eyescale), (re, 4.5 * eyescale)):
+            oval(d, ox, ey, rr, rr + 0.5, EYE)
+            oval(d, ox - 1.4, ey - 1.7, rr * 0.46, rr * 0.46, WHITE)
+        oval(d, le - 3.5, ey + 4.5, 2.4, 1.6, BLUSH)
+        oval(d, re + 3.5, ey + 4.5, 2.4, 1.6, BLUSH)
+        arc(d, fx, ey + 4, 2.6, 2.2, 25, 155, 1.4, EYE)
     elif expr == "joy":
         for ox in (le, re):
             arc(d, ox, ey + 1, 3.2, 3.0, 188, 352, 1.5, EYE)
@@ -184,12 +183,14 @@ def face(d, fx, fy, expr="calm", eyescale=1.0):
 
 
 def goggles(d, fx, fy):
-    """Aviator goggles pushed up on the brow."""
-    line(d, fx - 13, fy - 8, fx + 12, fy - 9, 3.2, DARK)
-    for ox in (fx - 6, fx + 6):
-        oval(d, ox, fy - 9, 4.4, 4.2, DARK)
-        oval(d, ox, fy - 9, 3.2, 3.0, GLASS)
-        oval(d, ox - 1.2, fy - 10, 1.2, 1.1, GLASS_HI)
+    """Small aviator goggles resting on the helmet rim, clear above the eyes.
+    Kept light (teal glass, thin dark rim) so they don't read as a 2nd pair
+    of eyes — the real eyes stay the dominant feature."""
+    line(d, fx - 11, fy - 13, fx + 11, fy - 14, 2.2, DARK)
+    for ox in (fx - 5.5, fx + 5.5):
+        oval(d, ox, fy - 14, 3.4, 3.2, DARK)
+        oval(d, ox, fy - 14, 2.6, 2.4, GLASS)
+        oval(d, ox - 0.9, fy - 14.8, 1.0, 0.9, GLASS_HI)
 
 
 def body(d, bx, by, sig, sig_hi, sig_sh):
