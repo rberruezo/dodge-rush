@@ -1,16 +1,9 @@
 import { STORAGE_KEYS } from '../config/Constants';
 import { SKINS } from '../config/Skins';
 
-/** A recorded best-run path: the player's x sampled every `dt` ms. */
-export interface GhostData {
-  dt: number;
-  xs: number[];
-  score: number;
-}
-
 /**
- * Persistent player profile: coins, owned/selected skins, and the best-run
- * "ghost" path. All localStorage-backed, with safe fallbacks in private mode.
+ * Persistent player profile: coins and owned/selected skins. All
+ * localStorage-backed, with safe fallbacks in private mode.
  */
 class ProfileManagerImpl {
   private coins_ = 0;
@@ -19,7 +12,10 @@ class ProfileManagerImpl {
 
   constructor() {
     try {
-      this.coins_ = parseInt(localStorage.getItem(STORAGE_KEYS.COINS) ?? '0', 10) || 0;
+      // Sanitize the persisted balance: reject NaN, negatives and non-integers
+      // (private-mode noise or a tampered localStorage value) -> fall back to 0.
+      const storedCoins = parseInt(localStorage.getItem(STORAGE_KEYS.COINS) ?? '0', 10);
+      this.coins_ = Number.isFinite(storedCoins) && storedCoins > 0 ? Math.floor(storedCoins) : 0;
       const owned = JSON.parse(localStorage.getItem(STORAGE_KEYS.OWNED_SKINS) ?? '[]') as string[];
       this.owned = new Set(['classic', ...owned]);
       const sel = localStorage.getItem(STORAGE_KEYS.SELECTED_SKIN);
@@ -61,20 +57,6 @@ class ProfileManagerImpl {
     if (!this.owned.has(id)) return;
     this.selected_ = id;
     this.save(STORAGE_KEYS.SELECTED_SKIN, id);
-  }
-
-  // --- Ghost --------------------------------------------------------------
-  loadGhost(): GhostData | null {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.GHOST);
-      return raw ? (JSON.parse(raw) as GhostData) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  saveGhost(data: GhostData): void {
-    this.save(STORAGE_KEYS.GHOST, JSON.stringify(data));
   }
 
   private save(key: string, value: string): void {

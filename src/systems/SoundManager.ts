@@ -244,7 +244,7 @@ class SoundManagerImpl {
     window.setTimeout(() => this.tone(784, 0.12, 'square', 0.4), 90);
   }
 
-  dash(): void {
+  smash(): void {
     this.tone(900, 0.16, 'sawtooth', 0.32, 260);
     this.tone(1300, 0.1, 'triangle', 0.2);
   }

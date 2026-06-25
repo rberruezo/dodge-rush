@@ -1,8 +1,15 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 
 // Mobile-friendly, relative-base build so the game can be hosted from any subpath.
 export default defineConfig({
   base: './',
+  // Unit tests run the game's pure logic systems (no Phaser/DOM needed).
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    setupFiles: ['./test/setup.ts']
+  },
   server: {
     host: true, // expose on LAN so you can test on a real phone
     port: 5173

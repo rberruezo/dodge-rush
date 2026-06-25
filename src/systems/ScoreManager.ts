@@ -58,7 +58,9 @@ export class ScoreManager {
 
   private static load(): number {
     try {
-      return parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) ?? '0', 10) || 0;
+      // Reject NaN / negative high scores (tampered or corrupt storage).
+      const v = parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) ?? '0', 10);
+      return Number.isFinite(v) && v > 0 ? v : 0;
     } catch {
       return 0;
     }

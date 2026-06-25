@@ -8,7 +8,7 @@ export interface SkinDef {
   name: string;
   sheet: string; // texture key (sprite sheet)
   tint: number | null; // recolour tint, or null for the sheet's own colours
-  trail: number; // dash / jet trail particle colour
+  trail: number; // smash-power / jet trail particle colour
   cost: number;
 }
 
@@ -20,7 +20,8 @@ export const SKINS: SkinDef[] = [
   { id: 'gold', name: 'GOLD', sheet: 'character', tint: 0xffd24a, trail: 0xffd24a, cost: 400 },
   { id: 'shadow', name: 'SHADOW', sheet: 'character', tint: 0x7d7da6, trail: 0xb0b0ff, cost: 600 },
   { id: 'cat', name: 'CAT', sheet: 'character_cat', tint: null, trail: 0xffa24a, cost: 350 },
-  { id: 'unicorn', name: 'UNICORN', sheet: 'character_unicorn', tint: null, trail: 0x8fe6d2, cost: 500 }
+  { id: 'unicorn', name: 'UNICORN', sheet: 'character_unicorn', tint: null, trail: 0x8fe6d2, cost: 500 },
+  { id: 'soplo', name: 'SOPLO', sheet: 'character_soplo', tint: null, trail: 0xb6f0c0, cost: 420 }
 ];
 
 /** Distinct sprite-sheet texture keys used by skins (loaded + animated). */

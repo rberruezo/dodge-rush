@@ -49,8 +49,7 @@ export const STORAGE_KEYS = {
   MUTED: 'dodgerush.muted',
   COINS: 'dodgerush.coins',
   OWNED_SKINS: 'dodgerush.skins',
-  SELECTED_SKIN: 'dodgerush.skin',
-  GHOST: 'dodgerush.ghost'
+  SELECTED_SKIN: 'dodgerush.skin'
 } as const;
 
 export const COLORS = {
@@ -132,7 +131,8 @@ export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
 /** Player tuning. Speeds are in pixels-per-millisecond for frame-rate independence. */
 export const PLAYER_CFG = {
   displayWidth: 122, // ~1:1 with the 120px cell -> crisp (no upscaling blur)
-  startYRatio: 0.26, // vertical screen position the player holds while "falling"
+  startYRatio: 0.34, // vertical screen position the player holds while "falling"
+  // (kept well below the top HUD so combo/celebration popups never overlap it)
   moveSpeed: 0.62, // horizontal travel speed
   // Forgiving collision box (the cell has transparent padding around the body).
   hitboxScaleX: 0.3,
@@ -217,13 +217,13 @@ export const COMBO_CFG = {
   speedBonusMax: 0.26 // cap on the combo speed bonus
 } as const;
 
-/** Dash power (double-tap a side). A quick burst with brief i-frames + cooldown. */
-export const DASH_CFG = {
-  doubleTapMs: 300, // two taps on the same side within this = dash
-  distance: 165, // how far the dash travels (px)
-  durationMs: 165, // dash travel time
-  cooldownMs: 2600, // recharge time
-  invincibleMs: 240 // brief i-frames during the dash (a panic dodge)
+/**
+ * Smash power (double-tap a side). Shatters the next approaching obstacle so the
+ * player passes through it safely (counts as a clean pass). Has a cooldown.
+ */
+export const POWER_CFG = {
+  doubleTapMs: 300, // two taps on the same side within this = activate the power
+  cooldownMs: 3000 // recharge time
 } as const;
 
 /** Lives & post-hit invincibility. */

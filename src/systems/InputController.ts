@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, DASH_CFG } from '../config/Constants';
+import { GAME_WIDTH, POWER_CFG } from '../config/Constants';
 
 /**
  * Translates raw touch / mouse / keyboard input into a single horizontal
@@ -21,8 +21,8 @@ export class InputController {
   onFirstInput?: () => void;
   private firstInputFired = false;
 
-  /** Fired on a double-tap of one side (dash trigger). */
-  onDash?: (dir: -1 | 1) => void;
+  /** Fired on a double-tap of one side (smash-power trigger). */
+  onBreak?: (dir: -1 | 1) => void;
   private lastTapSide: -1 | 1 | 0 = 0;
   private lastTapTime = 0;
 
@@ -57,11 +57,11 @@ export class InputController {
     if (!this.enabled) return;
     const side: -1 | 1 = pointer.x < GAME_WIDTH / 2 ? -1 : 1;
 
-    // Double-tap the same side -> dash that way.
+    // Double-tap the same side -> trigger the smash power.
     const t = pointer.downTime;
-    if (side === this.lastTapSide && t - this.lastTapTime <= DASH_CFG.doubleTapMs) {
-      this.onDash?.(side);
-      this.lastTapSide = 0; // consume, so a triple-tap isn't two dashes
+    if (side === this.lastTapSide && t - this.lastTapTime <= POWER_CFG.doubleTapMs) {
+      this.onBreak?.(side);
+      this.lastTapSide = 0; // consume, so a triple-tap isn't two activations
     } else {
       this.lastTapSide = side;
       this.lastTapTime = t;

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { Barrier } from '../objects/Barrier';
 import { DifficultySnapshot, DifficultyManager } from './DifficultyManager';
-import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
-import { OBSTACLE_CFG, PLAYER_CFG, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { GapPlanner } from './GapPlanner';
+import { OBSTACLE_CFG, GAME_HEIGHT } from '../config/Constants';
 
 /**
  * Infinite, fair, procedural obstacle stream.
@@ -17,7 +17,7 @@ import { OBSTACLE_CFG, PLAYER_CFG, GAME_WIDTH, GAME_HEIGHT } from '../config/Con
 export class ObstacleGenerator {
   private pool: Barrier[] = [];
   private active: Barrier[] = [];
-  private lastGapX = GAME_WIDTH / 2;
+  private planner = new GapPlanner();
 
   constructor(scene: Phaser.Scene) {
     for (let i = 0; i < OBSTACLE_CFG.poolSize; i++) this.pool.push(new Barrier(scene));
@@ -29,7 +29,7 @@ export class ObstacleGenerator {
 
   reset(snapshot: DifficultySnapshot): void {
     [...this.active].forEach((b) => this.release(b));
-    this.lastGapX = GAME_WIDTH / 2;
+    this.planner.reset();
     this.spawnAt(GAME_HEIGHT + OBSTACLE_CFG.bandHeight, snapshot);
   }
 
@@ -64,6 +64,25 @@ export class ObstacleGenerator {
     return passed;
   }
 
+  /**
+   * Smash-power: shatter the next approaching (un-passed) barrier — the one
+   * closest to the player from below. Removes it from the stream and returns it
+   * (still carrying its last gapX / y) so the scene can score it + play FX, or
+   * null if there's nothing left to break.
+   */
+  breakNext(): Barrier | null {
+    let target: Barrier | null = null;
+    for (const b of this.active) {
+      if (b.scored) continue; // already passed -> not "next"
+      if (!target || b.y < target.y) target = b;
+    }
+    if (target) {
+      target.scored = true; // so it's never double-counted as a pass
+      this.release(target);
+    }
+    return target;
+  }
+
   private lowestY(): number {
     let maxY = -Infinity;
     for (const b of this.active) maxY = Math.max(maxY, b.y);
@@ -74,54 +93,9 @@ export class ObstacleGenerator {
     const b = this.pool.pop();
     if (!b) return;
 
-    const def = this.pickType(snapshot.weights);
-    const gapWidth = Phaser.Math.Clamp(
-      snapshot.baseGap * def.gapFactor,
-      OBSTACLE_CFG.gapMin * 0.66,
-      GAME_WIDTH - OBSTACLE_CFG.edgePadding * 2
-    );
-    const band = OBSTACLE_CFG.bandHeight * def.bandFactor;
-
-    const half = gapWidth / 2;
-    const minX = OBSTACLE_CFG.edgePadding + half;
-    const maxX = GAME_WIDTH - OBSTACLE_CFG.edgePadding - half;
-
-    // Random gap centre (clamped below so it stays reachable from the previous one).
-    const desired = Phaser.Math.Between(minX, maxX);
-
-    // Reachability clamp: limit how far the gap can shift from the previous one.
-    const spacing = DifficultyManager.effectiveSpacing(snapshot.speed, snapshot.spacing);
-    const travelTime = spacing / snapshot.speed; // ms for the next barrier to arrive
-    const maxShift = PLAYER_CFG.moveSpeed * travelTime * OBSTACLE_CFG.reachFactor;
-    let center = Phaser.Math.Clamp(
-      desired,
-      this.lastGapX - maxShift,
-      this.lastGapX + maxShift
-    );
-    center = Phaser.Math.Clamp(center, minX, maxX);
-
-    // Motion for the moving type (kept inside bounds & gentle enough to be fair).
-    let amp = 0;
-    let omega = 0;
-    if (def.moving) {
-      amp = Math.min(80, center - minX, maxX - center);
-      omega = (2 * Math.PI) / 2400; // ~2.4s period
-    }
-
+    const { def, center, gapWidth, band, amp, omega } = this.planner.plan(snapshot);
     b.spawn(def, y, center, gapWidth, band, amp, omega);
     this.active.push(b);
-    this.lastGapX = center;
-  }
-
-  private pickType(weights: Map<ObstacleType, number>): ObstacleTypeDef {
-    let total = 0;
-    weights.forEach((w) => (total += w));
-    let r = Math.random() * total;
-    for (const [type, w] of weights) {
-      r -= w;
-      if (r <= 0) return OBSTACLE_TYPES[type];
-    }
-    return OBSTACLE_TYPES[ObstacleType.Straight];
   }
 
   private release(b: Barrier): void {

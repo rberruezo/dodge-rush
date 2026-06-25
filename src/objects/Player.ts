@@ -128,18 +128,6 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.refreshFlip();
   }
 
-  /** Set horizontal position, clamped to the play area (used by the dash). */
-  placeX(x: number): void {
-    const margin = this.displayWidth * 0.28;
-    this.x = Phaser.Math.Clamp(x, margin, GAME_WIDTH - margin);
-  }
-
-  /** Face a direction without moving (used while dashing). */
-  face(dir: 1 | -1): void {
-    this.faceDir = dir;
-    this.refreshFlip();
-  }
-
   /** Equip a skin: switch sprite sheet, recolour tint, and re-arm the pose. */
   applySkin(sheet: string, tint: number | null): void {
     this.sheetKey = sheet;

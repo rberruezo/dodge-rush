@@ -8,14 +8,13 @@ import {
   BG_THEME_KEYS,
   LIVES_CFG,
   COMBO_CFG,
-  DASH_CFG,
+  POWER_CFG,
   CHAR_FRAMES
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
 import { Background } from '../objects/Background';
 import { Player } from '../objects/Player';
 import { Barrier } from '../objects/Barrier';
-import { Ghost } from '../objects/Ghost';
 import { ObstacleGenerator } from '../systems/ObstacleGenerator';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { ScoreManager } from '../systems/ScoreManager';
@@ -26,9 +25,6 @@ import { Profile } from '../systems/ProfileManager';
 import { HUD } from '../ui/HUD';
 import { EffectsLayer } from '../ui/EffectsLayer';
 import { Sound, MUSIC } from '../systems/SoundManager';
-
-/** Ghost path sampling interval (ms). */
-const GHOST_DT = 90;
 
 /**
  * The playable scene. Orchestrates difficulty, the obstacle stream, the combo
@@ -59,20 +55,9 @@ export class GameScene extends Phaser.Scene {
   private beatBest = false;
   private maxCombo = 0;
 
-  // Dash power.
-  private dashUntilMs = 0;
-  private dashCdUntilMs = 0;
-  private dashInvincibleUntilMs = 0;
-  private dashStartMs = 0;
-  private dashFromX = 0;
-  private dashToX = 0;
-  private dashDir: 1 | -1 = 1;
+  // Smash power (double-tap): breaks the next approaching obstacle. Cooldown only.
+  private breakCdUntilMs = 0;
   private trailColor = 0x46e6ff;
-
-  // Record ghost.
-  private ghost!: Ghost;
-  private ghostRec: number[] = [];
-  private ghostT = 0;
 
   private startTheme = 0;
   private startScrollY = 0;
@@ -98,16 +83,9 @@ export class GameScene extends Phaser.Scene {
     this.comboCelebUntilMs = 0;
     this.comboCelebCheer = false;
     this.maxCombo = 0;
-    this.dashUntilMs = 0;
-    this.dashCdUntilMs = 0;
-    this.dashInvincibleUntilMs = 0;
-    this.ghostRec = [];
-    this.ghostT = 0;
+    this.breakCdUntilMs = 0;
 
     this.bg = new Background(this, this.startTheme, this.startScrollY).setDepth(0);
-
-    // Race the best-run ghost; behind the player.
-    this.ghost = new Ghost(this, Profile.loadGhost());
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
@@ -130,11 +108,11 @@ export class GameScene extends Phaser.Scene {
     this.fx.setCharacterSheet(getSkin(Profile.selected).sheet); // popups use equipped skin
     this.controls = new InputController(this);
     this.controls.onFirstInput = () => Sound.unlock();
-    this.controls.onDash = (dir) => this.tryDash(dir);
+    this.controls.onBreak = () => this.tryBreak();
 
     this.hud = new HUD(this, this.score.high, () => this.pauseGame());
     this.hud.setLives(this.lives, LIVES_CFG.count);
-    this.hud.setDash(true, 1);
+    this.hud.setPower(true, 1);
 
     Sound.playMusic(MUSIC.GAME);
 
@@ -161,20 +139,35 @@ export class GameScene extends Phaser.Scene {
     this.scene.pause();
   }
 
-  /** Double-tap dash: a quick burst sideways with brief i-frames + cooldown. */
-  private tryDash(dir: 1 | -1): void {
+  /**
+   * Smash power (double-tap): shatter the next approaching obstacle and pass
+   * through it as a clean pass (keeps the combo going). Cooldown-gated; does
+   * nothing (and doesn't burn the cooldown) when there's no obstacle to break.
+   */
+  private tryBreak(): void {
     if (!this.running) return;
     const now = this.score.elapsedMs;
-    if (now < this.dashCdUntilMs) return; // recharging
-    this.dashStartMs = now;
-    this.dashUntilMs = now + DASH_CFG.durationMs;
-    this.dashCdUntilMs = now + DASH_CFG.cooldownMs;
-    this.dashInvincibleUntilMs = now + DASH_CFG.invincibleMs;
-    this.dashDir = dir;
-    this.dashFromX = this.player.x;
-    this.dashToX = this.player.x + dir * DASH_CFG.distance;
-    Sound.dash();
-    this.fx.burst(this.player.x, this.player.y, this.trailColor, 14);
+    if (now < this.breakCdUntilMs) return; // recharging
+
+    const broken = this.obstacles.breakNext();
+    if (!broken) return; // nothing ahead to break -> save the charge
+
+    this.breakCdUntilMs = now + POWER_CFG.cooldownMs;
+
+    // Reward it like a clean pass so the combo (and its speed bonus) carry on.
+    const state = this.combo.increment();
+    const points = SCORE_CFG.pointsPerPass * state.multiplier;
+    this.score.addBonus(points);
+    this.maxCombo = Math.max(this.maxCombo, this.combo.combo);
+
+    // Smash feedback.
+    Sound.smash();
+    this.cameras.main.flash(120, 255, 240, 180);
+    this.fx.burst(broken.gapX, broken.y, broken.def.fill, 18);
+    this.fx.goldBurst(broken.gapX, broken.y, 10);
+    this.fx.burst(this.player.x, this.player.y, this.trailColor, 8);
+    const label = state.multiplier > 1 ? `SMASH!  x${state.multiplier}` : 'SMASH!';
+    this.fx.popup(broken.gapX, broken.y, label, '#ffd54a', 32);
   }
 
   update(_time: number, delta: number): void {
@@ -198,33 +191,15 @@ export class GameScene extends Phaser.Scene {
       this.dirHoldMs += dt; // sustained push -> growing effort
     }
 
-    const dashing = now < this.dashUntilMs;
-    if (dashing) {
-      const t = Phaser.Math.Clamp((now - this.dashStartMs) / DASH_CFG.durationMs, 0, 1);
-      const e = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      this.player.placeX(Phaser.Math.Linear(this.dashFromX, this.dashToX, e));
-      this.player.face(this.dashDir);
-    } else {
-      this.player.steer(dt, dir);
-    }
+    this.player.steer(dt, dir);
     this.player.aliveTick(dt);
-    this.ghost.update(now);
 
-    // Sample the player path for the next run's ghost.
-    this.ghostT += dt;
-    while (this.ghostT >= GHOST_DT) {
-      this.ghostT -= GHOST_DT;
-      if (this.ghostRec.length < 4000) this.ghostRec.push(Math.round(this.player.x));
-    }
-
-    // Visual pose priority: dizzy > dash > combo-celebration > boost > steering > hover.
+    // Visual pose priority: dizzy > combo-celebration > boost > steering > hover.
     const boostActive = now < this.boostUntilMs;
     const lifeInvincible = now < this.invincibleUntilMs;
-    const immune = lifeInvincible || now < this.dashInvincibleUntilMs;
+    const immune = lifeInvincible;
     if (lifeInvincible) {
       this.player.setPose({ kind: 'dizzy' });
-    } else if (dashing) {
-      this.player.setPose({ kind: 'boost' });
     } else if (now < this.comboCelebUntilMs) {
       this.player.setPose(
         this.comboCelebCheer ? { kind: 'cheer' } : { kind: 'celebrate', frame: this.comboCelebFrame }
@@ -250,9 +225,9 @@ export class GameScene extends Phaser.Scene {
       if (hit) this.loseLife();
     }
 
-    // Dash cooldown meter.
-    const cdLeft = this.dashCdUntilMs - now;
-    this.hud.setDash(cdLeft <= 0, 1 - cdLeft / DASH_CFG.cooldownMs);
+    // Smash-power cooldown meter.
+    const cdLeft = this.breakCdUntilMs - now;
+    this.hud.setPower(cdLeft <= 0, 1 - cdLeft / POWER_CFG.cooldownMs);
 
     this.hud.update(this.score.current, this.combo.combo, this.combo.multiplier, boostActive);
 
@@ -367,9 +342,6 @@ export class GameScene extends Phaser.Scene {
     // Coins from this run (by score + a combo bonus), banked to the profile.
     const coins = Math.floor(finalScore / 100) + Math.floor(this.maxCombo / 10);
     if (coins > 0) Profile.addCoins(coins);
-
-    // A new best becomes the ghost to race next time.
-    if (isNewBest) Profile.saveGhost({ dt: GHOST_DT, xs: this.ghostRec, score: finalScore });
 
     this.cameras.main.shake(300, 0.016);
     this.time.delayedCall(420, () => {
