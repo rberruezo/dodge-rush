@@ -1,16 +1,17 @@
-import { COMBO_CFG } from '../config/Constants';
+import { COMBO_TIERS, COMBO_CFG, ComboTier } from '../config/Constants';
 
 export interface ComboState {
   count: number;
   multiplier: number;
-  frame: number | null; // player sprite for the current tier (null = use fly anim)
-  tierUp: boolean; // true the moment a new multiplier tier is reached
+  frame: number | null; // numbered combo sprite for this tier (null = none)
+  fx: 'huge' | 'epic' | null; // milestone celebration intensity
+  tierUp: boolean; // reached a new tier this pass
 }
 
 /**
  * Consecutive-pass combo. Higher combo → bigger score multiplier AND a faster
- * game (speed bonus). Tiers map to the on-sprite numbers (x2/x3/x5/x10/x20).
- * Losing a life resets it (combo only breaks on a crash in this game).
+ * game. Tiers go x2/x3/x5/x10/x20, then milestone celebrations at 50, 100 and
+ * every 100 after. Resets when a life is lost.
  */
 export class ComboManager {
   private count = 0;
@@ -21,24 +22,25 @@ export class ComboManager {
     this.mult = 1;
   }
 
-  /** Register a cleared obstacle; returns the new combo state (incl. tier-up). */
   increment(): ComboState {
     this.count += 1;
     const prevMult = this.mult;
-    this.mult = this.computeMultiplier();
+    const tier = this.tier();
+    this.mult = tier ? tier.mult : 1;
     return {
       count: this.count,
       multiplier: this.mult,
-      frame: this.frame,
+      frame: tier?.frame ?? null,
+      fx: tier?.fx ?? null,
       tierUp: this.mult > prevMult
     };
   }
 
-  private computeMultiplier(): number {
-    for (const tier of COMBO_CFG.tiers) {
-      if (this.count >= tier.at) return tier.mult;
+  private tier(): ComboTier | null {
+    for (const t of COMBO_TIERS) {
+      if (this.count >= t.at) return t;
     }
-    return 1;
+    return null;
   }
 
   get combo(): number {
@@ -47,14 +49,6 @@ export class ComboManager {
 
   get multiplier(): number {
     return this.mult;
-  }
-
-  /** Player sprite frame for the current tier, or null below the first tier. */
-  get frame(): number | null {
-    for (const tier of COMBO_CFG.tiers) {
-      if (this.count >= tier.at) return tier.frame;
-    }
-    return null;
   }
 
   /** Extra fall speed contributed by the current combo (0 at x1). */

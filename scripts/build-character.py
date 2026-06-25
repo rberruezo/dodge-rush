@@ -31,6 +31,8 @@ COLS, ROWS = 6, 7
 PRE_SMOOTH = 3      # gentle denoise (keep detail at this resolution)
 PALETTE_COLORS = 40
 ALPHA_CUT = 115
+NORM_H = 132        # normalised content height (window px) -> consistent size
+NORM_W = 150        # cap width for wide poses
 
 CENTERS = {
     "hover": [(93, 122), (252, 122), (411, 122), (569, 123), (727, 123), (885, 123)],
@@ -119,6 +121,27 @@ def extract(im, cx, cy):
     return out
 
 
+def normalize(cell):
+    """
+    Scale the sprite to a consistent on-screen size and centre it, so switching
+    poses (idle vs moving vs combo) never makes the character grow/shrink.
+    Normalises by content height (capped by width for very wide poses).
+    """
+    bbox = cell.getbbox()
+    if not bbox:
+        return cell
+    content = cell.crop(bbox)
+    cw, ch = content.size
+    scale = NORM_H / ch
+    if cw * scale > NORM_W:
+        scale = NORM_W / cw
+    nw, nh = max(1, round(cw * scale)), max(1, round(ch * scale))
+    content = content.resize((nw, nh), Image.LANCZOS)
+    out = Image.new("RGBA", (WINDOW, WINDOW), (0, 0, 0, 0))
+    out.alpha_composite(content, ((WINDOW - nw) // 2, (WINDOW - nh) // 2))
+    return out
+
+
 def pixelate(sheet):
     r, g, b, a = sheet.split()
     rgb = Image.merge("RGB", (r, g, b)).filter(ImageFilter.MedianFilter(PRE_SMOOTH))
@@ -140,7 +163,7 @@ def main():
     for idx, (cat, i) in enumerate(GRID):
         cx, cy = CENTERS[cat][i]
         c, r = idx % COLS, idx // COLS
-        big.paste(extract(im, cx, cy), (c * WINDOW, r * WINDOW))
+        big.paste(normalize(extract(im, cx, cy)), (c * WINDOW, r * WINDOW))
     final = pixelate(big)
     final.save(OUT)
     print(f"wrote {OUT} {final.size} (cell {CELL}x{CELL}, {len(GRID)} frames)")

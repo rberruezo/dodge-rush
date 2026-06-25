@@ -176,21 +176,35 @@ export const SCORE_CFG = {
 
 /**
  * Combo tiers (checked high-to-low). `at` = passes needed, `mult` = score
- * multiplier, `frame` = the player sprite showing that number while flying.
- * A higher combo also speeds the game up (see `speedPerMult`) — and both the
- * multiplier and the speed bonus reset whenever a life is lost.
+ * multiplier. Tiers up to x20 flash a numbered combo sprite (`frame`); the big
+ * milestones (50, 100, then every 100) trigger a full cheer + escalating FX
+ * (`fx`). The multiplier and combo speed-bonus both reset on losing a life.
  */
+export interface ComboTier {
+  at: number;
+  mult: number;
+  frame?: number; // numbered combo sprite (x2..x20)
+  fx?: 'huge' | 'epic'; // celebration intensity for milestone tiers
+}
+
+export const COMBO_TIERS: ComboTier[] = [
+  { at: 500, mult: 200, fx: 'epic' },
+  { at: 400, mult: 160, fx: 'epic' },
+  { at: 300, mult: 120, fx: 'epic' },
+  { at: 200, mult: 90, fx: 'epic' },
+  { at: 100, mult: 60, fx: 'epic' },
+  { at: 50, mult: 35, fx: 'huge' },
+  { at: 20, mult: 20, frame: 35 },
+  { at: 12, mult: 10, frame: 34 },
+  { at: 7, mult: 5, frame: 33 },
+  { at: 4, mult: 3, frame: 32 },
+  { at: 2, mult: 2, frame: 31 }
+];
+
 export const COMBO_CFG = {
-  tiers: [
-    { at: 20, mult: 20, frame: 35 },
-    { at: 12, mult: 10, frame: 34 },
-    { at: 7, mult: 5, frame: 33 },
-    { at: 4, mult: 3, frame: 32 },
-    { at: 2, mult: 2, frame: 31 }
-  ],
-  celebrateMs: 850, // how long the combo sprite flashes before returning to flight
+  celebrateMs: 850, // how long the combo flash lasts before returning to flight
   speedPerMult: 0.012, // fall-speed added per multiplier step above 1
-  speedBonusMax: 0.24 // cap on the combo speed bonus
+  speedBonusMax: 0.26 // cap on the combo speed bonus
 } as const;
 
 /** Lives & post-hit invincibility. */

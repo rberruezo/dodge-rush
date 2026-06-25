@@ -47,6 +47,7 @@ export class GameScene extends Phaser.Scene {
   private invincibleUntilMs = 0;
   private comboCelebUntilMs = 0;
   private comboCelebFrame: number = CHAR_FRAMES.starHead;
+  private comboCelebCheer = false;
 
   constructor() {
     super('Game');
@@ -61,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     this.lives = LIVES_CFG.count;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
+    this.comboCelebCheer = false;
 
     this.bg = new Background(this, Phaser.Math.Between(0, BG_THEME_KEYS.length - 1)).setDepth(0);
 
@@ -135,7 +137,9 @@ export class GameScene extends Phaser.Scene {
     if (invincible) {
       this.player.setPose({ kind: 'dizzy' });
     } else if (now < this.comboCelebUntilMs) {
-      this.player.setPose({ kind: 'celebrate', frame: this.comboCelebFrame });
+      this.player.setPose(
+        this.comboCelebCheer ? { kind: 'cheer' } : { kind: 'celebrate', frame: this.comboCelebFrame }
+      );
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
@@ -184,15 +188,30 @@ export class GameScene extends Phaser.Scene {
     const label = mult > 1 ? `+${Math.round(points)}  x${mult}` : `+${Math.round(points)}`;
     this.fx.popup(px, py, label, mult > 1 ? '#ffd54a' : '#ffffff', mult > 1 ? 32 : 26);
 
-    // Celebrate reaching a new combo tier: briefly flash the combo sprite, then
-    // the pose logic naturally returns the player to flying.
+    // Celebrate reaching a new combo tier: briefly flash a celebration, then the
+    // pose logic naturally returns the player to flying. Bigger milestones (50,
+    // 100, 200…) cheer with escalating FX.
     if (state.tierUp) {
       Sound.newBest();
+      const cx = GAME_WIDTH / 2;
       this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
-      this.comboCelebFrame = state.frame ?? CHAR_FRAMES.starHead;
-      this.fx.popup(GAME_WIDTH / 2, py - 90, `COMBO x${mult}!`, '#ffd54a', 40);
-      if (mult >= 20) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.trophy, 3);
-      else if (mult >= 10) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.starHead, 2.6);
+      this.comboCelebCheer = state.frame === null;
+      if (state.frame !== null) this.comboCelebFrame = state.frame;
+
+      if (state.fx === 'epic') {
+        this.fx.popup(cx, py - 100, `COMBO x${mult}!`, '#ffd54a', 52);
+        this.fx.iconPopup(cx, py - 168, CHAR_FRAMES.crown, 3.2);
+        this.fx.burst(this.player.x, this.player.y, 0xffd54a, 26);
+        this.cameras.main.flash(220, 255, 230, 150);
+        this.cameras.main.shake(180, 0.008);
+      } else if (state.fx === 'huge') {
+        this.fx.popup(cx, py - 95, `COMBO x${mult}!`, '#ffd54a', 46);
+        this.fx.iconPopup(cx, py - 162, CHAR_FRAMES.trophy, 3);
+        this.fx.burst(this.player.x, this.player.y, 0xffd54a, 18);
+      } else {
+        this.fx.popup(cx, py - 90, `COMBO x${mult}!`, '#ffd54a', 40);
+        if (mult >= 10) this.fx.iconPopup(cx, py - 150, CHAR_FRAMES.starHead, 2.6);
+      }
     }
 
     this.passCount += 1;
