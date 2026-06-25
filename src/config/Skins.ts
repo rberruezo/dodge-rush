@@ -22,7 +22,11 @@ export const SKINS: SkinDef[] = [
   { id: 'cat', name: 'CAT', sheet: 'character_cat', tint: null, trail: 0xffa24a, cost: 350 },
   { id: 'unicorn', name: 'UNICORN', sheet: 'character_unicorn', tint: null, trail: 0x8fe6d2, cost: 500 },
   { id: 'phoenix', name: 'PHOENIX', sheet: 'character_phoenix', tint: null, trail: 0xff6a3d, cost: 520 },
-  { id: 'dragon', name: 'DRAGON', sheet: 'character_dragon', tint: null, trail: 0x8be07a, cost: 460 }
+  { id: 'dragon', name: 'DRAGON', sheet: 'character_dragon', tint: null, trail: 0x8be07a, cost: 460 },
+  { id: 'nemesis', name: 'NEMESIS', sheet: 'character_evil', tint: null, trail: 0xb24dff, cost: 700 },
+  { id: 'king', name: 'GOLD KING', sheet: 'character_king', tint: null, trail: 0xffd24a, cost: 800 },
+  { id: 'frost', name: 'FROST', sheet: 'character_frost', tint: null, trail: 0x9fe0ff, cost: 620 },
+  { id: 'ghost', name: 'GHOST', sheet: 'character_ghost', tint: null, trail: 0xcdd6ff, cost: 680 }
 ];
 
 /** Distinct sprite-sheet texture keys used by skins (loaded + animated). */

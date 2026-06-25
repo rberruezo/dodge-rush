@@ -53,6 +53,23 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
+    this.load.spritesheet('character_evil', 'assets/character_evil.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
+    // Tier-1 palette variants derived from the painted originals (build-variants.py).
+    this.load.spritesheet('character_king', 'assets/character_king.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
+    this.load.spritesheet('character_frost', 'assets/character_frost.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
+    this.load.spritesheet('character_ghost', 'assets/character_ghost.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
     BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
     this.load.spritesheet(ASSET_KEYS.COIN, 'assets/coin.png', {

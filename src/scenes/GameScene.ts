@@ -63,6 +63,9 @@ export class GameScene extends Phaser.Scene {
   private breakCdUntilMs = 0;
   private trailColor = 0x46e6ff;
 
+  // Next allowed time for the rising-tension "danger" pulse (throttled).
+  private dangerNextMs = 0;
+
   private startTheme = 0;
   private startScrollY = 0;
 
@@ -91,6 +94,7 @@ export class GameScene extends Phaser.Scene {
     this.comboCelebCheer = false;
     this.maxCombo = 0;
     this.breakCdUntilMs = 0;
+    this.dangerNextMs = 0;
 
     this.bg = new Background(this, this.startTheme, this.startScrollY).setDepth(0);
 
@@ -190,8 +194,19 @@ export class GameScene extends Phaser.Scene {
     // Both the bonus and its cap scale with the difficulty mode (RELAX stays calm).
     const mode = DifficultyManager.mode;
     const comboBonus = this.combo.speedBonus * mode.comboSpeedScale;
-    const speed = Math.min(LIVES_CFG.maxComboSpeed * mode.speedScale, snapshot.speed + comboBonus);
+    const maxSpeed = LIVES_CFG.maxComboSpeed * mode.speedScale;
+    const speed = Math.min(maxSpeed, snapshot.speed + comboBonus);
     this.bg.update(dt, speed);
+
+    // Rising-tension cue: a subtle low pulse once the game nears top speed.
+    if (speed >= maxSpeed * 0.82) {
+      if (now >= this.dangerNextMs) {
+        Sound.danger();
+        this.dangerNextMs = now + 700;
+      }
+    } else {
+      this.dangerNextMs = 0; // left the zone -> pulse immediately on re-entry
+    }
 
     const dir = this.controls.direction;
     if (dir !== this.lastMoveDir) {
@@ -280,6 +295,7 @@ export class GameScene extends Phaser.Scene {
       if (clearance >= 0 && clearance <= SCORE_CFG.nearMissMargin) {
         const nm = SCORE_CFG.nearMissBonus * mult;
         points += nm;
+        Sound.nearMiss();
         this.fx.popup(px, py - 34, `CLOSE! +${Math.round(nm)}`, '#9be7ff', 24);
         this.fx.burst(px, this.player.y, 0x9be7ff, 6);
       }
@@ -295,7 +311,7 @@ export class GameScene extends Phaser.Scene {
     // pose logic naturally returns the player to flying. Bigger milestones (50,
     // 100, 200…) cheer with escalating FX.
     if (state.tierUp) {
-      Sound.newBest();
+      Sound.combo(mult);
       const cx = GAME_WIDTH / 2;
       this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
       this.comboCelebCheer = state.frame === null;

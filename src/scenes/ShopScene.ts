@@ -101,7 +101,7 @@ export class ShopScene extends Phaser.Scene {
       }
     } else if (Profile.buy(skin.id)) {
       Profile.select(skin.id);
-      Sound.coin();
+      Sound.skinUnlock();
       this.scene.restart();
     } else {
       Sound.hit(); // can't afford

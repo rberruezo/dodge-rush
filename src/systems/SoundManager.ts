@@ -225,14 +225,51 @@ class SoundManagerImpl {
     osc.stop(now + duration + 0.02);
   }
 
+  /**
+   * Filtered white-noise burst with a sharp attack and fast decay — the
+   * percussive layer the oscillator `tone()` can't make (impacts, crashes).
+   * The filter can sweep so a bright hit darkens as it settles.
+   */
+  private noise(
+    duration: number,
+    volume = 0.4,
+    filterType: BiquadFilterType = 'lowpass',
+    filterFreq = 2400,
+    sweepTo?: number
+  ): void {
+    if (!this.ctx || !this.master || this.muted) return;
+    const now = this.ctx.currentTime;
+    const frames = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = filterType;
+    filter.frequency.setValueAtTime(filterFreq, now);
+    if (sweepTo !== undefined) {
+      filter.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), now + duration);
+    }
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(volume, now); // instant attack = the impact
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    src.start(now);
+    src.stop(now + duration + 0.02);
+  }
+
   // --- Named effects -------------------------------------------------------
   move(): void {
     this.tone(420, 0.06, 'square', 0.18);
   }
 
   pass(): void {
-    this.tone(660, 0.08, 'triangle', 0.3);
-    this.tone(990, 0.08, 'triangle', 0.22);
+    // Bright upward "swish + ping" — a satisfying confirm for a cleared gap.
+    this.tone(700, 0.08, 'triangle', 0.3, 1000); // quick upward swish
+    window.setTimeout(() => this.tone(1320, 0.08, 'triangle', 0.2), 45); // sparkle on top
   }
 
   button(): void {
@@ -255,7 +292,12 @@ class SoundManagerImpl {
   }
 
   hit(): void {
-    this.tone(220, 0.45, 'sawtooth', 0.55, 60);
+    // Cartoon CRASH in layers: a bright noise burst that darkens fast (the
+    // impact + debris) over a short descending body and a sub thump. Punchy
+    // but playful — reads as "bonk", not a harsh/scary smash.
+    this.noise(0.22, 0.5, 'lowpass', 3400, 500); // impact that settles
+    this.tone(180, 0.28, 'sawtooth', 0.4, 50); // descending body
+    this.tone(90, 0.3, 'square', 0.25, 38); // low sub thump
   }
 
   gameOver(): void {
@@ -267,6 +309,54 @@ class SoundManagerImpl {
     [523, 659, 784, 1047].forEach((f, i) =>
       window.setTimeout(() => this.tone(f, 0.14, 'triangle', 0.4), i * 110)
     );
+  }
+
+  /** Squeak-past-the-edge whoosh — rewards threading a gap with little clearance. */
+  nearMiss(): void {
+    this.noise(0.16, 0.3, 'bandpass', 2600, 900); // airy swish that drops in pitch
+  }
+
+  /**
+   * Combo tier-up. Pitch climbs with the streak so deeper combos sound higher
+   * and more exciting; `level` is the current multiplier (2, 3, 5, 10, 20…).
+   */
+  combo(level: number): void {
+    const step = Math.min(Math.max(level, 1), 16);
+    const base = 480 + step * 55; // rises with the streak
+    this.tone(base, 0.08, 'triangle', 0.32);
+    window.setTimeout(() => this.tone(base * 1.5, 0.09, 'triangle', 0.26), 55);
+  }
+
+  /** Countdown tick. The final beep (n <= 1) is higher/longer = "go". */
+  countdown(n: number): void {
+    const last = n <= 1;
+    this.tone(last ? 880 : 560, last ? 0.16 : 0.09, 'square', 0.32);
+  }
+
+  /** Skin-unlock fanfare: a bright ascending arpeggio capped with a sparkle. */
+  skinUnlock(): void {
+    [523, 659, 880].forEach((f, i) =>
+      window.setTimeout(() => this.tone(f, 0.12, 'triangle', 0.34), i * 80)
+    );
+    window.setTimeout(() => {
+      this.tone(1318, 0.18, 'triangle', 0.28);
+      this.tone(1760, 0.18, 'triangle', 0.18);
+    }, 260);
+  }
+
+  /** Subtle low heartbeat pulse — rising tension as the game nears top speed. */
+  danger(): void {
+    this.tone(70, 0.12, 'sine', 0.3, 55);
+  }
+
+  /**
+   * Spending currency — a soft descending counterpart to `coin` (which is for
+   * earning). Not wired yet: today the only coin sink is buying skins, which
+   * already plays `unlock`. Here for when a non-skin coin sink is added.
+   */
+  coinSpend(): void {
+    this.tone(1568, 0.07, 'square', 0.28);
+    window.setTimeout(() => this.tone(1046, 0.1, 'square', 0.28), 70);
   }
 }
 

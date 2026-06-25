@@ -72,6 +72,8 @@ export class ContinueScene extends Phaser.Scene {
     if (this.resolved) return;
     this.secondsLeft -= 1;
     this.countText.setText(`${Math.max(0, this.secondsLeft)}`);
+    // 3-2-1 urgency beeps as the auto-decline approaches (final beep is higher).
+    if (this.secondsLeft > 0 && this.secondsLeft <= 3) Sound.countdown(this.secondsLeft);
     if (this.secondsLeft <= 0) this.decline();
   }
 
