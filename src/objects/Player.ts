@@ -15,8 +15,19 @@ export interface Pose {
   frame?: number; // for 'celebrate' (the combo-tier sprite)
 }
 
-/** Poses whose art faces RIGHT by default; everything else faces LEFT. */
-const FACES_RIGHT: Record<string, boolean> = { hover: true, dizzy: true };
+/**
+ * Natural facing of each pose's art. The side-flight poses (move/moveHard) face
+ * LEFT; the celebration / boost / idle poses face RIGHT. We mirror per-pose so
+ * every pose ends up facing the travel direction — otherwise celebrating would
+ * appear to flip the character around.
+ */
+const FACES_RIGHT: Record<string, boolean> = {
+  hover: true,
+  dizzy: true,
+  boost: true,
+  cheer: true,
+  celebrate: true
+};
 
 /**
  * The falling character. Holds a fixed vertical line while obstacles scroll past.
