@@ -66,6 +66,17 @@ SHEETS = [
         # all poses face LEFT; move/move_hard stay, the rest must face RIGHT.
         'flip': {0, 3, 4, 5, 6},
     },
+    {
+        'src': '/Users/rama/Downloads/Gemini_Generated_Image_61rfwz61rfwz61rf.png',
+        'out': 'public/assets/character_wizard.png',
+        'cols': 6, 'rows': 7,
+        # rows already in category order; row 6 matches the specials slots.
+        # Per-row natural facing varies: src0/1/3/4/5/6 face RIGHT, src2 faces
+        # LEFT. Game wants move(1)+move_hard(2) LEFT -> only src1 needs flipping.
+        # NOTE: re-download the source to this path to rebuild (it was removed).
+        'row_map': [0, 1, 2, 3, 4, 5, 6],
+        'flip': {1},
+    },
 ]
 
 

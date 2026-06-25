@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { createGameConfig } from './config/GameConfig';
 import { Sound } from './systems/SoundManager';
+import { Diagnostics } from './systems/Diagnostics';
 
 /**
  * Entry point. Instantiates the Phaser game into #game and keeps the canvas
@@ -20,10 +21,16 @@ window.visualViewport?.addEventListener('resize', refresh);
 window.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('gesturestart', (e) => e.preventDefault());
 
-// Expose the game + sound instances during development for debugging.
+// Expose the game + sound + diagnostics during development for debugging.
 if (import.meta.env.DEV) {
-  (window as unknown as { game: Phaser.Game; sound: typeof Sound }).game = game;
-  (window as unknown as { game: Phaser.Game; sound: typeof Sound }).sound = Sound;
+  const w = window as unknown as {
+    game: Phaser.Game;
+    sound: typeof Sound;
+    diagnostics: typeof Diagnostics;
+  };
+  w.game = game;
+  w.sound = Sound;
+  w.diagnostics = Diagnostics;
 }
 
 export default game;

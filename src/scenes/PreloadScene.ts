@@ -58,6 +58,10 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
+    this.load.spritesheet('character_wizard', 'assets/character_wizard.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
     this.load.spritesheet('character_evil', 'assets/character_evil.png', {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height

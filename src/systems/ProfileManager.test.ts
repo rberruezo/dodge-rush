@@ -6,6 +6,10 @@ import { STORAGE_KEYS } from '../config/Constants';
 // registry and re-import a fresh instance per case.
 async function freshProfile() {
   vi.resetModules();
+  // resetModules yields a fresh Diagnostics singleton (mirror defaults on);
+  // silence it before ProfileManager's module-load constructor may warn.
+  const diag = await import('./Diagnostics');
+  diag.Diagnostics.setConsoleMirror(false);
   const mod = await import('./ProfileManager');
   return mod.Profile;
 }

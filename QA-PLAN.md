@@ -108,7 +108,7 @@ Verificación en vivo (preview) + revisión de código:
 | 4 | Sin telemetría/analítica | Mejora | Media | Medio | ⬜ |
 | 5 | Generación procedural sin seed determinista | Testabilidad | Media | Medio | ✅ GapPlanner con RNG inyectable |
 | 6 | ~~dt grande tras pérdida de foco~~ | — | — | — | ✅ ya mitigado (no era bug) |
-| 7 | Errores silenciados (`console.warn`) sin reporte | Observabilidad | Baja | Bajo | ⬜ |
+| 7 | Errores silenciados (`console.warn`) sin reporte | Observabilidad | Baja | Bajo | ✅ módulo `Diagnostics` + cableado |
 | 8 | `package.json` declara Phaser ^3.80.1 pero corre 3.90.0 | Higiene | Baja | Bajo | ✅ alineado a ^3.90.0 (build + tests verdes) |
 
 ## 4. Cómo evaluar mejoras, cambios y fixes
@@ -153,6 +153,13 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
   no-pasada más cercana y la recicla; modos de dificultad conmutan/persisten y
   RELAX es demostrablemente más suave (velocidad↓, gap↑, spacing↑).
 - Cleanup: `ObstacleGenerator` ya no importa Phaser en runtime (solo tipo).
+- **#8:** Phaser alineado a `^3.90.0` (= instalado/bloqueado/probado en build).
+- **#7 observabilidad:** módulo `Diagnostics.ts` (buffer circular, niveles
+  warn/error, sink enganchable para telemetría futura). Cableados los fallos
+  antes silenciados: lectura/escritura de `localStorage` (Profile, Score,
+  Difficulty), carga de assets (Preload) y de música (Sound). Expuesto en
+  `window.diagnostics` en DEV. 6 tests; verificado en vivo (JSON corrupto →
+  evento `storage` registrado, juego sin crash).
 - **Fix bug #3:** saneo de `coins`/`highscore` persistidos (negativos/NaN → 0)
   en `ProfileManager.ts` y `ScoreManager.ts`. Verificado en unit + navegador.
 - **#5 + #2:** extraída la matemática de colocación a `GapPlanner.ts` (puro,

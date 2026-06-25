@@ -6,6 +6,11 @@
  * (ScoreManager, ProfileManager) can be exercised deterministically.
  */
 import { beforeEach, vi } from 'vitest';
+import { Diagnostics } from '../src/systems/Diagnostics';
+
+// Keep diagnostics quiet during tests (the systems under test deliberately
+// trigger storage/asset failures).
+Diagnostics.setConsoleMirror(false);
 
 class MemoryStorage {
   private store = new Map<string, string>();
