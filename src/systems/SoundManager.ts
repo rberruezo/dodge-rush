@@ -349,6 +349,17 @@ class SoundManagerImpl {
     this.tone(70, 0.12, 'sine', 0.3, 55);
   }
 
+  /** Game pauses — a soft descending "freeze". */
+  pause(): void {
+    this.tone(520, 0.12, 'square', 0.3, 200);
+  }
+
+  /** Game un-freezes (after the resume countdown) — a quick rising "go". */
+  unpause(): void {
+    this.tone(330, 0.08, 'square', 0.32, 460);
+    window.setTimeout(() => this.tone(660, 0.12, 'square', 0.32), 70);
+  }
+
   /**
    * Spending currency — a soft descending counterpart to `coin` (which is for
    * earning). Not wired yet: today the only coin sink is buying skins, which

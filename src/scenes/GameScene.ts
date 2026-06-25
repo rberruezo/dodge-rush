@@ -146,6 +146,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.running) return;
     this.running = false;
     this.controls.setEnabled(false);
+    Sound.pause();
     this.scene.launch('Pause');
     this.scene.pause();
   }

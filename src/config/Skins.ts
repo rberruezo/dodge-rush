@@ -26,7 +26,8 @@ export const SKINS: SkinDef[] = [
   { id: 'nemesis', name: 'NEMESIS', sheet: 'character_evil', tint: null, trail: 0xb24dff, cost: 700 },
   { id: 'king', name: 'GOLD KING', sheet: 'character_king', tint: null, trail: 0xffd24a, cost: 800 },
   { id: 'frost', name: 'FROST', sheet: 'character_frost', tint: null, trail: 0x9fe0ff, cost: 620 },
-  { id: 'ghost', name: 'GHOST', sheet: 'character_ghost', tint: null, trail: 0xcdd6ff, cost: 680 }
+  { id: 'ghost', name: 'GHOST', sheet: 'character_ghost', tint: null, trail: 0xcdd6ff, cost: 680 },
+  { id: 'hound', name: 'OLD HOUND', sheet: 'character_hound', tint: null, trail: 0xd2a06e, cost: 440 }
 ];
 
 /** Distinct sprite-sheet texture keys used by skins (loaded + animated). */
