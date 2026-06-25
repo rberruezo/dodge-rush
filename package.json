@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Dodge Rush — a retro cute pixel-art infinite faller built with Phaser 3 + TypeScript + Vite.",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -11,7 +14,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "phaser": "^3.80.1"
+    "phaser": "^3.90.0"
   },
   "devDependencies": {
     "typescript": "^5.4.5",

@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { Barrier } from '../objects/Barrier';
 import { DifficultySnapshot, DifficultyManager } from './DifficultyManager';
 import { GapPlanner } from './GapPlanner';

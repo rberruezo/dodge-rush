@@ -45,6 +45,17 @@ SHEETS = [
         # unicorn: hover already faces right; only move/move_hard need flipping
         'flip': {1, 2},
     },
+    {
+        'src': '/Users/rama/Downloads/Gemini_Generated_Image_ah3muaah3muaah3m.png',
+        'out': 'public/assets/character_phoenix.png',
+        'cols': 6, 'rows': 7,
+        # src rows: 0 sideflight, 1 sideflight(calm), 2 sideflight, 3 sparkle/boost,
+        # 4 cheer(front), 5 combo(front), 6 specials. Map hover<-1, move<-0, hard<-2.
+        'row_map': [1, 0, 2, 3, 4, 5, 6],
+        # source flight poses face RIGHT; game wants move/move_hard facing LEFT,
+        # and hover<-src1 needs flipping too -> flip hover+move+move_hard+boost.
+        'flip': {0, 1, 2, 3},
+    },
 ]
 
 
@@ -159,5 +170,10 @@ def build(cfg):
     print(f"wrote {cfg['out']} {final.size}")
 
 
+import sys
+
+_names = sys.argv[1:]   # optional filter, e.g. `build-skins.py phoenix`
 for cfg in SHEETS:
+    if _names and not any(n in cfg['out'] for n in _names):
+        continue
     build(cfg)

@@ -102,14 +102,14 @@ Verificación en vivo (preview) + revisión de código:
 
 | # | Hallazgo | Tipo | Sev | Esf | Estado |
 |---|---|---|---|---|---|
-| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 5 suites / 28 tests |
+| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 7 suites / 38 tests |
 | 2 | Fairness no verificada de forma automatizada | Riesgo | Alta | Medio | ✅ GapPlanner.test.ts valida el generador real |
 | 3 | Persistencia sin saneo (negativos/NaN) | Bug | Media | Bajo | ✅ corregido |
 | 4 | Sin telemetría/analítica | Mejora | Media | Medio | ⬜ |
 | 5 | Generación procedural sin seed determinista | Testabilidad | Media | Medio | ✅ GapPlanner con RNG inyectable |
 | 6 | ~~dt grande tras pérdida de foco~~ | — | — | — | ✅ ya mitigado (no era bug) |
 | 7 | Errores silenciados (`console.warn`) sin reporte | Observabilidad | Baja | Bajo | ⬜ |
-| 8 | `package.json` declara Phaser ^3.80.1 pero corre 3.90.0 | Higiene | Baja | Bajo | ⬜ alinear versión |
+| 8 | `package.json` declara Phaser ^3.80.1 pero corre 3.90.0 | Higiene | Baja | Bajo | ✅ alineado a ^3.90.0 (build + tests verdes) |
 
 ## 4. Cómo evaluar mejoras, cambios y fixes
 
@@ -146,8 +146,13 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
 
 ## 5. Hecho en este ciclo
 - Montado Vitest + mock de `localStorage` (`test/setup.ts`).
-- 5 suites, **28 tests** verdes: `ComboManager`, `CollisionSystem`,
-  `ScoreManager`, `ProfileManager`, `GapPlanner`.
+- 7 suites, **38 tests** verdes: `ComboManager`, `CollisionSystem`,
+  `ScoreManager`, `ProfileManager`, `GapPlanner`, `ObstacleGenerator`
+  (smash/`breakNext`), `DifficultyManager` (modos CLASSIC/RELAX).
+- Cobertura de las features nuevas del refactor: `breakNext()` rompe la barrera
+  no-pasada más cercana y la recicla; modos de dificultad conmutan/persisten y
+  RELAX es demostrablemente más suave (velocidad↓, gap↑, spacing↑).
+- Cleanup: `ObstacleGenerator` ya no importa Phaser en runtime (solo tipo).
 - **Fix bug #3:** saneo de `coins`/`highscore` persistidos (negativos/NaN → 0)
   en `ProfileManager.ts` y `ScoreManager.ts`. Verificado en unit + navegador.
 - **#5 + #2:** extraída la matemática de colocación a `GapPlanner.ts` (puro,

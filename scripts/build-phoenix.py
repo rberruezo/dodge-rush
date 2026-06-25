@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """
+SUPERSEDED — character_phoenix.png is now built from painted AI source art via
+scripts/build-skins.py (the Tier-2 entry). Do NOT run this script; it would
+overwrite the painted sheet with the older procedural one. Kept only as the
+Tier-3 procedural reference / pilot_kit usage example.
+
 POLLITO FENIX — re-done as a propeller-PILOT so it lives in the same universe as
 character / cat / unicorn. Wears the shared kit from pilot_kit.py (propeller +
 aviator hood + side pods + goggles + padded teal-trim suit + rocket boots) with
