@@ -9,6 +9,7 @@ import {
   STORAGE_KEYS
 } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, ALL_OBSTACLE_TYPES } from '../config/ObstacleTypes';
+import { Diagnostics } from './Diagnostics';
 
 export interface DifficultySnapshot {
   level: number; // integer step (every 30s)
@@ -39,8 +40,8 @@ export class DifficultyManager {
     this.mode_ = DIFFICULTY_MODES[id] ?? DIFFICULTY_MODES[DEFAULT_DIFFICULTY];
     try {
       localStorage.setItem(STORAGE_KEYS.DIFFICULTY, this.mode_.id);
-    } catch {
-      /* ignore (private mode) */
+    } catch (e) {
+      Diagnostics.warn('storage', 'difficulty save failed', e); // private mode, etc.
     }
   }
 
@@ -48,8 +49,8 @@ export class DifficultyManager {
     try {
       const id = localStorage.getItem(STORAGE_KEYS.DIFFICULTY) as DifficultyModeId | null;
       if (id && id in DIFFICULTY_MODES) return id;
-    } catch {
-      /* ignore */
+    } catch (e) {
+      Diagnostics.warn('storage', 'difficulty read failed', e);
     }
     return DEFAULT_DIFFICULTY;
   }

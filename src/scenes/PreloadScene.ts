@@ -8,6 +8,7 @@ import {
   GAME_HEIGHT,
   COLORS
 } from '../config/Constants';
+import { Diagnostics } from '../systems/Diagnostics';
 import { AnimationManager } from '../systems/AnimationManager';
 import { TextureFactory } from '../utils/TextureFactory';
 import { Sound, MUSIC } from '../systems/SoundManager';
@@ -53,6 +54,10 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
+    this.load.spritesheet('character_witch', 'assets/character_witch.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
     this.load.spritesheet('character_evil', 'assets/character_evil.png', {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
@@ -83,7 +88,7 @@ export class PreloadScene extends Phaser.Scene {
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
       this.failed.add(file.key);
-      console.warn(`[DodgeRush] Missing asset "${file.key}" — using generated fallback.`);
+      Diagnostics.warn('asset', `Missing asset "${file.key}" — using generated fallback.`);
     });
   }
 

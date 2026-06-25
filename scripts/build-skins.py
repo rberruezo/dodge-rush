@@ -56,6 +56,16 @@ SHEETS = [
         # and hover<-src1 needs flipping too -> flip hover+move+move_hard+boost.
         'flip': {0, 1, 2, 3},
     },
+    {
+        'src': '/Users/rama/Downloads/Gemini_Generated_Image_166uap166uap166u.png',
+        'out': 'public/assets/character_witch.png',
+        'cols': 6, 'rows': 7,
+        # witch on a broom; every row already in the game's category order, and
+        # row 6 already matches the specials slots (sad/think/trophy/crown/star/cry).
+        'row_map': [0, 1, 2, 3, 4, 5, 6],
+        # all poses face LEFT; move/move_hard stay, the rest must face RIGHT.
+        'flip': {0, 3, 4, 5, 6},
+    },
 ]
 
 

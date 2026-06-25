@@ -1,4 +1,5 @@
 import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
+import { Diagnostics } from './Diagnostics';
 
 /**
  * Owns the run score (survival time + pass bonuses) and the persisted high score.
@@ -61,7 +62,8 @@ export class ScoreManager {
       // Reject NaN / negative high scores (tampered or corrupt storage).
       const v = parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) ?? '0', 10);
       return Number.isFinite(v) && v > 0 ? v : 0;
-    } catch {
+    } catch (e) {
+      Diagnostics.warn('storage', 'high-score read failed', e);
       return 0;
     }
   }
@@ -69,8 +71,8 @@ export class ScoreManager {
   private static save(value: number): void {
     try {
       localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, String(value));
-    } catch {
-      /* ignore storage failures (private mode, etc.) */
+    } catch (e) {
+      Diagnostics.warn('storage', 'high-score save failed', e); // private mode, quota, etc.
     }
   }
 }

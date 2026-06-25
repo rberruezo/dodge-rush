@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '../config/Constants';
 import { SKINS } from '../config/Skins';
+import { Diagnostics } from './Diagnostics';
 
 /**
  * Persistent player profile: coins and owned/selected skins. All
@@ -20,8 +21,8 @@ class ProfileManagerImpl {
       this.owned = new Set(['classic', ...owned]);
       const sel = localStorage.getItem(STORAGE_KEYS.SELECTED_SKIN);
       if (sel && this.owned.has(sel)) this.selected_ = sel;
-    } catch {
-      /* defaults */
+    } catch (e) {
+      Diagnostics.warn('storage', 'profile read failed — using defaults', e);
     }
   }
 
@@ -62,8 +63,8 @@ class ProfileManagerImpl {
   private save(key: string, value: string): void {
     try {
       localStorage.setItem(key, value);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      Diagnostics.warn('storage', `profile save failed (${key})`, e);
     }
   }
 }

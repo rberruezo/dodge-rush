@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../config/Constants';
+import { Diagnostics } from './Diagnostics';
 
 /** Music track keys (files in public/assets). */
 export const MUSIC = {
@@ -146,7 +147,7 @@ class SoundManagerImpl {
       this.buffers.set(key, buffer);
       this.startDesired(); // in case this track was requested while still loading
     } catch (e) {
-      console.warn(`[DodgeRush] Could not load music "${key}":`, e);
+      Diagnostics.warn('audio', `Could not load music "${key}"`, e);
     }
   }
 
