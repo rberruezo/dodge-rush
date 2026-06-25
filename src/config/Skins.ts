@@ -21,8 +21,8 @@ export const SKINS: SkinDef[] = [
   { id: 'shadow', name: 'SHADOW', sheet: 'character', tint: 0x7d7da6, trail: 0xb0b0ff, cost: 600 },
   { id: 'cat', name: 'CAT', sheet: 'character_cat', tint: null, trail: 0xffa24a, cost: 350 },
   { id: 'unicorn', name: 'UNICORN', sheet: 'character_unicorn', tint: null, trail: 0x8fe6d2, cost: 500 },
-  { id: 'soplo', name: 'SOPLO', sheet: 'character_soplo', tint: null, trail: 0xb6f0c0, cost: 420 },
-  { id: 'phoenix', name: 'PHOENIX', sheet: 'character_phoenix', tint: null, trail: 0xff6a3d, cost: 520 }
+  { id: 'phoenix', name: 'PHOENIX', sheet: 'character_phoenix', tint: null, trail: 0xff6a3d, cost: 520 },
+  { id: 'dragon', name: 'DRAGON', sheet: 'character_dragon', tint: null, trail: 0x8be07a, cost: 460 }
 ];
 
 /** Distinct sprite-sheet texture keys used by skins (loaded + animated). */

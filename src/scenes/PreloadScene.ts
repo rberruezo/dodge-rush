@@ -45,11 +45,11 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
-    this.load.spritesheet('character_soplo', 'assets/character_soplo.png', {
+    this.load.spritesheet('character_phoenix', 'assets/character_phoenix.png', {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
-    this.load.spritesheet('character_phoenix', 'assets/character_phoenix.png', {
+    this.load.spritesheet('character_dragon', 'assets/character_dragon.png', {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
