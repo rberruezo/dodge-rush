@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """
-Build the clean pixel-art character sheet from the rich emotion/action source.
+Build the character sheet from the rich emotion/action source.
 
-The source is a card-style sheet (checker + white rounded cards behind each
-sprite, no alpha). For each needed sprite we crop a uniform window centred on it,
-remove the background with an edge flood-fill (deletes checker + white card but
-keeps the character's *enclosed* white highlights), isolate the central blob
-(drops neighbouring-card fragments), then pixelate (denoise → downscale → tight
-palette → hard alpha) for a hand-drawn pixel-art look.
+Higher resolution than before: cells are 120px so the in-game sprite renders at
+~1:1 (no upscaling) and looks crisp against the detailed background. Background
+is removed per cell with an edge flood-fill (keeps enclosed white highlights),
+the central blob is isolated, then a light denoise + tight-ish palette + hard
+alpha give a clean look without losing detail.
 
-Output: a uniform 6x6 grid (50x50 cells) at public/assets/character.png.
-
+Output: uniform 6x7 grid (120px cells) at public/assets/character.png.
 Frame map (index = row*6 + col):
-  row0  0-5   idle (front)
-  row1  6-11  fly (side, focused)        -> falling / movement loop
-  row2 12-17  cheer (arms up)            -> celebration / new best
-  row3 18-23  combo: x1,x2,x3,x5,x10,x20 -> player sprite per combo tier
-  row4 24-29  dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
-  row5 30-35  fly-boost (sparkles)       -> golden score-boost flight
+  row0  0-5   hover (front)         -> idle / not steering ("alive")
+  row1  6-11  side flight, calm     -> moving (low effort)
+  row2 12-17  side flight, straining-> moving held (high effort)
+  row3 18-23  flight + sparkles     -> golden score boost
+  row4 24-29  cheer (arms up)       -> celebration
+  row5 30-35  combo x1,x2,x3,x5,x10,x20 -> brief combo celebration flash
+  row6 36-41  dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
 """
 import sys
 from collections import deque
@@ -26,33 +25,32 @@ from PIL import Image, ImageFilter
 DEFAULT_SRC = "/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 10_40_44 p.m..png"
 OUT = "public/assets/character.png"
 
-WINDOW = 176   # square crop window (source px) centred on each sprite
-CELL = 50      # output cell size
-COLS, ROWS = 6, 6
-PRE_SMOOTH = 5
-POST_SMOOTH = 3
-PALETTE_COLORS = 28
-ALPHA_CUT = 120
+WINDOW = 176
+CELL = 120          # high-res cell (rendered ~1:1 in game -> crisp)
+COLS, ROWS = 6, 7
+PRE_SMOOTH = 3      # gentle denoise (keep detail at this resolution)
+PALETTE_COLORS = 40
+ALPHA_CUT = 115
 
-# Detected sprite centres (cx, cy) in the source, grouped by category.
 CENTERS = {
-    "idle": [(93, 122), (252, 122), (411, 122), (569, 123), (727, 123), (885, 123)],
-    "fly": [(103, 503), (262, 502), (421, 502), (580, 502), (738, 502), (896, 502)],
+    "hover": [(93, 122), (252, 122), (411, 122), (569, 123), (727, 123), (885, 123)],
+    "move": [(103, 503), (262, 502), (421, 502), (580, 502), (738, 502), (896, 502)],
+    "move_hard": [(87, 316), (247, 316), (405, 316), (564, 316), (723, 316), (881, 316)],
+    "boost": [(102, 692), (271, 695), (451, 694), (637, 694), (806, 697)],
     "cheer": [(95, 884), (262, 884), (428, 884), (590, 884), (757, 878), (920, 884)],
     "combo": [(86, 1410), (251, 1410), (417, 1410), (583, 1413), (756, 1416), (916, 1420)],
-    "boost": [(102, 692), (271, 695), (451, 694), (637, 694), (806, 697)],
     # dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
     "specials": [(496, 1232), (688, 1226), (113, 1226), (310, 1225), (756, 1054), (921, 1054)],
 }
 
-# Output grid: list of (category, source-index) per cell, row-major.
 GRID = (
-    [("idle", i) for i in range(6)]
-    + [("fly", i) for i in range(6)]
+    [("hover", i) for i in range(6)]
+    + [("move", i) for i in range(6)]
+    + [("move_hard", i) for i in range(6)]
+    + [("boost", i) for i in range(5)] + [("boost", 4)]
     + [("cheer", i) for i in range(6)]
     + [("combo", i) for i in range(6)]
     + [("specials", i) for i in range(6)]
-    + [("boost", i) for i in range(5)] + [("boost", 4)]  # pad to 6
 )
 
 
@@ -61,13 +59,11 @@ def is_bg(r, g, b):
 
 
 def extract(im, cx, cy):
-    """Crop a window, strip the card/checker background, keep the central sprite."""
     half = WINDOW // 2
     crop = im.crop((cx - half, cy - half, cx - half + WINDOW, cy - half + WINDOW)).convert("RGB")
     w, h = crop.size
     px = crop.load()
 
-    # 1) Flood-fill background inward from the window edges.
     ext = [[False] * w for _ in range(h)]
     q = deque()
     for x in range(w):
@@ -88,7 +84,6 @@ def extract(im, cx, cy):
                 ext[ny][nx] = True
                 q.append((nx, ny))
 
-    # 2) Keep only the connected blob that reaches the centre (drop neighbour bits).
     seen = [[False] * w for _ in range(h)]
     keep = [[False] * w for _ in range(h)]
     cl, cr = int(0.30 * w), int(0.70 * w)
@@ -125,14 +120,14 @@ def extract(im, cx, cy):
 
 
 def pixelate(sheet):
-    sw, sh = sheet.size
     r, g, b, a = sheet.split()
     rgb = Image.merge("RGB", (r, g, b)).filter(ImageFilter.MedianFilter(PRE_SMOOTH))
     smoothed = Image.merge("RGBA", (*rgb.split(), a))
     small = smoothed.resize((COLS * CELL, ROWS * CELL), Image.LANCZOS)
     sr, sg, sb, sa = small.split()
-    clean = Image.merge("RGB", (sr, sg, sb)).filter(ImageFilter.MedianFilter(POST_SMOOTH))
-    pal = clean.quantize(colors=PALETTE_COLORS, method=Image.MEDIANCUT, dither=Image.NONE).convert("RGB")
+    pal = Image.merge("RGB", (sr, sg, sb)).quantize(
+        colors=PALETTE_COLORS, method=Image.MEDIANCUT, dither=Image.NONE
+    ).convert("RGB")
     pr, pg, pb = pal.split()
     hard_a = sa.point(lambda v: 255 if v >= ALPHA_CUT else 0)
     return Image.merge("RGBA", (pr, pg, pb, hard_a))
@@ -141,14 +136,11 @@ def pixelate(sheet):
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SRC
     im = Image.open(src).convert("RGB")
-
     big = Image.new("RGBA", (COLS * WINDOW, ROWS * WINDOW), (0, 0, 0, 0))
     for idx, (cat, i) in enumerate(GRID):
         cx, cy = CENTERS[cat][i]
-        cell = extract(im, cx, cy)
         c, r = idx % COLS, idx // COLS
-        big.paste(cell, (c * WINDOW, r * WINDOW))
-
+        big.paste(extract(im, cx, cy), (c * WINDOW, r * WINDOW))
     final = pixelate(big)
     final.save(OUT)
     print(f"wrote {OUT} {final.size} (cell {CELL}x{CELL}, {len(GRID)} frames)")

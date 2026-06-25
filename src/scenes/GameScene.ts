@@ -7,6 +7,7 @@ import {
   BG_CFG,
   BG_THEME_KEYS,
   LIVES_CFG,
+  COMBO_CFG,
   CHAR_FRAMES
 } from '../config/Constants';
 import { Background } from '../objects/Background';
@@ -39,10 +40,13 @@ export class GameScene extends Phaser.Scene {
 
   private running = false;
   private lastMoveDir: -1 | 0 | 1 = 0;
+  private dirHoldMs = 0;
   private boostUntilMs = -1;
   private passCount = 0;
   private lives = LIVES_CFG.count;
   private invincibleUntilMs = 0;
+  private comboCelebUntilMs = 0;
+  private comboCelebFrame: number = CHAR_FRAMES.starHead;
 
   constructor() {
     super('Game');
@@ -51,10 +55,12 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.running = true;
     this.lastMoveDir = 0;
+    this.dirHoldMs = 0;
     this.boostUntilMs = -1;
     this.passCount = 0;
     this.lives = LIVES_CFG.count;
     this.invincibleUntilMs = 0;
+    this.comboCelebUntilMs = 0;
 
     this.bg = new Background(this, Phaser.Math.Between(0, BG_THEME_KEYS.length - 1)).setDepth(0);
 
@@ -113,13 +119,30 @@ export class GameScene extends Phaser.Scene {
     this.bg.update(dt, speed);
 
     const dir = this.controls.direction;
-    if (dir !== 0 && dir !== this.lastMoveDir) Sound.move();
-    this.lastMoveDir = dir;
+    if (dir !== this.lastMoveDir) {
+      if (dir !== 0) Sound.move();
+      this.dirHoldMs = 0;
+      this.lastMoveDir = dir;
+    } else if (dir !== 0) {
+      this.dirHoldMs += dt; // sustained push -> growing effort
+    }
     this.player.steer(dt, dir);
+    this.player.aliveTick(dt);
 
+    // Visual pose priority: dizzy > combo-celebration > boost > steering > hover.
     const boostActive = now < this.boostUntilMs;
     const invincible = now < this.invincibleUntilMs;
-    this.player.setPose({ dizzy: invincible, boosting: boostActive, comboFrame: this.combo.frame });
+    if (invincible) {
+      this.player.setPose({ kind: 'dizzy' });
+    } else if (now < this.comboCelebUntilMs) {
+      this.player.setPose({ kind: 'celebrate', frame: this.comboCelebFrame });
+    } else if (boostActive) {
+      this.player.setPose({ kind: 'boost' });
+    } else if (dir !== 0) {
+      this.player.setPose({ kind: this.dirHoldMs > PLAYER_CFG.effortHoldMs ? 'moveHard' : 'move' });
+    } else {
+      this.player.setPose({ kind: 'hover' });
+    }
     this.player.setAlpha(invincible ? (Math.floor(now / LIVES_CFG.blinkMs) % 2 ? 0.35 : 1) : 1);
 
     const passed = this.obstacles.update(dt, { ...snapshot, speed }, this.player.y);
@@ -161,9 +184,12 @@ export class GameScene extends Phaser.Scene {
     const label = mult > 1 ? `+${Math.round(points)}  x${mult}` : `+${Math.round(points)}`;
     this.fx.popup(px, py, label, mult > 1 ? '#ffd54a' : '#ffffff', mult > 1 ? 32 : 26);
 
-    // Celebrate reaching a new combo tier.
+    // Celebrate reaching a new combo tier: briefly flash the combo sprite, then
+    // the pose logic naturally returns the player to flying.
     if (state.tierUp) {
       Sound.newBest();
+      this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
+      this.comboCelebFrame = state.frame ?? CHAR_FRAMES.starHead;
       this.fx.popup(GAME_WIDTH / 2, py - 90, `COMBO x${mult}!`, '#ffd54a', 40);
       if (mult >= 20) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.trophy, 3);
       else if (mult >= 10) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.starHead, 2.6);
@@ -196,7 +222,7 @@ export class GameScene extends Phaser.Scene {
   private gameOver(): void {
     this.running = false;
     this.controls.setEnabled(false);
-    this.player.setPose({ dizzy: true, boosting: false, comboFrame: null });
+    this.player.setPose({ kind: 'dizzy' });
     this.player.setAlpha(1);
 
     const finalScore = this.score.current;

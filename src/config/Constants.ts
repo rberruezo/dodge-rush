@@ -33,10 +33,11 @@ export const BG_CFG = {
 } as const;
 
 export const ANIM_KEYS = {
-  IDLE: 'player-idle',
-  FALL: 'player-fall',
-  CHEER: 'player-cheer',
-  BOOST: 'player-boost'
+  HOVER: 'player-hover', // not steering (alive idle float)
+  MOVE: 'player-move', // steering, low effort
+  MOVE_HARD: 'player-move-hard', // steering held, straining
+  BOOST: 'player-boost', // golden score boost
+  CHEER: 'player-cheer' // celebration
 } as const;
 
 export const STORAGE_KEYS = {
@@ -59,36 +60,39 @@ export const COLORS = {
 /**
  * Character sprite-sheet slicing.
  *
- * Re-packed by `scripts/build-character.py` into a clean, uniform 6x6 grid at
- * `public/assets/character.png` (50x50 cells). Frame map (index = row*6 + col):
- *   row 0 (0-5)   idle (front)
- *   row 1 (6-11)  side flight        -> falling / movement loop (faces LEFT)
- *   row 2 (12-17) cheer (arms up)    -> celebration / new best
- *   row 3 (18-23) combo: x1,x2,x3,x5,x10,x20  -> player sprite per combo tier
- *   row 4 (24-29) dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
- *   row 5 (30-35) flight + sparkles  -> golden score-boost flight
+ * Re-packed by `scripts/build-character.py` into a clean 6x7 grid at
+ * `public/assets/character.png` (120px cells — rendered ~1:1 so it stays crisp
+ * against the detailed background). Frame map (index = row*6 + col):
+ *   row 0 (0-5)   hover (front)            -> not steering (alive float)
+ *   row 1 (6-11)  side flight, calm        -> moving, low effort
+ *   row 2 (12-17) side flight, straining   -> moving held, high effort
+ *   row 3 (18-23) flight + sparkles        -> golden score boost
+ *   row 4 (24-29) cheer (arms up)          -> celebration
+ *   row 5 (30-35) combo x1,x2,x3,x5,x10,x20-> brief combo celebration flash
+ *   row 6 (36-41) dizzy, sad-cloud, trophy, crown, star head, sad head
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player.
  */
 export const CHARACTER_FRAME = {
-  width: 50,
-  height: 50
+  width: 120,
+  height: 120
 } as const;
 
 /** Single-purpose frames (not animations). */
 export const CHAR_FRAMES = {
-  dizzy: 24,
-  sadCloud: 25,
-  trophy: 26,
-  crown: 27,
-  starHead: 28,
-  sadHead: 29
+  dizzy: 36,
+  sadCloud: 37,
+  trophy: 38,
+  crown: 39,
+  starHead: 40,
+  sadHead: 41
 } as const;
 
 export const CHARACTER_ANIMS = {
-  [ANIM_KEYS.IDLE]: { start: 0, end: 5, frameRate: 8, repeat: -1 },
-  [ANIM_KEYS.FALL]: { start: 6, end: 11, frameRate: 14, repeat: -1 },
-  [ANIM_KEYS.CHEER]: { start: 12, end: 17, frameRate: 10, repeat: -1 },
-  [ANIM_KEYS.BOOST]: { start: 30, end: 35, frameRate: 16, repeat: -1 }
+  [ANIM_KEYS.HOVER]: { start: 0, end: 5, frameRate: 7, repeat: -1 },
+  [ANIM_KEYS.MOVE]: { start: 6, end: 11, frameRate: 12, repeat: -1 },
+  [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 16, repeat: -1 },
+  [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 16, repeat: -1 },
+  [ANIM_KEYS.CHEER]: { start: 24, end: 29, frameRate: 10, repeat: -1 }
 } as const;
 
 /**
@@ -119,14 +123,16 @@ export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
 
 /** Player tuning. Speeds are in pixels-per-millisecond for frame-rate independence. */
 export const PLAYER_CFG = {
-  displayWidth: 108, // on-screen cell width; the sprite itself sits ~70% of this
+  displayWidth: 122, // ~1:1 with the 120px cell -> crisp (no upscaling blur)
   startYRatio: 0.26, // vertical screen position the player holds while "falling"
   moveSpeed: 0.62, // horizontal travel speed
-  // Forgiving collision box. The re-packed cell has transparent padding, so the
-  // hitbox is a small fraction of the cell (≈ the character's solid body).
-  hitboxScaleX: 0.34,
-  hitboxScaleY: 0.4,
-  tiltDegrees: 7 // gentle bank into the direction of travel
+  // Forgiving collision box (the cell has transparent padding around the body).
+  hitboxScaleX: 0.3,
+  hitboxScaleY: 0.36,
+  tiltDegrees: 9, // gentle bank into the direction of travel
+  effortHoldMs: 360, // holding a direction longer than this -> straining animation
+  bobAmp: 4, // subtle vertical "alive" bob (visual only, not collision)
+  bobSpeed: 0.005
 } as const;
 
 /** Barrier / hole tuning. The base gap & spacing shrink with difficulty. */
@@ -176,13 +182,13 @@ export const SCORE_CFG = {
  */
 export const COMBO_CFG = {
   tiers: [
-    { at: 20, mult: 20, frame: 23 },
-    { at: 12, mult: 10, frame: 22 },
-    { at: 7, mult: 5, frame: 21 },
-    { at: 4, mult: 3, frame: 20 },
-    { at: 2, mult: 2, frame: 19 }
+    { at: 20, mult: 20, frame: 35 },
+    { at: 12, mult: 10, frame: 34 },
+    { at: 7, mult: 5, frame: 33 },
+    { at: 4, mult: 3, frame: 32 },
+    { at: 2, mult: 2, frame: 31 }
   ],
-  baseFrame: 18, // combo x1 (no tier) — but the fly animation is used instead
+  celebrateMs: 850, // how long the combo sprite flashes before returning to flight
   speedPerMult: 0.012, // fall-speed added per multiplier step above 1
   speedBonusMax: 0.24 // cap on the combo speed bonus
 } as const;

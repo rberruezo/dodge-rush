@@ -48,8 +48,8 @@ export class MainMenuScene extends Phaser.Scene {
       .setShadow(0, 6, '#00000099', 0, true, true);
 
     // Animated hero, gently bobbing.
-    const hero = this.add.sprite(cx, 430, ASSET_KEYS.CHARACTER, 6).setScale(2.4);
-    if (this.anims.exists(ANIM_KEYS.FALL)) hero.play(ANIM_KEYS.FALL);
+    const hero = this.add.sprite(cx, 430, ASSET_KEYS.CHARACTER, 6).setScale(1.0);
+    if (this.anims.exists(ANIM_KEYS.MOVE)) hero.play(ANIM_KEYS.MOVE);
     this.tweens.add({
       targets: hero,
       y: 410,

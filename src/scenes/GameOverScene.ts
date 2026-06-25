@@ -43,7 +43,7 @@ export class GameOverScene extends Phaser.Scene {
     // Reaction sprite: crowned king on a new record, sad otherwise.
     const hero = this.add
       .sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
-      .setScale(2.6);
+      .setScale(1.15);
     this.tweens.add({
       targets: hero,
       y: isNewBest ? 335 : 360,
