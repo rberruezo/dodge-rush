@@ -49,8 +49,17 @@ export class GameScene extends Phaser.Scene {
   private comboCelebFrame: number = CHAR_FRAMES.starHead;
   private comboCelebCheer = false;
 
+  private startTheme = 0;
+  private startScrollY = 0;
+
   constructor() {
     super('Game');
+  }
+
+  init(data?: { theme?: number; scrollY?: number }): void {
+    this.startTheme =
+      data?.theme ?? Phaser.Math.Between(0, BG_THEME_KEYS.length - 1);
+    this.startScrollY = data?.scrollY ?? 0;
   }
 
   create(): void {
@@ -64,7 +73,7 @@ export class GameScene extends Phaser.Scene {
     this.comboCelebUntilMs = 0;
     this.comboCelebCheer = false;
 
-    this.bg = new Background(this, Phaser.Math.Between(0, BG_THEME_KEYS.length - 1)).setDepth(0);
+    this.bg = new Background(this, this.startTheme, this.startScrollY).setDepth(0);
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);

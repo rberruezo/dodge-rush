@@ -22,15 +22,27 @@ export class Background {
   private fading = false;
   private fadeT = 0;
 
-  constructor(scene: Phaser.Scene, themeIndex = 0) {
+  constructor(scene: Phaser.Scene, themeIndex = 0, startScrollY = 0) {
     this.scene = scene;
     this.themeIndex = themeIndex;
+    this.scrollY = startScrollY;
 
     const mk = (key: string) =>
       scene.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, key).setOrigin(0, 0);
 
     this.back = mk(BG_THEME_KEYS[themeIndex]).setVisible(false);
     this.front = mk(BG_THEME_KEYS[themeIndex]);
+    this.front.tilePositionY = this.scrollY;
+    this.back.tilePositionY = this.scrollY;
+  }
+
+  /** Current theme index + scroll offset (for seamless scene hand-off). */
+  get theme(): number {
+    return this.themeIndex;
+  }
+
+  get scroll(): number {
+    return this.scrollY;
   }
 
   /** Scroll the sky and advance any in-flight theme cross-dissolve. */
