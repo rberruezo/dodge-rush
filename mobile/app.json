@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Dodge Rush",
+    "slug": "dodge-rush",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1a1030",
+    "icon": "./assets/icon.png",
+    "scheme": "dodgerush",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1030"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.valtech.dodgerush",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1030"
+      },
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "androidStatusBar": {
+      "hidden": true,
+      "translucent": true,
+      "backgroundColor": "#00000000"
+    },
+    "androidNavigationBar": {
+      "visible": "immersive",
+      "backgroundColor": "#1a1030"
+    },
+    "plugins": [
+      "./plugins/withWebAssets.js",
+      [
+        "expo-screen-orientation",
+        { "initialOrientation": "PORTRAIT" }
+      ]
+    ]
+  }
+}
