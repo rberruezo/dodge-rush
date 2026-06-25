@@ -42,7 +42,11 @@ export const ANIM_KEYS = {
 
 export const STORAGE_KEYS = {
   HIGH_SCORE: 'dodgerush.highscore',
-  MUTED: 'dodgerush.muted'
+  MUTED: 'dodgerush.muted',
+  COINS: 'dodgerush.coins',
+  OWNED_SKINS: 'dodgerush.skins',
+  SELECTED_SKIN: 'dodgerush.skin',
+  GHOST: 'dodgerush.ghost'
 } as const;
 
 export const COLORS = {
@@ -171,7 +175,9 @@ export const SCORE_CFG = {
   pointsPerPass: 10, // base points per cleared obstacle (before combo multiplier)
   goldenBonus: 250, // instant points for threading a golden obstacle
   goldenBoostMs: 5000, // duration of the golden score boost
-  goldenBoostMult: 2 // score multiplier while the golden boost is active
+  goldenBoostMult: 2, // score multiplier while the golden boost is active
+  nearMissBonus: 15, // extra points (× multiplier) for a tight pass
+  nearMissMargin: 16 // px of clearance at/under which a pass counts as "close"
 } as const;
 
 /**
@@ -205,6 +211,15 @@ export const COMBO_CFG = {
   celebrateMs: 850, // how long the combo flash lasts before returning to flight
   speedPerMult: 0.012, // fall-speed added per multiplier step above 1
   speedBonusMax: 0.26 // cap on the combo speed bonus
+} as const;
+
+/** Dash power (double-tap a side). A quick burst with brief i-frames + cooldown. */
+export const DASH_CFG = {
+  doubleTapMs: 300, // two taps on the same side within this = dash
+  distance: 165, // how far the dash travels (px)
+  durationMs: 165, // dash travel time
+  cooldownMs: 2600, // recharge time
+  invincibleMs: 240 // brief i-frames during the dash (a panic dodge)
 } as const;
 
 /** Lives & post-hit invincibility. */

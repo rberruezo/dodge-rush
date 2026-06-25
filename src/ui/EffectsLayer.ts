@@ -54,7 +54,7 @@ export class EffectsLayer {
   }
 
   /** A character-sheet frame (head / trophy) that pops, holds, then fades out. */
-  iconPopup(x: number, y: number, frameIndex: number, scale = 2.4): void {
+  iconPopup(x: number, y: number, frameIndex: number, scale = 1.0): void {
     const icon = this.scene.add
       .sprite(x, y, ASSET_KEYS.CHARACTER, frameIndex)
       .setDepth(22)

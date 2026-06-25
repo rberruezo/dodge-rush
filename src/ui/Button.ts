@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '../config/Constants';
+import { FONT_HEAD } from '../config/TextStyles';
 import { Sound } from '../systems/SoundManager';
 
 export interface ButtonStyle {
@@ -11,15 +12,21 @@ export interface ButtonStyle {
 }
 
 /**
- * A chunky, touch-friendly pixel button: rounded panel + label inside a
- * container, with press feedback, a generous hit area and a click sound.
+ * A chunky, touch-friendly pixel button.
+ *
+ * Input uses a dedicated, transparent interactive Rectangle (reliably centred,
+ * origin 0.5) that is a little larger than the artwork for easy tapping. The
+ * press feedback scales only the visuals — never the hit target — so the
+ * tappable area stays put and full-size while pressed.
  */
 export class Button extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Graphics;
   private label: Phaser.GameObjects.Text;
+  private hit: Phaser.GameObjects.Rectangle;
   private btnW: number;
   private btnH: number;
   private fillColor: number;
+  private pressed = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -41,36 +48,38 @@ export class Button extends Phaser.GameObjects.Container {
 
     this.label = scene.add
       .text(0, 0, text, {
-        fontFamily: 'monospace',
-        fontSize: `${style.fontSize ?? 34}px`,
-        color: style.textColor ?? COLORS.white,
-        fontStyle: 'bold'
+        fontFamily: FONT_HEAD,
+        fontSize: `${style.fontSize ?? 28}px`,
+        color: style.textColor ?? COLORS.white
       })
       .setOrigin(0.5)
-      .setShadow(0, 3, '#00000066', 0, true, true);
+      .setShadow(0, 3, '#00000088', 0, true, true);
 
-    this.add([this.bg, this.label]);
+    // Transparent, generously-sized hit target (centred via origin 0.5).
+    this.hit = scene.add
+      .rectangle(0, 0, this.btnW + 28, this.btnH + 28, 0xffffff, 0)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
 
-    this.setSize(this.btnW, this.btnH);
-    this.setInteractive(
-      new Phaser.Geom.Rectangle(-this.btnW / 2, -this.btnH / 2, this.btnW, this.btnH),
-      Phaser.Geom.Rectangle.Contains
-    );
+    this.add([this.bg, this.label, this.hit]);
 
-    this.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      this.setScale(0.94);
-      this.drawBg(Phaser.Display.Color.IntegerToColor(this.fillColor).darken(18).color);
+    this.hit.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.pressed = true;
+      this.setPressed(true);
     });
-    const release = () => {
-      this.setScale(1);
-      this.drawBg(this.fillColor);
-    };
-    this.on(Phaser.Input.Events.POINTER_UP, () => {
-      release();
+    this.hit.on(Phaser.Input.Events.POINTER_UP, () => {
+      if (!this.pressed) return;
+      this.pressed = false;
+      this.setPressed(false);
       Sound.button();
       onClick();
     });
-    this.on(Phaser.Input.Events.POINTER_OUT, release);
+    const cancel = () => {
+      this.pressed = false;
+      this.setPressed(false);
+    };
+    this.hit.on(Phaser.Input.Events.POINTER_OUT, cancel);
+    this.hit.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, cancel);
   }
 
   setLabel(text: string): this {
@@ -78,20 +87,24 @@ export class Button extends Phaser.GameObjects.Container {
     return this;
   }
 
+  /** Visual-only press feedback (hit target is never scaled). */
+  private setPressed(down: boolean): void {
+    const s = down ? 0.94 : 1;
+    this.bg.setScale(s);
+    this.label.setScale(s);
+    this.drawBg(down ? Phaser.Display.Color.IntegerToColor(this.fillColor).darken(18).color : this.fillColor);
+  }
+
   private drawBg(color: number): void {
     const hw = this.btnW / 2;
     const hh = this.btnH / 2;
     this.bg.clear();
-    // Drop shadow
     this.bg.fillStyle(0x000000, 0.25);
     this.bg.fillRoundedRect(-hw + 4, -hh + 6, this.btnW, this.btnH, 18);
-    // Body
     this.bg.fillStyle(color, 1);
     this.bg.fillRoundedRect(-hw, -hh, this.btnW, this.btnH, 18);
-    // Top highlight
     this.bg.fillStyle(0xffffff, 0.18);
     this.bg.fillRoundedRect(-hw + 6, -hh + 6, this.btnW - 12, this.btnH * 0.34, 12);
-    // Outline
     this.bg.lineStyle(4, 0xffffff, 0.9);
     this.bg.strokeRoundedRect(-hw, -hh, this.btnW, this.btnH, 18);
   }

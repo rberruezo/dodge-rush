@@ -6,6 +6,8 @@ import { MainMenuScene } from '../scenes/MainMenuScene';
 import { GameScene } from '../scenes/GameScene';
 import { PauseScene } from '../scenes/PauseScene';
 import { GameOverScene } from '../scenes/GameOverScene';
+import { ShopScene } from '../scenes/ShopScene';
+import { InfoScene } from '../scenes/InfoScene';
 
 /**
  * Root Phaser configuration. Portrait, pixel-art, FIT-scaled so one logical
@@ -37,5 +39,14 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
     powerPreference: 'high-performance'
   },
   physics: undefined, // movement & collision are handled manually for determinism
-  scene: [BootScene, PreloadScene, MainMenuScene, GameScene, PauseScene, GameOverScene]
+  scene: [
+    BootScene,
+    PreloadScene,
+    MainMenuScene,
+    GameScene,
+    PauseScene,
+    GameOverScene,
+    ShopScene,
+    InfoScene
+  ]
 });

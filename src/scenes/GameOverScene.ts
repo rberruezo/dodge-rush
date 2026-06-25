@@ -1,19 +1,21 @@
 import Phaser from 'phaser';
 import { ASSET_KEYS, CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { getSkin } from '../config/Skins';
+import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
+import { Profile } from '../systems/ProfileManager';
 import { Sound } from '../systems/SoundManager';
 
 interface GameOverData {
   score: number;
   best: number;
   isNewBest: boolean;
+  coins: number;
+  totalCoins: number;
 }
 
-/**
- * Results screen: final score, best score, a "NEW BEST!" celebration, and
- * Retry / Main Menu actions.
- */
+/** Results screen: score, best, "new best", coins earned, and Retry / Menu. */
 export class GameOverScene extends Phaser.Scene {
   private bg!: Background;
 
@@ -26,27 +28,22 @@ export class GameOverScene extends Phaser.Scene {
     const score = data?.score ?? 0;
     const best = data?.best ?? 0;
     const isNewBest = data?.isNewBest ?? false;
+    const coins = data?.coins ?? 0;
+    const totalCoins = data?.totalCoins ?? Profile.coins;
 
     this.bg = new Background(this).setDepth(0);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x1a1030, 0.55).setOrigin(0, 0);
 
-    this.add
-      .text(cx, 180, 'GAME OVER', {
-        fontFamily: 'monospace',
-        fontSize: '64px',
-        color: COLORS.white,
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5)
-      .setShadow(0, 5, '#00000099', 0, true, true);
+    this.add.text(cx, 140, 'GAME OVER', Text.title(40)).setOrigin(0.5);
 
-    // Reaction sprite: crowned king on a new record, sad otherwise.
     const hero = this.add
-      .sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .sprite(cx, 280, ASSET_KEYS.CHARACTER, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
       .setScale(1.15);
+    const skin = getSkin(Profile.selected);
+    if (skin.tint !== null) hero.setTint(skin.tint);
     this.tweens.add({
       targets: hero,
-      y: isNewBest ? 335 : 360,
+      y: isNewBest ? 266 : 290,
       angle: isNewBest ? 0 : -4,
       duration: isNewBest ? 700 : 1200,
       yoyo: true,
@@ -54,43 +51,15 @@ export class GameOverScene extends Phaser.Scene {
       ease: 'Sine.inOut'
     });
 
-    // Score panel
-    this.add
-      .text(cx, 500, 'SCORE', {
-        fontFamily: 'monospace',
-        fontSize: '28px',
-        color: '#ffd9ec'
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(cx, 552, String(score), {
-        fontFamily: 'monospace',
-        fontSize: '76px',
-        color: COLORS.white,
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
-    this.add
-      .text(cx, 628, `BEST  ${best}`, {
-        fontFamily: 'monospace',
-        fontSize: '32px',
-        color: COLORS.gold,
-        fontStyle: 'bold'
-      })
-      .setOrigin(0.5);
+    this.add.text(cx, 440, 'SCORE', Text.body(28, '#ffd9ec')).setOrigin(0.5);
+    this.add.text(cx, 492, String(score), Text.score(60)).setOrigin(0.5);
+    this.add.text(cx, 560, `BEST  ${best}`, Text.label(28)).setOrigin(0.5);
 
     if (isNewBest) {
-      const badge = this.add
-        .text(cx, 680, '★ NEW BEST! ★', {
-          fontFamily: 'monospace',
-          fontSize: '34px',
-          color: COLORS.accent,
-          fontStyle: 'bold'
-        })
-        .setOrigin(0.5);
+      const badge = this.add.text(cx, 604, '★ NEW BEST! ★', Text.button(22, COLORS.accent)).setOrigin(0.5);
       this.tweens.add({
         targets: badge,
-        scale: { from: 1, to: 1.15 },
+        scale: { from: 1, to: 1.12 },
         duration: 500,
         yoyo: true,
         repeat: -1,
@@ -99,15 +68,21 @@ export class GameOverScene extends Phaser.Scene {
       Sound.newBest();
     }
 
-    new Button(this, cx, 790, 'RETRY', () => this.scene.start('Game'), {
+    // Coins earned this run + new total.
+    this.add
+      .text(cx, isNewBest ? 648 : 620, `🪙 +${coins}    TOTAL ${totalCoins}`, Text.label(26, COLORS.gold))
+      .setOrigin(0.5);
+    if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
+
+    new Button(this, cx, 760, 'RETRY', () => this.scene.start('Game'), {
       width: 320,
-      height: 92,
-      fontSize: 42
+      height: 88,
+      fontSize: 34
     });
-    new Button(this, cx, 890, 'MAIN MENU', () => this.scene.start('MainMenu'), {
+    new Button(this, cx, 858, 'MENU', () => this.scene.start('MainMenu'), {
       width: 320,
-      height: 72,
-      fontSize: 30,
+      height: 70,
+      fontSize: 26,
       fill: 0x44345e
     });
   }
