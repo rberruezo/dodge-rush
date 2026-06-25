@@ -49,7 +49,9 @@ export const STORAGE_KEYS = {
   MUTED: 'dodgerush.muted',
   COINS: 'dodgerush.coins',
   OWNED_SKINS: 'dodgerush.skins',
-  SELECTED_SKIN: 'dodgerush.skin'
+  SELECTED_SKIN: 'dodgerush.skin',
+  DIFFICULTY: 'dodgerush.difficulty', // selected difficulty mode id
+  DAILY: 'dodgerush.daily' // daily-reward streak + daily-mission state (JSON)
 } as const;
 
 export const COLORS = {
@@ -233,3 +235,97 @@ export const LIVES_CFG = {
   blinkMs: 110, // blink interval while invincible
   maxComboSpeed: 0.86 // hard cap on (time speed + combo bonus)
 } as const;
+
+/**
+ * Difficulty modes. CLASSIC is the tuned baseline; RELAX is a gentler curve for
+ * younger / casual players (slower, wider gaps, more lives, a lower ceiling).
+ * The multipliers scale the curves in DifficultyManager so all the fairness
+ * guarantees still hold — RELAX just makes everything more forgiving.
+ */
+export type DifficultyModeId = 'classic' | 'relax';
+
+export interface DifficultyMode {
+  id: DifficultyModeId;
+  label: string;
+  blurb: string;
+  speedScale: number; // multiplies start + max fall speed
+  rampScale: number; // multiplies how fast speed/gap/spacing ramp with time
+  gapScale: number; // multiplies the safe-passage width
+  spacingScale: number; // multiplies the distance between barriers
+  comboSpeedScale: number; // multiplies the combo speed bonus
+  maxStep: number; // caps the difficulty step (spawn-mix hardening)
+  lives: number; // starting lives
+}
+
+export const DIFFICULTY_MODES: Record<DifficultyModeId, DifficultyMode> = {
+  classic: {
+    id: 'classic',
+    label: 'CLASSIC',
+    blurb: 'The full challenge',
+    speedScale: 1,
+    rampScale: 1,
+    gapScale: 1,
+    spacingScale: 1,
+    comboSpeedScale: 1,
+    maxStep: DIFFICULTY_CFG.maxStep,
+    lives: LIVES_CFG.count
+  },
+  relax: {
+    id: 'relax',
+    label: 'RELAX',
+    blurb: 'Slower & forgiving',
+    speedScale: 0.78,
+    rampScale: 0.5,
+    gapScale: 1.28,
+    spacingScale: 1.18,
+    comboSpeedScale: 0.45,
+    maxStep: 4,
+    lives: 5
+  }
+} as const;
+
+export const DEFAULT_DIFFICULTY: DifficultyModeId = 'classic';
+
+/**
+ * Gap-legibility markers. Bright posts drawn on the inner (gap-facing) edge of
+ * each wall so the safe passage reads instantly against busy backgrounds. The
+ * #1 readability fix from the feel audit.
+ */
+export const GAP_MARKER_CFG = {
+  enabled: true,
+  width: 7, // post thickness (px)
+  coreColor: 0xffffff, // bright core
+  glowColor: 0x9be7ff, // soft outer glow
+  coreAlpha: 0.92,
+  glowAlpha: 0.5,
+  glowWidth: 18, // outer glow thickness (px)
+  arrowSize: 16, // little inward chevrons hinting "go here"
+  pulseSpeed: 0.012
+} as const;
+
+/**
+ * Daily reward (login streak) + daily mission. Coins are cosmetic-only currency,
+ * so these are pure retention hooks with no pay-to-win pressure.
+ */
+export const DAILY_CFG = {
+  // Streak rewards by consecutive day (capped at the last entry once maxed).
+  streakRewards: [25, 40, 60, 90, 130, 180, 250],
+  resetAfterHours: 48 // miss this long -> streak resets to day 1
+} as const;
+
+/** Daily mission archetypes — one is chosen deterministically per calendar day. */
+export type MissionKind = 'passes' | 'combo' | 'score' | 'smash';
+
+export interface MissionDef {
+  kind: MissionKind;
+  target: number;
+  reward: number;
+  label: (t: number) => string;
+}
+
+export const DAILY_MISSIONS: MissionDef[] = [
+  { kind: 'passes', target: 40, reward: 80, label: (t) => `Clear ${t} obstacles in one run` },
+  { kind: 'combo', target: 12, reward: 90, label: (t) => `Reach a x10 combo (chain ${t})` },
+  { kind: 'score', target: 600, reward: 100, label: (t) => `Score ${t} in a single run` },
+  { kind: 'smash', target: 5, reward: 70, label: (t) => `SMASH ${t} obstacles in one run` }
+];

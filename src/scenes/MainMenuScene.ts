@@ -6,7 +6,8 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   PLAYER_CFG,
-  BG_THEME_KEYS
+  BG_THEME_KEYS,
+  DifficultyModeId
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
@@ -15,6 +16,8 @@ import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
 import { ScoreManager } from '../systems/ScoreManager';
 import { Profile } from '../systems/ProfileManager';
+import { DifficultyManager } from '../systems/DifficultyManager';
+import { Daily } from '../systems/DailyManager';
 import { Sound, MUSIC } from '../systems/SoundManager';
 
 /**
@@ -23,10 +26,14 @@ import { Sound, MUSIC } from '../systems/SoundManager';
  * launch transition that hands the same background to the GameScene.
  */
 export class MainMenuScene extends Phaser.Scene {
+  /** Auto-open the Daily hub at most once per page load (not every menu visit). */
+  private static dailyAutoShown = false;
+
   private bg!: Background;
   private hero!: Phaser.GameObjects.Sprite;
   private heroSheet = 'character';
   private muteText!: Phaser.GameObjects.Text;
+  private diffText!: Phaser.GameObjects.Text;
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
   private launching = false;
 
@@ -103,7 +110,63 @@ export class MainMenuScene extends Phaser.Scene {
       this.muteText.setText(this.muteLabel());
     });
 
-    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText];
+    // Difficulty toggle (bottom-left, mirroring the mute toggle). Tap to cycle
+    // RELAX <-> CLASSIC; the choice persists and gates the whole curve + lives.
+    this.diffText = this.add
+      .text(22, GAME_HEIGHT - 22, this.diffLabel(), Text.body(26, '#bfe9ff'))
+      .setOrigin(0, 1)
+      .setInteractive({ useHandCursor: true });
+    this.diffText.on(Phaser.Input.Events.POINTER_UP, () => {
+      Sound.button();
+      const order: DifficultyModeId[] = ['classic', 'relax'];
+      const next = order[(order.indexOf(DifficultyManager.mode.id) + 1) % order.length];
+      DifficultyManager.setMode(next);
+      this.diffText.setText(this.diffLabel());
+    });
+
+    const daily = this.createDailyButton();
+
+    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText, this.diffText, daily];
+
+    // First time at the menu this session, surface the Daily hub if there's
+    // something to claim — the core "come back tomorrow" retention hook.
+    if (!MainMenuScene.dailyAutoShown && Daily.hasUnclaimed()) {
+      MainMenuScene.dailyAutoShown = true;
+      this.time.delayedCall(420, () => {
+        if (!this.launching) this.scene.start('Daily');
+      });
+    }
+  }
+
+  /** Top-left gift button (with a pulsing badge when something's claimable). */
+  private createDailyButton(): Phaser.GameObjects.Container {
+    const c = this.add.container(60, 64).setDepth(50);
+    const bg = this.add.circle(0, 0, 34, COLORS.panel, 0.9).setStrokeStyle(3, COLORS.panelStroke);
+    const icon = this.add.text(0, 2, '🎁', Text.body(40)).setOrigin(0.5);
+    c.add([bg, icon]);
+
+    if (Daily.hasUnclaimed()) {
+      const badge = this.add.circle(22, -22, 9, 0xff3b3b).setStrokeStyle(2, 0xffffff);
+      c.add(badge);
+      this.tweens.add({ targets: badge, scale: { from: 1, to: 1.35 }, duration: 560, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
+
+    const hit = this.add
+      .rectangle(0, 0, 84, 84, 0xffffff, 0)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    hit.on(Phaser.Input.Events.POINTER_UP, () => {
+      Sound.button();
+      this.scene.start('Daily');
+    });
+    c.add(hit);
+    return c;
+  }
+
+  private diffLabel(): string {
+    const m = DifficultyManager.mode;
+    const icon = m.id === 'relax' ? '🌿' : '🔥';
+    return `${icon} ${m.label}`;
   }
 
   update(_time: number, delta: number): void {

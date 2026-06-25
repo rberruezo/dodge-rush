@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, GAME_WIDTH, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
+import { ASSET_KEYS, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
 
 /** Fast lookup of a frame's source size by name. */
@@ -13,6 +13,12 @@ interface WallSide {
   glow: Phaser.GameObjects.Rectangle; // neon/danger/golden pulse
 }
 
+/** A high-contrast post marking one inner edge of the safe gap (legibility). */
+interface GapMarker {
+  glow: Phaser.GameObjects.Rectangle; // soft wide halo (ADD blend)
+  core: Phaser.GameObjects.Rectangle; // bright thin line
+}
+
 /**
  * A typed, full-width obstacle wall with a central passage gap.
  *
@@ -24,6 +30,8 @@ interface WallSide {
 export class Barrier {
   private left: WallSide;
   private right: WallSide;
+  private gapL?: GapMarker;
+  private gapR?: GapMarker;
 
   // Collision / placement state (read by CollisionSystem & generator).
   y = -9999;
@@ -46,6 +54,26 @@ export class Barrier {
   constructor(scene: Phaser.Scene) {
     this.left = Barrier.makeSide(scene);
     this.right = Barrier.makeSide(scene);
+    if (GAP_MARKER_CFG.enabled) {
+      this.gapL = Barrier.makeMarker(scene);
+      this.gapR = Barrier.makeMarker(scene);
+    }
+  }
+
+  private static makeMarker(scene: Phaser.Scene): GapMarker {
+    const mk = (w: number, color: number, depth: number, blend: boolean) => {
+      const r = scene.add
+        .rectangle(0, -9999, w, 10, color)
+        .setOrigin(0.5)
+        .setDepth(depth)
+        .setVisible(false);
+      if (blend) r.setBlendMode(Phaser.BlendModes.ADD);
+      return r;
+    };
+    return {
+      glow: mk(GAP_MARKER_CFG.glowWidth, GAP_MARKER_CFG.glowColor, 7, true),
+      core: mk(GAP_MARKER_CFG.width, GAP_MARKER_CFG.coreColor, 8, false)
+    };
   }
 
   private static makeSide(scene: Phaser.Scene): WallSide {
@@ -146,6 +174,22 @@ export class Barrier {
       this.left.glow.setAlpha(a);
       this.right.glow.setAlpha(a);
     }
+
+    this.placeMarker(this.gapL, this.gapX - half);
+    this.placeMarker(this.gapR, this.gapX + half);
+  }
+
+  /** Place a gap-edge post at inner edge `x`, on-screen only, with a soft pulse. */
+  private placeMarker(m: GapMarker | undefined, x: number): void {
+    if (!m) return;
+    const onScreen = x > 1 && x < GAME_WIDTH - 1;
+    m.core.setVisible(onScreen);
+    m.glow.setVisible(onScreen);
+    if (!onScreen) return;
+    const band = this.bandHeight;
+    const pulse = 1 + 0.18 * Math.sin(this.t * GAP_MARKER_CFG.pulseSpeed);
+    m.glow.setPosition(x, this.y).setDisplaySize(GAP_MARKER_CFG.glowWidth, band).setAlpha(GAP_MARKER_CFG.glowAlpha * pulse);
+    m.core.setPosition(x, this.y).setDisplaySize(GAP_MARKER_CFG.width, band).setAlpha(GAP_MARKER_CFG.coreAlpha);
   }
 
   /**
@@ -189,11 +233,17 @@ export class Barrier {
         o.setVisible(false).setPosition(0, -9999)
       );
     }
+    for (const m of [this.gapL, this.gapR]) {
+      if (m) [m.core, m.glow].forEach((o) => o.setVisible(false).setPosition(0, -9999));
+    }
   }
 
   destroy(): void {
     for (const side of [this.left, this.right]) {
       [side.fill, side.cap, side.center, side.glow].forEach((o) => o.destroy());
+    }
+    for (const m of [this.gapL, this.gapR]) {
+      if (m) [m.core, m.glow].forEach((o) => o.destroy());
     }
   }
 }

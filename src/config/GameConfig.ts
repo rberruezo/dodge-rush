@@ -8,6 +8,8 @@ import { PauseScene } from '../scenes/PauseScene';
 import { GameOverScene } from '../scenes/GameOverScene';
 import { ShopScene } from '../scenes/ShopScene';
 import { InfoScene } from '../scenes/InfoScene';
+import { DailyScene } from '../scenes/DailyScene';
+import { ContinueScene } from '../scenes/ContinueScene';
 
 /**
  * Root Phaser configuration. Portrait, pixel-art, FIT-scaled so one logical
@@ -47,6 +49,8 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
     PauseScene,
     GameOverScene,
     ShopScene,
-    InfoScene
+    InfoScene,
+    DailyScene,
+    ContinueScene
   ]
 });

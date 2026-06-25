@@ -49,6 +49,10 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
+    this.load.spritesheet('character_phoenix', 'assets/character_phoenix.png', {
+      frameWidth: CHARACTER_FRAME.width,
+      frameHeight: CHARACTER_FRAME.height
+    });
     BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
     this.load.spritesheet(ASSET_KEYS.COIN, 'assets/coin.png', {

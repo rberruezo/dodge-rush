@@ -22,6 +22,7 @@ import { ComboManager } from '../systems/ComboManager';
 import { DifficultyManager } from '../systems/DifficultyManager';
 import { InputController } from '../systems/InputController';
 import { Profile } from '../systems/ProfileManager';
+import { Daily } from '../systems/DailyManager';
 import { HUD } from '../ui/HUD';
 import { EffectsLayer } from '../ui/EffectsLayer';
 import { Sound, MUSIC } from '../systems/SoundManager';
@@ -46,8 +47,11 @@ export class GameScene extends Phaser.Scene {
   private dirHoldMs = 0;
   private boostUntilMs = -1;
   private passCount = 0;
-  private lives = LIVES_CFG.count;
+  private smashCount = 0;
+  private lives: number = LIVES_CFG.count;
+  private livesMax: number = LIVES_CFG.count;
   private invincibleUntilMs = 0;
+  private continueUsed = false;
   private comboCelebUntilMs = 0;
   private comboCelebFrame: number = CHAR_FRAMES.starHead;
   private comboCelebCheer = false;
@@ -78,7 +82,10 @@ export class GameScene extends Phaser.Scene {
     this.dirHoldMs = 0;
     this.boostUntilMs = -1;
     this.passCount = 0;
-    this.lives = LIVES_CFG.count;
+    this.smashCount = 0;
+    this.continueUsed = false;
+    this.livesMax = DifficultyManager.mode.lives;
+    this.lives = this.livesMax;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
     this.comboCelebCheer = false;
@@ -111,7 +118,7 @@ export class GameScene extends Phaser.Scene {
     this.controls.onBreak = () => this.tryBreak();
 
     this.hud = new HUD(this, this.score.high, () => this.pauseGame());
-    this.hud.setLives(this.lives, LIVES_CFG.count);
+    this.hud.setLives(this.lives, this.livesMax);
     this.hud.setPower(true, 1);
 
     Sound.playMusic(MUSIC.GAME);
@@ -153,6 +160,7 @@ export class GameScene extends Phaser.Scene {
     if (!broken) return; // nothing ahead to break -> save the charge
 
     this.breakCdUntilMs = now + POWER_CFG.cooldownMs;
+    this.smashCount += 1;
 
     // Reward it like a clean pass so the combo (and its speed bonus) carry on.
     const state = this.combo.increment();
@@ -179,7 +187,10 @@ export class GameScene extends Phaser.Scene {
     const snapshot = DifficultyManager.sample(this.score.elapsedSeconds);
 
     // Combo speeds the game up (on top of the time ramp); resets with the combo.
-    const speed = Math.min(LIVES_CFG.maxComboSpeed, snapshot.speed + this.combo.speedBonus);
+    // Both the bonus and its cap scale with the difficulty mode (RELAX stays calm).
+    const mode = DifficultyManager.mode;
+    const comboBonus = this.combo.speedBonus * mode.comboSpeedScale;
+    const speed = Math.min(LIVES_CFG.maxComboSpeed * mode.speedScale, snapshot.speed + comboBonus);
     this.bg.update(dt, speed);
 
     const dir = this.controls.direction;
@@ -314,7 +325,7 @@ export class GameScene extends Phaser.Scene {
   private loseLife(): void {
     this.lives -= 1;
     this.combo.reset();
-    this.hud.setLives(this.lives, LIVES_CFG.count);
+    this.hud.setLives(this.lives, this.livesMax);
 
     Sound.hit();
     this.cameras.main.shake(220, 0.012);
@@ -323,14 +334,50 @@ export class GameScene extends Phaser.Scene {
     this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sadHead, 0.9);
 
     if (this.lives <= 0) {
-      this.gameOver();
+      // Offer a one-time, opt-in "continue" (rewarded ad) before ending the run.
+      if (!this.continueUsed) this.offerContinue();
+      else this.finishGameOver();
       return;
     }
     // Survive: brief invincibility (player blinks + dizzy) then carry on.
     this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs;
   }
 
-  private gameOver(): void {
+  /** Pause the run and let the player watch a rewarded ad to keep going once. */
+  private offerContinue(): void {
+    this.running = false;
+    this.controls.setEnabled(false);
+    this.player.setPose({ kind: 'dizzy' });
+    this.player.setAlpha(1);
+    this.cameras.main.shake(220, 0.012);
+    this.scene.launch('Continue', { score: this.score.current });
+    this.scene.pause();
+  }
+
+  /**
+   * Resume after a granted continue: refill some lives, clear the field for a
+   * fair restart, and grant generous invincibility. Called by ContinueScene.
+   */
+  continueRun(): void {
+    this.continueUsed = true;
+    this.lives = Math.max(1, Math.ceil(this.livesMax / 2));
+    this.combo.reset();
+    this.hud.setLives(this.lives, this.livesMax);
+
+    // Sweep the field and respawn a clean stream so the revive isn't an instant
+    // re-death into the wall that killed the player.
+    this.obstacles.reset(DifficultyManager.sample(this.score.elapsedSeconds));
+    this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs * 1.6;
+
+    Sound.start();
+    this.fx.popup(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 'CONTINUE!', '#7bf0a8', 44);
+    this.player.setAlpha(1);
+    this.running = true;
+    this.controls.setEnabled(true);
+  }
+
+  /** Finalize the run: commit score, bank coins, feed daily, go to results. */
+  finishGameOver(): void {
     this.running = false;
     this.controls.setEnabled(false);
     this.player.setPose({ kind: 'dizzy' });
@@ -343,6 +390,10 @@ export class GameScene extends Phaser.Scene {
     const coins = Math.floor(finalScore / 100) + Math.floor(this.maxCombo / 10);
     if (coins > 0) Profile.addCoins(coins);
 
+    // Feed the daily mission (best-in-run progress) and flag a fresh completion.
+    Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore, smash: this.smashCount });
+    const missionDone = Daily.missionClaimable();
+
     this.cameras.main.shake(300, 0.016);
     this.time.delayedCall(420, () => {
       Sound.gameOver();
@@ -351,7 +402,8 @@ export class GameScene extends Phaser.Scene {
         best: this.score.high,
         isNewBest,
         coins,
-        totalCoins: Profile.coins
+        totalCoins: Profile.coins,
+        missionDone
       });
     });
   }

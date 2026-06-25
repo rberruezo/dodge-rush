@@ -1,7 +1,12 @@
 import {
   SCROLL_CFG,
   OBSTACLE_CFG,
-  DIFFICULTY_CFG
+  DIFFICULTY_CFG,
+  DIFFICULTY_MODES,
+  DEFAULT_DIFFICULTY,
+  DifficultyMode,
+  DifficultyModeId,
+  STORAGE_KEYS
 } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, ALL_OBSTACLE_TYPES } from '../config/ObstacleTypes';
 
@@ -21,26 +26,58 @@ export interface DifficultySnapshot {
  * danger, diagonal). Values interpolate continuously so there are no spikes.
  */
 export class DifficultyManager {
+  /** Active difficulty mode (CLASSIC by default). Persisted via setMode(). */
+  private static mode_: DifficultyMode = DIFFICULTY_MODES[DifficultyManager.loadModeId()];
+
+  /** The active mode's config (read by GameScene for lives + combo speed). */
+  static get mode(): DifficultyMode {
+    return DifficultyManager.mode_;
+  }
+
+  /** Switch + persist the difficulty mode. */
+  static setMode(id: DifficultyModeId): void {
+    this.mode_ = DIFFICULTY_MODES[id] ?? DIFFICULTY_MODES[DEFAULT_DIFFICULTY];
+    try {
+      localStorage.setItem(STORAGE_KEYS.DIFFICULTY, this.mode_.id);
+    } catch {
+      /* ignore (private mode) */
+    }
+  }
+
+  private static loadModeId(): DifficultyModeId {
+    try {
+      const id = localStorage.getItem(STORAGE_KEYS.DIFFICULTY) as DifficultyModeId | null;
+      if (id && id in DIFFICULTY_MODES) return id;
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_DIFFICULTY;
+  }
+
   /** Compute every difficulty parameter for a given elapsed time (seconds). */
   static sample(elapsedSeconds: number): DifficultySnapshot {
+    const m = DifficultyManager.mode_;
+    // RELAX slows the clock that drives every ramp, so it stays gentle longer.
+    const t = elapsedSeconds * m.rampScale;
+
     const level = Math.min(
-      DIFFICULTY_CFG.maxStep,
+      m.maxStep,
       Math.floor(elapsedSeconds / DIFFICULTY_CFG.stepSeconds)
     );
 
-    // Continuous ramps (not stepped) for smoothness.
+    // Continuous ramps (not stepped) for smoothness; scaled per difficulty mode.
     const speed = Math.min(
-      SCROLL_CFG.maxSpeed,
-      SCROLL_CFG.startSpeed + SCROLL_CFG.accelPerSec * elapsedSeconds
+      SCROLL_CFG.maxSpeed * m.speedScale,
+      (SCROLL_CFG.startSpeed + SCROLL_CFG.accelPerSec * t) * m.speedScale
     );
     const spacing = Math.max(
       OBSTACLE_CFG.spacingMin,
-      OBSTACLE_CFG.spacingStart - OBSTACLE_CFG.spacingShrinkPerSec * elapsedSeconds
-    );
+      OBSTACLE_CFG.spacingStart - OBSTACLE_CFG.spacingShrinkPerSec * t
+    ) * m.spacingScale;
     const baseGap = Math.max(
       OBSTACLE_CFG.gapMin,
-      OBSTACLE_CFG.gapStart - OBSTACLE_CFG.gapShrinkPerSec * elapsedSeconds
-    );
+      OBSTACLE_CFG.gapStart - OBSTACLE_CFG.gapShrinkPerSec * t
+    ) * m.gapScale;
 
     return { level, speed, spacing, baseGap, weights: DifficultyManager.weights(level) };
   }
