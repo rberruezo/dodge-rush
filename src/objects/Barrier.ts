@@ -186,7 +186,7 @@ export class Barrier {
     m.core.setVisible(onScreen);
     m.glow.setVisible(onScreen);
     if (!onScreen) return;
-    const band = this.bandHeight;
+    const band = this.bandHeight * GAP_MARKER_CFG.heightScale;
     const pulse = 1 + 0.18 * Math.sin(this.t * GAP_MARKER_CFG.pulseSpeed);
     m.glow.setPosition(x, this.y).setDisplaySize(GAP_MARKER_CFG.glowWidth, band).setAlpha(GAP_MARKER_CFG.glowAlpha * pulse);
     m.core.setPosition(x, this.y).setDisplaySize(GAP_MARKER_CFG.width, band).setAlpha(GAP_MARKER_CFG.coreAlpha);

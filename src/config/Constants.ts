@@ -293,13 +293,15 @@ export const DEFAULT_DIFFICULTY: DifficultyModeId = 'classic';
  */
 export const GAP_MARKER_CFG = {
   enabled: true,
-  width: 7, // post thickness (px)
+  width: 10, // bright-core post thickness (px)
   coreColor: 0xffffff, // bright core
-  glowColor: 0x9be7ff, // soft outer glow
-  coreAlpha: 0.92,
-  glowAlpha: 0.5,
-  glowWidth: 18, // outer glow thickness (px)
-  arrowSize: 16, // little inward chevrons hinting "go here"
+  glowColor: 0x8fffc8, // minty "go here" outer glow (green reads as safe to kids)
+  coreAlpha: 1,
+  glowAlpha: 0.66,
+  glowWidth: 28, // outer glow thickness (px)
+  heightScale: 1.18, // posts stand a touch taller than the wall band -> "gateposts"
+  arrowSize: 18, // inward chevron hinting "go between here"
+  arrowAlpha: 0.95,
   pulseSpeed: 0.012
 } as const;
 
