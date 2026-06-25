@@ -53,6 +53,30 @@ export class EffectsLayer {
     this.gold.explode(count, x, y);
   }
 
+  /** A character-sheet frame (head / trophy) that pops, holds, then fades out. */
+  iconPopup(x: number, y: number, frameIndex: number, scale = 2.4): void {
+    const icon = this.scene.add
+      .sprite(x, y, ASSET_KEYS.CHARACTER, frameIndex)
+      .setDepth(22)
+      .setScale(0);
+    this.scene.tweens.add({
+      targets: icon,
+      scale,
+      duration: 220,
+      ease: 'Back.out',
+      yoyo: false
+    });
+    this.scene.tweens.add({
+      targets: icon,
+      y: y - 50,
+      alpha: { from: 1, to: 0 },
+      delay: 600,
+      duration: 500,
+      ease: 'Cubic.in',
+      onComplete: () => icon.destroy()
+    });
+  }
+
   /** Floating "+points" / combo text that rises and fades. */
   popup(x: number, y: number, text: string, color: string, size = 30): void {
     const label = this.scene.add

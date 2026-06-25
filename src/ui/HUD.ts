@@ -10,6 +10,7 @@ export class HUD {
   private scoreText: Phaser.GameObjects.Text;
   private bestText: Phaser.GameObjects.Text;
   private comboText: Phaser.GameObjects.Text;
+  private livesText: Phaser.GameObjects.Text;
   private pauseBtn: Phaser.GameObjects.Container;
 
   constructor(scene: Phaser.Scene, best: number, onPause: () => void) {
@@ -48,7 +49,25 @@ export class HUD {
       .setShadow(0, 2, '#00000088', 0, true, true)
       .setDepth(100);
 
+    this.livesText = scene.add
+      .text(20, 40, '', {
+        fontFamily: 'monospace',
+        fontSize: '32px',
+        color: COLORS.accent,
+        fontStyle: 'bold'
+      })
+      .setOrigin(0, 0.5)
+      .setShadow(0, 2, '#00000088', 0, true, true)
+      .setDepth(100);
+
     this.pauseBtn = this.createPauseButton(onPause);
+  }
+
+  /** Render remaining lives as filled/empty hearts. */
+  setLives(lives: number, max: number): void {
+    let s = '';
+    for (let i = 0; i < max; i++) s += i < lives ? '♥' : '♡';
+    this.livesText.setText(s);
   }
 
   private createPauseButton(onPause: () => void): Phaser.GameObjects.Container {
@@ -96,6 +115,7 @@ export class HUD {
     this.scoreText.setVisible(v);
     this.bestText.setVisible(v);
     this.comboText.setVisible(v);
+    this.livesText.setVisible(v);
     this.pauseBtn.setVisible(v);
   }
 
@@ -103,6 +123,7 @@ export class HUD {
     this.scoreText.destroy();
     this.bestText.destroy();
     this.comboText.destroy();
+    this.livesText.destroy();
     this.pauseBtn.destroy();
   }
 }

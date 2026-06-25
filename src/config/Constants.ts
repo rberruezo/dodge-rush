@@ -35,8 +35,8 @@ export const BG_CFG = {
 export const ANIM_KEYS = {
   IDLE: 'player-idle',
   FALL: 'player-fall',
-  HURT: 'player-hurt',
-  CHEER: 'player-cheer'
+  CHEER: 'player-cheer',
+  BOOST: 'player-boost'
 } as const;
 
 export const STORAGE_KEYS = {
@@ -59,29 +59,36 @@ export const COLORS = {
 /**
  * Character sprite-sheet slicing.
  *
- * NOTE: the raw art is an irregular AI grid (varying pitch). It is re-packed by
- * `scripts/build-character.py` into a clean, uniform 6-column x 5-row sheet at
- * `public/assets/character.png` with these exact cell dimensions. Frames are
- * numbered left-to-right, top-to-bottom starting at 0:
- *   row 0 (0-5)   idle (front-facing)
- *   row 1 (6-11)  jet flight  -> the falling loop (faces RIGHT by default)
- *   row 2 (12-17) flight variant
- *   row 3 (18-23) dizzy / hurt
- *   row 4 (24-29) cheer / celebrate
- * The sprite's natural orientation faces RIGHT, so we mirror (flipX) when moving
- * left — see Player.steer(). Cells are small (downscaled to a pixel-art palette);
- * the game upscales them nearest-neighbour for crisp pixels.
+ * Re-packed by `scripts/build-character.py` into a clean, uniform 6x6 grid at
+ * `public/assets/character.png` (50x50 cells). Frame map (index = row*6 + col):
+ *   row 0 (0-5)   idle (front)
+ *   row 1 (6-11)  side flight        -> falling / movement loop (faces LEFT)
+ *   row 2 (12-17) cheer (arms up)    -> celebration / new best
+ *   row 3 (18-23) combo: x1,x2,x3,x5,x10,x20  -> player sprite per combo tier
+ *   row 4 (24-29) dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
+ *   row 5 (30-35) flight + sparkles  -> golden score-boost flight
+ * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player.
  */
 export const CHARACTER_FRAME = {
-  width: 48,
-  height: 60
+  width: 50,
+  height: 50
+} as const;
+
+/** Single-purpose frames (not animations). */
+export const CHAR_FRAMES = {
+  dizzy: 24,
+  sadCloud: 25,
+  trophy: 26,
+  crown: 27,
+  starHead: 28,
+  sadHead: 29
 } as const;
 
 export const CHARACTER_ANIMS = {
   [ANIM_KEYS.IDLE]: { start: 0, end: 5, frameRate: 8, repeat: -1 },
   [ANIM_KEYS.FALL]: { start: 6, end: 11, frameRate: 14, repeat: -1 },
-  [ANIM_KEYS.HURT]: { start: 18, end: 23, frameRate: 10, repeat: 0 },
-  [ANIM_KEYS.CHEER]: { start: 24, end: 29, frameRate: 10, repeat: -1 }
+  [ANIM_KEYS.CHEER]: { start: 12, end: 17, frameRate: 10, repeat: -1 },
+  [ANIM_KEYS.BOOST]: { start: 30, end: 35, frameRate: 16, repeat: -1 }
 } as const;
 
 /**
@@ -161,11 +168,29 @@ export const SCORE_CFG = {
   goldenBoostMult: 2 // score multiplier while the golden boost is active
 } as const;
 
-/** Combo multiplier thresholds (checked high-to-low). */
+/**
+ * Combo tiers (checked high-to-low). `at` = passes needed, `mult` = score
+ * multiplier, `frame` = the player sprite showing that number while flying.
+ * A higher combo also speeds the game up (see `speedPerMult`) — and both the
+ * multiplier and the speed bonus reset whenever a life is lost.
+ */
 export const COMBO_CFG = {
   tiers: [
-    { at: 20, mult: 5 },
-    { at: 10, mult: 3 },
-    { at: 5, mult: 2 }
-  ]
+    { at: 20, mult: 20, frame: 23 },
+    { at: 12, mult: 10, frame: 22 },
+    { at: 7, mult: 5, frame: 21 },
+    { at: 4, mult: 3, frame: 20 },
+    { at: 2, mult: 2, frame: 19 }
+  ],
+  baseFrame: 18, // combo x1 (no tier) — but the fly animation is used instead
+  speedPerMult: 0.012, // fall-speed added per multiplier step above 1
+  speedBonusMax: 0.24 // cap on the combo speed bonus
+} as const;
+
+/** Lives & post-hit invincibility. */
+export const LIVES_CFG = {
+  count: 3,
+  invincibleMs: 1500, // grace period after a crash
+  blinkMs: 110, // blink interval while invincible
+  maxComboSpeed: 0.86 // hard cap on (time speed + combo bonus)
 } as const;

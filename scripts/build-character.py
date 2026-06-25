@@ -1,107 +1,157 @@
 #!/usr/bin/env python3
 """
-Re-pack + clean + pixelate the raw character art into a game-ready sprite sheet.
+Build the clean pixel-art character sheet from the rich emotion/action source.
 
-The source art (AI-generated) is an irregular grid (sprite columns at ~150px
-pitch, not 1024/6) and is painterly/soft with neighbour bleed when cropped.
-This script:
-  1. Crops fixed cells centred on the real sprite positions.
-  2. Isolates the main sprite per cell via connected-components, deleting any
-     fragment that doesn't reach the cell centre (kills neighbour bleed).
-  3. Downscales + quantises to a limited palette with hard alpha edges, so it
-     reads as crisp pixel-art (the game upscales it nearest-neighbour).
+The source is a card-style sheet (checker + white rounded cards behind each
+sprite, no alpha). For each needed sprite we crop a uniform window centred on it,
+remove the background with an edge flood-fill (deletes checker + white card but
+keeps the character's *enclosed* white highlights), isolate the central blob
+(drops neighbouring-card fragments), then pixelate (denoise → downscale → tight
+palette → hard alpha) for a hand-drawn pixel-art look.
 
-Output: clean uniform 6-col x 5-row sheet (idle, fly, fly2, hurt, cheer).
+Output: a uniform 6x6 grid (50x50 cells) at public/assets/character.png.
 
-Usage: python3 scripts/build-character.py "/path/to/raw.png"
+Frame map (index = row*6 + col):
+  row0  0-5   idle (front)
+  row1  6-11  fly (side, focused)        -> falling / movement loop
+  row2 12-17  cheer (arms up)            -> celebration / new best
+  row3 18-23  combo: x1,x2,x3,x5,x10,x20 -> player sprite per combo tier
+  row4 24-29  dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
+  row5 30-35  fly-boost (sparkles)       -> golden score-boost flight
 """
 import sys
 from collections import deque
-from PIL import Image
+from PIL import Image, ImageFilter
 
-DEFAULT_SRC = "/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 09_18_10 a.m..png"
+DEFAULT_SRC = "/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 10_40_44 p.m..png"
 OUT = "public/assets/character.png"
 
-COL_CENTERS = [121, 265, 416, 565, 718, 870]
-ROW_CENTERS = [123, 337, 546, 762, 984]  # idle, fly, fly2, hurt, cheer
-CELL_W, CELL_H = 168, 210
+WINDOW = 176   # square crop window (source px) centred on each sprite
+CELL = 50      # output cell size
+COLS, ROWS = 6, 6
+PRE_SMOOTH = 5
+POST_SMOOTH = 3
+PALETTE_COLORS = 28
+ALPHA_CUT = 120
 
-ALPHA_SOLID = 40       # pixels above this count as part of a sprite
-MIN_BLOB = 12          # drop specks smaller than this
-BAND = 0.18            # central horizontal band a real sprite must reach
-DOWNSCALE = 3.5        # 168/3.5=48, 210/3.5=60  -> chunky pixels
-PALETTE_COLORS = 32
-ALPHA_CUT = 110        # hard edge threshold after downscale
+# Detected sprite centres (cx, cy) in the source, grouped by category.
+CENTERS = {
+    "idle": [(93, 122), (252, 122), (411, 122), (569, 123), (727, 123), (885, 123)],
+    "fly": [(103, 503), (262, 502), (421, 502), (580, 502), (738, 502), (896, 502)],
+    "cheer": [(95, 884), (262, 884), (428, 884), (590, 884), (757, 878), (920, 884)],
+    "combo": [(86, 1410), (251, 1410), (417, 1410), (583, 1413), (756, 1416), (916, 1420)],
+    "boost": [(102, 692), (271, 695), (451, 694), (637, 694), (806, 697)],
+    # dizzy, sad-cloud, trophy, crown, star-eyes head, sad head
+    "specials": [(496, 1232), (688, 1226), (113, 1226), (310, 1225), (756, 1054), (921, 1054)],
+}
+
+# Output grid: list of (category, source-index) per cell, row-major.
+GRID = (
+    [("idle", i) for i in range(6)]
+    + [("fly", i) for i in range(6)]
+    + [("cheer", i) for i in range(6)]
+    + [("combo", i) for i in range(6)]
+    + [("specials", i) for i in range(6)]
+    + [("boost", i) for i in range(5)] + [("boost", 4)]  # pad to 6
+)
 
 
-def isolate(cell: Image.Image) -> Image.Image:
-    """Keep only connected blobs that reach the cell's central band."""
-    w, h = cell.size
-    px = cell.load()
-    solid = [[px[x, y][3] > ALPHA_SOLID for x in range(w)] for y in range(h)]
+def is_bg(r, g, b):
+    return min(r, g, b) > 175 and (max(r, g, b) - min(r, g, b)) < 45
+
+
+def extract(im, cx, cy):
+    """Crop a window, strip the card/checker background, keep the central sprite."""
+    half = WINDOW // 2
+    crop = im.crop((cx - half, cy - half, cx - half + WINDOW, cy - half + WINDOW)).convert("RGB")
+    w, h = crop.size
+    px = crop.load()
+
+    # 1) Flood-fill background inward from the window edges.
+    ext = [[False] * w for _ in range(h)]
+    q = deque()
+    for x in range(w):
+        for y in (0, h - 1):
+            if is_bg(*px[x, y]) and not ext[y][x]:
+                ext[y][x] = True
+                q.append((x, y))
+    for y in range(h):
+        for x in (0, w - 1):
+            if is_bg(*px[x, y]) and not ext[y][x]:
+                ext[y][x] = True
+                q.append((x, y))
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < w and 0 <= ny < h and not ext[ny][nx] and is_bg(*px[nx, ny]):
+                ext[ny][nx] = True
+                q.append((nx, ny))
+
+    # 2) Keep only the connected blob that reaches the centre (drop neighbour bits).
     seen = [[False] * w for _ in range(h)]
     keep = [[False] * w for _ in range(h)]
-    band_l, band_r = int(BAND * w), int((1 - BAND) * w)
-
+    cl, cr = int(0.30 * w), int(0.70 * w)
+    ct, cb = int(0.22 * h), int(0.78 * h)
     for y0 in range(h):
         for x0 in range(w):
-            if not solid[y0][x0] or seen[y0][x0]:
+            if ext[y0][x0] or seen[y0][x0]:
                 continue
-            q = deque([(x0, y0)])
+            blob, touches = [], False
+            qq = deque([(x0, y0)])
             seen[y0][x0] = True
-            blob = []
-            touches = False
-            while q:
-                x, y = q.popleft()
+            while qq:
+                x, y = qq.popleft()
                 blob.append((x, y))
-                if band_l <= x <= band_r:
+                if cl <= x <= cr and ct <= y <= cb:
                     touches = True
                 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                     nx, ny = x + dx, y + dy
-                    if 0 <= nx < w and 0 <= ny < h and solid[ny][nx] and not seen[ny][nx]:
+                    if 0 <= nx < w and 0 <= ny < h and not ext[ny][nx] and not seen[ny][nx]:
                         seen[ny][nx] = True
-                        q.append((nx, ny))
-            if touches and len(blob) >= MIN_BLOB:
+                        qq.append((nx, ny))
+            if touches and len(blob) >= 60:
                 for (x, y) in blob:
                     keep[y][x] = True
 
-    out = cell.copy()
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     opx = out.load()
     for y in range(h):
         for x in range(w):
-            if not keep[y][x]:
-                r, g, b, _ = opx[x, y]
-                opx[x, y] = (r, g, b, 0)
+            if keep[y][x]:
+                r, g, b = px[x, y]
+                opx[x, y] = (r, g, b, 255)
     return out
 
 
-def pixelate(sheet: Image.Image) -> Image.Image:
-    """Downscale, quantise to a small palette, and harden alpha edges."""
+def pixelate(sheet):
     sw, sh = sheet.size
-    small = sheet.resize((round(sw / DOWNSCALE), round(sh / DOWNSCALE)), Image.LANCZOS)
-    r, g, b, a = small.split()
-    a = a.point(lambda v: 255 if v >= ALPHA_CUT else 0)
-    rgb = Image.merge("RGB", (r, g, b))
-    pal = rgb.quantize(colors=PALETTE_COLORS, method=Image.MEDIANCUT, dither=Image.NONE).convert("RGB")
+    r, g, b, a = sheet.split()
+    rgb = Image.merge("RGB", (r, g, b)).filter(ImageFilter.MedianFilter(PRE_SMOOTH))
+    smoothed = Image.merge("RGBA", (*rgb.split(), a))
+    small = smoothed.resize((COLS * CELL, ROWS * CELL), Image.LANCZOS)
+    sr, sg, sb, sa = small.split()
+    clean = Image.merge("RGB", (sr, sg, sb)).filter(ImageFilter.MedianFilter(POST_SMOOTH))
+    pal = clean.quantize(colors=PALETTE_COLORS, method=Image.MEDIANCUT, dither=Image.NONE).convert("RGB")
     pr, pg, pb = pal.split()
-    return Image.merge("RGBA", (pr, pg, pb, a))
+    hard_a = sa.point(lambda v: 255 if v >= ALPHA_CUT else 0)
+    return Image.merge("RGBA", (pr, pg, pb, hard_a))
 
 
-def main() -> None:
+def main():
     src = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SRC
-    im = Image.open(src).convert("RGBA")
-    cols, rows = len(COL_CENTERS), len(ROW_CENTERS)
+    im = Image.open(src).convert("RGB")
 
-    sheet = Image.new("RGBA", (CELL_W * cols, CELL_H * rows), (0, 0, 0, 0))
-    for r, cy in enumerate(ROW_CENTERS):
-        for c, cx in enumerate(COL_CENTERS):
-            x0, y0 = cx - CELL_W // 2, cy - CELL_H // 2
-            cell = isolate(im.crop((x0, y0, x0 + CELL_W, y0 + CELL_H)))
-            sheet.paste(cell, (c * CELL_W, r * CELL_H))
+    big = Image.new("RGBA", (COLS * WINDOW, ROWS * WINDOW), (0, 0, 0, 0))
+    for idx, (cat, i) in enumerate(GRID):
+        cx, cy = CENTERS[cat][i]
+        cell = extract(im, cx, cy)
+        c, r = idx % COLS, idx // COLS
+        big.paste(cell, (c * WINDOW, r * WINDOW))
 
-    final = pixelate(sheet)
+    final = pixelate(big)
     final.save(OUT)
-    print(f"wrote {OUT} {final.size} (cell {final.size[0]//cols}x{final.size[1]//rows})")
+    print(f"wrote {OUT} {final.size} (cell {CELL}x{CELL}, {len(GRID)} frames)")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,14 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, PLAYER_CFG, SCORE_CFG, BG_CFG, BG_THEME_KEYS } from '../config/Constants';
+import {
+  GAME_WIDTH,
+  GAME_HEIGHT,
+  PLAYER_CFG,
+  SCORE_CFG,
+  BG_CFG,
+  BG_THEME_KEYS,
+  LIVES_CFG,
+  CHAR_FRAMES
+} from '../config/Constants';
 import { Background } from '../objects/Background';
 import { Player } from '../objects/Player';
 import { Barrier } from '../objects/Barrier';
@@ -14,11 +23,9 @@ import { EffectsLayer } from '../ui/EffectsLayer';
 import { Sound, MUSIC } from '../systems/SoundManager';
 
 /**
- * The playable scene. Orchestrates the difficulty curve, obstacle stream,
- * combo/scoring, and all per-frame visual feedback.
- *
- * Note: the input helper is stored as `controls` (not `input`) to avoid
- * shadowing Phaser's built-in Scene.input plugin.
+ * The playable scene. Orchestrates difficulty, the obstacle stream, the combo
+ * (which scales both score AND speed), a 3-lives system with post-hit
+ * invincibility, and all per-frame visual feedback.
  */
 export class GameScene extends Phaser.Scene {
   private bg!: Background;
@@ -34,6 +41,8 @@ export class GameScene extends Phaser.Scene {
   private lastMoveDir: -1 | 0 | 1 = 0;
   private boostUntilMs = -1;
   private passCount = 0;
+  private lives = LIVES_CFG.count;
+  private invincibleUntilMs = 0;
 
   constructor() {
     super('Game');
@@ -44,8 +53,9 @@ export class GameScene extends Phaser.Scene {
     this.lastMoveDir = 0;
     this.boostUntilMs = -1;
     this.passCount = 0;
+    this.lives = LIVES_CFG.count;
+    this.invincibleUntilMs = 0;
 
-    // Start each run on a random point in the day-cycle for variety.
     this.bg = new Background(this, Phaser.Math.Between(0, BG_THEME_KEYS.length - 1)).setDepth(0);
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
@@ -62,10 +72,10 @@ export class GameScene extends Phaser.Scene {
     this.controls = new InputController(this);
     this.controls.onFirstInput = () => Sound.unlock();
 
-    // Cross-dissolve from the menu loop into the gameplay track.
-    Sound.playMusic(MUSIC.GAME);
-
     this.hud = new HUD(this, this.score.high, () => this.pauseGame());
+    this.hud.setLives(this.lives, LIVES_CFG.count);
+
+    Sound.playMusic(MUSIC.GAME);
 
     this.input.keyboard?.on('keydown-ESC', () => this.pauseGame());
     this.input.keyboard?.on('keydown-P', () => this.pauseGame());
@@ -92,45 +102,44 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (!this.running) return;
-
-    // Clamp delta so a tab-switch stall can't tunnel obstacles through the player.
     const dt = Math.min(delta, 1000 / 30);
+    const now = this.score.elapsedMs;
 
     this.score.update(dt);
     const snapshot = DifficultyManager.sample(this.score.elapsedSeconds);
 
-    this.bg.update(dt, snapshot.speed);
+    // Combo speeds the game up (on top of the time ramp); resets with the combo.
+    const speed = Math.min(LIVES_CFG.maxComboSpeed, snapshot.speed + this.combo.speedBonus);
+    this.bg.update(dt, speed);
 
     const dir = this.controls.direction;
     if (dir !== 0 && dir !== this.lastMoveDir) Sound.move();
     this.lastMoveDir = dir;
     this.player.steer(dt, dir);
 
-    const passed = this.obstacles.update(dt, snapshot, this.player.y);
+    const boostActive = now < this.boostUntilMs;
+    const invincible = now < this.invincibleUntilMs;
+    this.player.setPose({ dizzy: invincible, boosting: boostActive, comboFrame: this.combo.frame });
+    this.player.setAlpha(invincible ? (Math.floor(now / LIVES_CFG.blinkMs) % 2 ? 0.35 : 1) : 1);
+
+    const passed = this.obstacles.update(dt, { ...snapshot, speed }, this.player.y);
     if (passed.length) {
-      const boostActive = this.score.elapsedMs < this.boostUntilMs;
       const boostMult = boostActive ? SCORE_CFG.goldenBoostMult : 1;
       for (const b of passed) this.handlePass(b, boostMult);
     }
 
-    const hit = CollisionSystem.check(this.player, this.obstacles.barriers);
-    if (hit) {
-      this.gameOver();
-      return;
+    if (!invincible) {
+      const hit = CollisionSystem.check(this.player, this.obstacles.barriers);
+      if (hit) this.loseLife();
     }
 
-    this.hud.update(
-      this.score.current,
-      this.combo.combo,
-      this.combo.multiplier,
-      this.score.elapsedMs < this.boostUntilMs
-    );
+    this.hud.update(this.score.current, this.combo.combo, this.combo.multiplier, boostActive);
   }
 
   /** Award score + combo + feedback for a cleared obstacle. */
   private handlePass(b: Barrier, boostMult: number): void {
-    this.combo.increment();
-    const mult = this.combo.multiplier;
+    const state = this.combo.increment();
+    const mult = state.multiplier;
 
     let points = SCORE_CFG.pointsPerPass * mult * boostMult;
     const px = b.gapX;
@@ -152,23 +161,49 @@ export class GameScene extends Phaser.Scene {
     const label = mult > 1 ? `+${Math.round(points)}  x${mult}` : `+${Math.round(points)}`;
     this.fx.popup(px, py, label, mult > 1 ? '#ffd54a' : '#ffffff', mult > 1 ? 32 : 26);
 
-    // Drift the world through the day-cycle every so many cleared obstacles.
+    // Celebrate reaching a new combo tier.
+    if (state.tierUp) {
+      Sound.newBest();
+      this.fx.popup(GAME_WIDTH / 2, py - 90, `COMBO x${mult}!`, '#ffd54a', 40);
+      if (mult >= 20) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.trophy, 3);
+      else if (mult >= 10) this.fx.iconPopup(GAME_WIDTH / 2, py - 150, CHAR_FRAMES.starHead, 2.6);
+    }
+
     this.passCount += 1;
     if (this.passCount % BG_CFG.changeEveryPasses === 0) this.bg.nextTheme();
+  }
+
+  /** Crash: lose a life, reset the combo, grant invincibility — or end the run. */
+  private loseLife(): void {
+    this.lives -= 1;
+    this.combo.reset();
+    this.hud.setLives(this.lives, LIVES_CFG.count);
+
+    Sound.hit();
+    this.cameras.main.shake(220, 0.012);
+    this.fx.burst(this.player.x, this.player.y, 0xff5050, 16);
+    this.fx.popup(this.player.x, this.player.y - 50, '-1  ♥', '#ff4060', 34);
+    this.fx.iconPopup(this.player.x, this.player.y - 10, CHAR_FRAMES.sadHead, 2.4);
+
+    if (this.lives <= 0) {
+      this.gameOver();
+      return;
+    }
+    // Survive: brief invincibility (player blinks + dizzy) then carry on.
+    this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs;
   }
 
   private gameOver(): void {
     this.running = false;
     this.controls.setEnabled(false);
-    this.player.crash();
-    Sound.hit();
+    this.player.setPose({ dizzy: true, boosting: false, comboFrame: null });
+    this.player.setAlpha(1);
 
     const finalScore = this.score.current;
     const isNewBest = this.score.commit();
 
-    this.cameras.main.shake(240, 0.014);
-    this.fx.burst(this.player.x, this.player.y, 0xff5050, 18);
-    this.time.delayedCall(380, () => {
+    this.cameras.main.shake(300, 0.016);
+    this.time.delayedCall(420, () => {
       Sound.gameOver();
       this.scene.start('GameOver', { score: finalScore, best: this.score.high, isNewBest });
     });

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, ANIM_KEYS, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { ASSET_KEYS, CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
 import { Sound } from '../systems/SoundManager';
@@ -40,10 +40,19 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(0, 5, '#00000099', 0, true, true);
 
-    // Reaction sprite: cheering on a new best, otherwise dizzy.
-    const hero = this.add.sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? 24 : 18).setScale(2.6);
-    const anim = isNewBest ? ANIM_KEYS.CHEER : ANIM_KEYS.HURT;
-    if (this.anims.exists(anim)) hero.play(anim);
+    // Reaction sprite: crowned king on a new record, sad otherwise.
+    const hero = this.add
+      .sprite(cx, 350, ASSET_KEYS.CHARACTER, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .setScale(2.6);
+    this.tweens.add({
+      targets: hero,
+      y: isNewBest ? 335 : 360,
+      angle: isNewBest ? 0 : -4,
+      duration: isNewBest ? 700 : 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.inOut'
+    });
 
     // Score panel
     this.add
