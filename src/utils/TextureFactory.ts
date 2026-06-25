@@ -6,6 +6,7 @@ import {
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
   OBSTACLE_CFG,
+  COIN_CFG,
   GAME_WIDTH
 } from '../config/Constants';
 import { SKIN_SHEETS } from '../config/Skins';
@@ -153,6 +154,30 @@ export class TextureFactory {
     });
     g.generateTexture(ASSET_KEYS.OBSTACLES, w, h);
     g.destroy();
+  }
+
+  /** Fallback spinning-coin strip (gold ellipse narrowing to an edge and back). */
+  static ensureCoin(scene: Phaser.Scene): void {
+    if (scene.textures.exists(ASSET_KEYS.COIN) && scene.textures.get(ASSET_KEYS.COIN).key === ASSET_KEYS.COIN) {
+      return;
+    }
+    if (scene.textures.exists(ASSET_KEYS.COIN)) scene.textures.remove(ASSET_KEYS.COIN);
+    const n = COIN_CFG.frames;
+    const c = COIN_CFG.frame;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    for (let i = 0; i < n; i++) {
+      const w = Math.max(2, Math.abs(Math.cos((i / n) * Math.PI)) * (c * 0.42));
+      const cx = i * c + c / 2;
+      const cy = c / 2;
+      g.fillStyle(0x6a4a00, 1); // outline
+      g.fillEllipse(cx, cy, w * 2 + 6, c * 0.78 + 6);
+      g.fillStyle(0xffc01e, 1); // body
+      g.fillEllipse(cx, cy, w * 2, c * 0.78);
+    }
+    g.generateTexture(ASSET_KEYS.COIN, n * c, c);
+    g.destroy();
+    const tex = scene.textures.get(ASSET_KEYS.COIN);
+    for (let i = 0; i < n; i++) tex.add(i, 0, i * c, 0, c, c);
   }
 
   /** A small soft dot used by the particle emitters. */

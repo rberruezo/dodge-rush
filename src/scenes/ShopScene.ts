@@ -4,6 +4,7 @@ import { SKINS, SkinDef } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
+import { coinCounter } from '../ui/CoinCounter';
 import { Profile } from '../systems/ProfileManager';
 import { Sound } from '../systems/SoundManager';
 
@@ -21,7 +22,7 @@ export class ShopScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x140b28, 0.78).setOrigin(0, 0);
 
     this.add.text(cx, 64, 'SKINS', Text.title(34)).setOrigin(0.5);
-    this.add.text(cx, 116, `🪙 ${Profile.coins}`, Text.label(28, COLORS.gold)).setOrigin(0.5);
+    coinCounter(this, cx, 116, `${Profile.coins}`, { size: 28 });
 
     const cols = [150, 390];
     const rows = [212, 374, 536, 698];
@@ -49,19 +50,18 @@ export class ShopScene extends Phaser.Scene {
 
     this.add.text(x, y + 30, skin.name, Text.body(26, COLORS.white)).setOrigin(0.5);
 
-    let status: string;
-    let color: string;
     if (selected) {
-      status = '✓ EQUIPPED';
-      color = COLORS.gold;
+      this.add.text(x, y + 56, '✓ EQUIPPED', Text.body(24, COLORS.gold)).setOrigin(0.5);
     } else if (owned) {
-      status = 'TAP TO EQUIP';
-      color = '#bfe9ff';
+      this.add.text(x, y + 56, 'TAP TO EQUIP', Text.body(24, '#bfe9ff')).setOrigin(0.5);
     } else {
-      status = `🪙 ${skin.cost}`;
-      color = Profile.coins >= skin.cost ? COLORS.white : '#9a6a7a';
+      const afford = Profile.coins >= skin.cost;
+      coinCounter(this, x, y + 56, `${skin.cost}`, {
+        size: 24,
+        animate: false,
+        color: afford ? COLORS.white : '#9a6a7a'
+      });
     }
-    this.add.text(x, y + 56, status, Text.body(24, color)).setOrigin(0.5);
 
     card.setInteractive({ useHandCursor: true });
     card.on(Phaser.Input.Events.POINTER_UP, () => this.onCard(skin));

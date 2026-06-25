@@ -4,6 +4,7 @@ import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
+import { coinCounter } from '../ui/CoinCounter';
 import { Profile } from '../systems/ProfileManager';
 import { Sound } from '../systems/SoundManager';
 
@@ -69,9 +70,7 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     // Coins earned this run + new total.
-    this.add
-      .text(cx, isNewBest ? 648 : 620, `🪙 +${coins}    TOTAL ${totalCoins}`, Text.label(26, COLORS.gold))
-      .setOrigin(0.5);
+    coinCounter(this, cx, isNewBest ? 648 : 620, `+${coins}   TOTAL ${totalCoins}`, { size: 26 });
     if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
 
     new Button(this, cx, 760, 'RETRY', () => this.scene.start('Game'), {

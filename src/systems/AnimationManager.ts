@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CHARACTER_ANIMS } from '../config/Constants';
+import { CHARACTER_ANIMS, ASSET_KEYS, COIN_CFG } from '../config/Constants';
 import { SKIN_SHEETS } from '../config/Skins';
 
 /**
@@ -29,6 +29,17 @@ export class AnimationManager {
           frameRate: def.frameRate,
           repeat: def.repeat
         });
+      });
+    }
+
+    // Slowly-spinning coin used by the HUD / menu / shop.
+    if (scene.textures.exists(ASSET_KEYS.COIN) && !scene.anims.exists(COIN_CFG.animKey)) {
+      const end = scene.textures.get(ASSET_KEYS.COIN).frameTotal - 2; // minus __BASE
+      scene.anims.create({
+        key: COIN_CFG.animKey,
+        frames: scene.anims.generateFrameNumbers(ASSET_KEYS.COIN, { start: 0, end: Math.max(0, end) }),
+        frameRate: COIN_CFG.frameRate,
+        repeat: -1
       });
     }
   }

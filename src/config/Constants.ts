@@ -16,8 +16,12 @@ export const TARGET_FPS = 60;
 export const ASSET_KEYS = {
   CHARACTER: 'character',
   OBSTACLES: 'obstacles',
+  COIN: 'coin', // spinning-coin sprite strip
   PARTICLE: 'spark' // generated at runtime, never loaded from disk
 } as const;
+
+/** Spinning coin: 13 frames, 40px square cells. */
+export const COIN_CFG = { frame: 40, frames: 13, animKey: 'coin-spin', frameRate: 9 } as const;
 
 /**
  * Background themes (a sunset -> twilight -> night day-cycle). Each is a

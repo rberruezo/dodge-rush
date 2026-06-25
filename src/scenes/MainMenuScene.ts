@@ -12,6 +12,7 @@ import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
+import { coinCounter } from '../ui/CoinCounter';
 import { ScoreManager } from '../systems/ScoreManager';
 import { Profile } from '../systems/ProfileManager';
 import { Sound, MUSIC } from '../systems/SoundManager';
@@ -66,7 +67,7 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const best = this.add.text(cx, 452, `BEST ${high}`, Text.label(26)).setOrigin(0.5);
-    const coins = this.add.text(cx, 490, `🪙 ${Profile.coins}`, Text.label(26, COLORS.gold)).setOrigin(0.5);
+    const coins = coinCounter(this, cx, 492, `${Profile.coins}`, { size: 26 });
 
     const playBtn = new Button(this, cx, 588, 'PLAY', () => this.launch(theme), {
       width: 320,

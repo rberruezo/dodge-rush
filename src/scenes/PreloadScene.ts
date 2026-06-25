@@ -3,6 +3,7 @@ import {
   ASSET_KEYS,
   BG_THEME_KEYS,
   CHARACTER_FRAME,
+  COIN_CFG,
   GAME_WIDTH,
   GAME_HEIGHT,
   COLORS
@@ -46,6 +47,10 @@ export class PreloadScene extends Phaser.Scene {
     });
     BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
+    this.load.spritesheet(ASSET_KEYS.COIN, 'assets/coin.png', {
+      frameWidth: COIN_CFG.frame,
+      frameHeight: COIN_CFG.frame
+    });
 
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
       this.failed.add(file.key);
@@ -58,6 +63,7 @@ export class PreloadScene extends Phaser.Scene {
     TextureFactory.ensureFallbacks(this, this.failed);
     TextureFactory.registerObstacleFrames(this);
     TextureFactory.ensureParticleTexture(this);
+    TextureFactory.ensureCoin(this);
 
     // Build character animations from whichever sheet we ended up with.
     AnimationManager.create(this);
