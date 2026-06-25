@@ -127,6 +127,7 @@ export class GameScene extends Phaser.Scene {
     this.obstacles.reset(DifficultyManager.sample(0));
 
     this.fx = new EffectsLayer(this);
+    this.fx.setCharacterSheet(getSkin(Profile.selected).sheet); // popups use equipped skin
     this.controls = new InputController(this);
     this.controls.onFirstInput = () => Sound.unlock();
     this.controls.onDash = (dir) => this.tryDash(dir);

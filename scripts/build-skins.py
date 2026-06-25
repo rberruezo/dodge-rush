@@ -24,12 +24,16 @@ NORM_H = 132
 NORM_W = 150
 
 # out-category order -> source row index
+# out-category order = [hover, move, move_hard, boost, cheer, combo, specials].
+# These sheets draw their side-flight poses facing RIGHT, but the game's facing
+# logic expects move/move_hard art to face LEFT (like the main character), so we
+# horizontally flip those two output rows (indices 1 and 2).
+FLIP_ROWS = {1, 2}
 SHEETS = [
     {
         'src': '/Users/rama/Downloads/Gemini_Generated_Image_ai2qqlai2qqlai2q.png',
         'out': 'public/assets/character_cat.png',
         'cols': 6, 'rows': 7,
-        # hover, move, move_hard, boost, cheer, combo, specials
         'row_map': [1, 0, 2, 3, 4, 5, 6],
     },
     {
@@ -144,6 +148,8 @@ def build(cfg):
             x0, y0 = round(col * cw), round(src_row * ch)
             cell = im.crop((x0, y0, x0 + round(cw), y0 + round(ch)))
             tile = normalize(extract(cell))
+            if out_row in FLIP_ROWS:
+                tile = tile.transpose(Image.FLIP_LEFT_RIGHT)
             big.paste(tile, (col * WINDOW, out_row * WINDOW))
     final = pixelate(big)
     final.save(cfg['out'])

@@ -10,6 +10,12 @@ export class EffectsLayer {
   private scene: Phaser.Scene;
   private sparks: Phaser.GameObjects.Particles.ParticleEmitter;
   private gold: Phaser.GameObjects.Particles.ParticleEmitter;
+  private charSheet: string = ASSET_KEYS.CHARACTER; // sheet for icon popups (heads/trophy/crown)
+
+  /** Use the equipped skin's sheet for character-frame popups. */
+  setCharacterSheet(key: string): void {
+    this.charSheet = key;
+  }
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -56,7 +62,7 @@ export class EffectsLayer {
   /** A character-sheet frame (head / trophy) that pops, holds, then fades out. */
   iconPopup(x: number, y: number, frameIndex: number, scale = 1.0): void {
     const icon = this.scene.add
-      .sprite(x, y, ASSET_KEYS.CHARACTER, frameIndex)
+      .sprite(x, y, this.charSheet, frameIndex)
       .setDepth(22)
       .setScale(0);
     this.scene.tweens.add({
