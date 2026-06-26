@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
-  BG_THEME_KEYS,
+  BG_TILE_KEYS,
   BG_CFG,
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
@@ -19,10 +19,12 @@ const SHEET_FALLBACK: Record<string, number> = {
 };
 
 /** Fallback gradient palette per background theme (top sky → bottom horizon). */
-const THEME_FALLBACK: Record<string, [number, number]> = {
-  bg_sunset: [0x2a1a4a, 0xff9e5c],
-  bg_twilight: [0x3a2a5a, 0xff9ecf],
-  bg_night: [0x0a1030, 0x4f7bff]
+/** Top/bottom gradient per night tile so stand-ins still vary tile-to-tile. */
+const TILE_FALLBACK: Record<string, [number, number]> = {
+  bg_night_0: [0x0a1030, 0x4f3bff],
+  bg_night_1: [0x100a30, 0x6f3bff],
+  bg_night_2: [0x0a1838, 0x3b6bff],
+  bg_night_3: [0x140a38, 0x8f3bdf]
 };
 
 /**
@@ -57,11 +59,11 @@ export class TextureFactory {
         TextureFactory.makeCharacterSheet(scene, sheet, SHEET_FALLBACK[sheet] ?? 0xff4f9a);
       }
     }
-    for (const key of BG_THEME_KEYS) {
+    for (const key of BG_TILE_KEYS) {
       if (need(key)) {
         reset(key);
-        const [top, bot] = THEME_FALLBACK[key] ?? [0x2a1a4a, 0xff9ecf];
-        TextureFactory.makeBackgroundTheme(scene, key, top, bot);
+        const [top, bot] = TILE_FALLBACK[key] ?? [0x0a1030, 0x4f7bff];
+        TextureFactory.makeBackgroundTile(scene, key, top, bot);
       }
     }
     if (need(ASSET_KEYS.OBSTACLES)) {
@@ -106,25 +108,25 @@ export class TextureFactory {
   }
 
   /**
-   * A mirror-symmetric vertical gradient (sky at top & bottom, horizon glow in
-   * the middle) so it loops seamlessly like the real doubled backgrounds.
+   * One full-screen night tile: a top-to-bottom gradient with twinkles. Edges
+   * carry no fixed detail, so any stand-in tile still stacks cleanly under any
+   * other (matching the real edge-matched art).
    */
-  private static makeBackgroundTheme(
+  private static makeBackgroundTile(
     scene: Phaser.Scene,
     key: string,
     topColor: number,
     botColor: number
   ): void {
     const w = GAME_WIDTH;
-    const h = BG_CFG.loopHeight;
-    const mid = h / 2;
+    const h = BG_CFG.tileHeight;
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
     const top = Phaser.Display.Color.ValueToColor(topColor);
     const bot = Phaser.Display.Color.ValueToColor(botColor);
     const steps = 96;
     for (let i = 0; i < steps; i++) {
       const y = (h / steps) * i;
-      const t = 1 - Math.abs(y - mid) / mid; // 0 at edges, 1 at the middle horizon
+      const t = i / (steps - 1); // 0 at top, 1 at bottom
       const col = Phaser.Display.Color.Interpolate.ColorWithColor(top, bot, 1, t);
       g.fillStyle(Phaser.Display.Color.GetColor(col.r, col.g, col.b), 1);
       g.fillRect(0, Math.floor(y), w, Math.ceil(h / steps) + 1);

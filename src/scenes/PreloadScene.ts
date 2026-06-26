@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
-  BG_THEME_KEYS,
+  BG_TILE_KEYS,
   CHARACTER_FRAME,
   COIN_CFG,
   GAME_WIDTH,
@@ -83,7 +83,7 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
-    BG_THEME_KEYS.forEach((key, i) => this.load.image(key, `assets/background_${i}.png`));
+    BG_TILE_KEYS.forEach((key, i) => this.load.image(key, `assets/bg_night_${i}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
     this.load.spritesheet(ASSET_KEYS.COIN, 'assets/coin.png', {
       frameWidth: COIN_CFG.frame,

@@ -24,16 +24,16 @@ export const ASSET_KEYS = {
 export const COIN_CFG = { frame: 40, frames: 13, animKey: 'coin-spin', frameRate: 9 } as const;
 
 /**
- * Background themes (a sunset -> twilight -> night day-cycle). Each is a
- * mirror-doubled, vertically-seamless texture (see scripts/build-backgrounds.py)
- * loaded from background_0/1/2.png.
+ * Background is an endless vertical stack of interchangeable "night" tiles.
+ * Each tile is one full screen tall and its art is edge-matched so any tile can
+ * follow any other — the engine shuffles them in any order to sell an eternal
+ * fall with no fixed loop point (see scripts/build-backgrounds.py + Background.ts,
+ * loaded from bg_night_0..3.png).
  */
-export const BG_THEME_KEYS = ['bg_sunset', 'bg_twilight', 'bg_night'] as const;
+export const BG_TILE_KEYS = ['bg_night_0', 'bg_night_1', 'bg_night_2', 'bg_night_3'] as const;
 
 export const BG_CFG = {
-  loopHeight: 1920, // height of the doubled texture (scroll wraps on this)
-  changeEveryPasses: 12, // switch theme every N cleared obstacles
-  crossfadeMs: 2400 // how long the scene cross-dissolve takes
+  tileHeight: GAME_HEIGHT // each tile spans exactly one screen
 } as const;
 
 export const ANIM_KEYS = {

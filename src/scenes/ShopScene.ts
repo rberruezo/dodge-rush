@@ -18,7 +18,7 @@ export class ShopScene extends Phaser.Scene {
 
   create(): void {
     const cx = GAME_WIDTH / 2;
-    this.bg = new Background(this, 2).setDepth(0);
+    this.bg = new Background(this, GAME_HEIGHT * 3).setDepth(0);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x140b28, 0.78).setOrigin(0, 0);
 
     this.add.text(cx, 56, 'SKINS', Text.title(34)).setOrigin(0.5);

@@ -22,7 +22,7 @@ export class DailyScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.bg = new Background(this, 1).setDepth(0);
+    this.bg = new Background(this, GAME_HEIGHT * 2).setDepth(0);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x140b28, 0.82).setOrigin(0, 0);
     this.render();
   }

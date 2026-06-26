@@ -4,8 +4,6 @@ import {
   GAME_HEIGHT,
   PLAYER_CFG,
   SCORE_CFG,
-  BG_CFG,
-  BG_THEME_KEYS,
   LIVES_CFG,
   COMBO_CFG,
   POWER_CFG,
@@ -66,16 +64,13 @@ export class GameScene extends Phaser.Scene {
   // Next allowed time for the rising-tension "danger" pulse (throttled).
   private dangerNextMs = 0;
 
-  private startTheme = 0;
   private startScrollY = 0;
 
   constructor() {
     super('Game');
   }
 
-  init(data?: { theme?: number; scrollY?: number }): void {
-    this.startTheme =
-      data?.theme ?? Phaser.Math.Between(0, BG_THEME_KEYS.length - 1);
+  init(data?: { scrollY?: number }): void {
     this.startScrollY = data?.scrollY ?? 0;
   }
 
@@ -96,7 +91,7 @@ export class GameScene extends Phaser.Scene {
     this.breakCdUntilMs = 0;
     this.dangerNextMs = 0;
 
-    this.bg = new Background(this, this.startTheme, this.startScrollY).setDepth(0);
+    this.bg = new Background(this, this.startScrollY).setDepth(0);
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
@@ -335,7 +330,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.passCount += 1;
-    if (this.passCount % BG_CFG.changeEveryPasses === 0) this.bg.nextTheme();
   }
 
   /** Crash: lose a life, reset the combo, grant invincibility — or end the run. */

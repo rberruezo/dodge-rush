@@ -6,7 +6,6 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   PLAYER_CFG,
-  BG_THEME_KEYS,
   DifficultyModeId
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
@@ -45,8 +44,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.launching = false;
     this.uiGroup = [];
 
-    const theme = Phaser.Math.Between(0, BG_THEME_KEYS.length - 1);
-    this.bg = new Background(this, theme).setDepth(0);
+    this.bg = new Background(this).setDepth(0);
 
     const cx = GAME_WIDTH / 2;
     const high = new ScoreManager().high;
@@ -76,7 +74,7 @@ export class MainMenuScene extends Phaser.Scene {
     const best = this.add.text(cx, 452, `BEST ${high}`, Text.label(26)).setOrigin(0.5);
     const coins = coinCounter(this, cx, 492, `${Profile.coins}`, { size: 26 });
 
-    const playBtn = new Button(this, cx, 588, 'PLAY', () => this.launch(theme), {
+    const playBtn = new Button(this, cx, 588, 'PLAY', () => this.launch(), {
       width: 320,
       height: 92,
       fontSize: 36
@@ -178,7 +176,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   /** Quick hand-off: fade UI, boost the hero up to the start line, then play. */
-  private launch(theme: number): void {
+  private launch(): void {
     if (this.launching) return;
     this.launching = true;
     Sound.unlock();
@@ -218,7 +216,7 @@ export class MainMenuScene extends Phaser.Scene {
           ease: 'Back.in',
           onComplete: () => {
             trail.stop();
-            this.scene.start('Game', { theme, scrollY: this.bg.scroll });
+            this.scene.start('Game', { scrollY: this.bg.scroll });
           }
         });
       }

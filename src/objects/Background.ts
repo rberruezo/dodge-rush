@@ -1,104 +1,80 @@
 import Phaser from 'phaser';
-import { BG_THEME_KEYS, BG_CFG, GAME_WIDTH, GAME_HEIGHT, SCROLL_CFG } from '../config/Constants';
+import { BG_TILE_KEYS, BG_CFG, GAME_WIDTH, GAME_HEIGHT, SCROLL_CFG } from '../config/Constants';
 
 /**
- * Infinite, theme-shifting sky.
+ * Endless descent rendered as a vertical stack of interchangeable night tiles.
  *
- * Descent: a TileSprite scrolls a mirror-doubled texture (see
- * scripts/build-backgrounds.py) so the fall loops forever with no visible seam.
- *
- * Scene change: two stacked layers cross-dissolve. To switch theme we load the
- * next texture onto the hidden layer and fade between them while both keep
- * scrolling in lock-step — so the world appears to transition (sunset → night),
- * not snap to a different picture.
+ * Each tile is one screen tall and its art is edge-matched so any tile can
+ * follow any other (see scripts/build-backgrounds.py). We keep just enough tile
+ * sprites to cover the viewport plus one spare entering from below. As the world
+ * scrolls up (which reads as falling), each sprite is mapped to a "virtual" tile
+ * index derived from how far we've fallen; the texture for that index is picked
+ * by a cheap deterministic hash, so the order is effectively random, never snaps,
+ * and loops forever with no fixed seam.
  */
 export class Background {
-  private scene: Phaser.Scene;
-  private front: Phaser.GameObjects.TileSprite; // currently visible
-  private back: Phaser.GameObjects.TileSprite; // fades in during a change
+  private tiles: Phaser.GameObjects.Image[] = [];
   private scrollY = 0;
-  private themeIndex: number;
+  private readonly tileH = BG_CFG.tileHeight;
 
-  private fading = false;
-  private fadeT = 0;
-
-  constructor(scene: Phaser.Scene, themeIndex = 0, startScrollY = 0) {
-    this.scene = scene;
-    this.themeIndex = themeIndex;
+  constructor(scene: Phaser.Scene, startScrollY = 0) {
     this.scrollY = startScrollY;
 
-    const mk = (key: string) =>
-      scene.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, key).setOrigin(0, 0);
-
-    this.back = mk(BG_THEME_KEYS[themeIndex]).setVisible(false);
-    this.front = mk(BG_THEME_KEYS[themeIndex]);
-    this.front.tilePositionY = this.scrollY;
-    this.back.tilePositionY = this.scrollY;
+    // Cover the screen + 1 spare so a fresh tile is always ready below the fold.
+    const count = Math.ceil(GAME_HEIGHT / this.tileH) + 1;
+    for (let i = 0; i < count; i++) {
+      this.tiles.push(
+        scene.add.image(0, 0, BG_TILE_KEYS[0]).setOrigin(0, 0).setDisplaySize(GAME_WIDTH, this.tileH)
+      );
+    }
+    this.layout();
   }
 
-  /** Current theme index + scroll offset (for seamless scene hand-off). */
-  get theme(): number {
-    return this.themeIndex;
-  }
-
+  /** Distance fallen — passed between scenes so the scroll never jumps. */
   get scroll(): number {
     return this.scrollY;
   }
 
-  /** Scroll the sky and advance any in-flight theme cross-dissolve. */
+  /** Advance the fall and re-place the tiles. */
   update(dt: number, speed: number): void {
-    // Increasing tilePositionY scrolls content upward → reads as descending.
-    this.scrollY = (this.scrollY + speed * dt * SCROLL_CFG.bgParallax) % BG_CFG.loopHeight;
-    this.front.tilePositionY = this.scrollY;
-    this.back.tilePositionY = this.scrollY;
+    this.scrollY += speed * dt * SCROLL_CFG.bgParallax;
+    this.layout();
+  }
 
-    if (this.fading) {
-      this.fadeT += dt;
-      const k = Phaser.Math.Clamp(this.fadeT / BG_CFG.crossfadeMs, 0, 1);
-      // `back` sits on top and fades in; `front` stays opaque underneath so the
-      // total never dips (no mid-fade darkening).
-      this.back.setAlpha(k);
-      if (k >= 1) this.finishFade();
+  /** Map each sprite to its current virtual tile slot + texture. */
+  private layout(): void {
+    const v0 = Math.floor(this.scrollY / this.tileH); // topmost visible virtual tile
+    const off = this.scrollY - v0 * this.tileH; // how far it has scrolled off-top
+    for (let j = 0; j < this.tiles.length; j++) {
+      const img = this.tiles[j];
+      img.y = j * this.tileH - off;
+      const key = this.keyForTile(v0 + j);
+      if (img.texture.key !== key) {
+        img.setTexture(key).setDisplaySize(GAME_WIDTH, this.tileH);
+      }
     }
   }
 
-  /** Begin a smooth dissolve to the next theme in the day-cycle. */
-  nextTheme(): void {
-    this.changeTheme((this.themeIndex + 1) % BG_THEME_KEYS.length);
-  }
-
-  changeTheme(index: number): void {
-    if (index === this.themeIndex && !this.fading) return;
-    // If a fade is already running, settle it first to avoid layer confusion.
-    if (this.fading) this.finishFade();
-
-    this.themeIndex = index;
-    this.back.setTexture(BG_THEME_KEYS[index]);
-    this.back.tilePositionY = this.scrollY;
-    this.back.setAlpha(0).setVisible(true);
-    this.scene.children.bringToTop(this.back); // fade in over the opaque front
-    this.fading = true;
-    this.fadeT = 0;
-  }
-
-  private finishFade(): void {
-    this.fading = false;
-    this.back.setAlpha(1);
-    // Promote `back` (now fully visible & on top) to be the new front.
-    const promoted = this.back;
-    this.back = this.front;
-    this.front = promoted;
-    this.back.setVisible(false).setAlpha(0);
+  /**
+   * Deterministic texture for a virtual tile index: a multiplicative hash spreads
+   * the indices across the tile set, nudged so a tile never repeats the one
+   * directly above it (keeps the descent visibly varied).
+   */
+  private keyForTile(v: number): string {
+    const n = BG_TILE_KEYS.length;
+    const hash = (k: number) => ((k * 2654435761) >>> 0) % n;
+    let idx = hash(v);
+    if (idx === hash(v - 1)) idx = (idx + 1) % n;
+    return BG_TILE_KEYS[idx];
   }
 
   setDepth(depth: number): this {
-    this.back.setDepth(depth);
-    this.front.setDepth(depth);
+    this.tiles.forEach((t) => t.setDepth(depth));
     return this;
   }
 
   destroy(): void {
-    this.front.destroy();
-    this.back.destroy();
+    this.tiles.forEach((t) => t.destroy());
+    this.tiles = [];
   }
 }
