@@ -44,9 +44,9 @@ describe('ProfileManager — persisted balance sanitization', () => {
   });
 
   it('never spends below zero and only sells owned skins', async () => {
-    localStorage.setItem(STORAGE_KEYS.COINS, '100');
+    localStorage.setItem(STORAGE_KEYS.COINS, '50');
     const p = await freshProfile();
-    expect(p.buy('aqua')).toBe(false); // aqua costs 120 > 100
-    expect(p.coins).toBe(100); // balance untouched on a failed buy
+    expect(p.buy('aqua')).toBe(false); // can't afford (aqua costs 100 > 50)
+    expect(p.coins).toBe(50); // balance untouched on a failed buy
   });
 });

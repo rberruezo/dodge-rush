@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ASSET_KEYS, ANIM_KEYS, PLAYER_CFG, CHAR_FRAMES, GAME_WIDTH } from '../config/Constants';
+import { poseFacesRight, shouldFlipX } from './PlayerFacing';
 
 export interface Hitbox {
   x: number;
@@ -14,20 +15,6 @@ export interface Pose {
   kind: PoseKind;
   frame?: number; // for 'celebrate' (the combo-tier sprite)
 }
-
-/**
- * Natural facing of each pose's art. The side-flight poses (move/moveHard) face
- * LEFT; the celebration / boost / idle poses face RIGHT. We mirror per-pose so
- * every pose ends up facing the travel direction — otherwise celebrating would
- * appear to flip the character around.
- */
-const FACES_RIGHT: Record<string, boolean> = {
-  hover: true,
-  dizzy: true,
-  boost: true,
-  cheer: true,
-  celebrate: true
-};
 
 /**
  * The falling character. Holds a fixed vertical line while obstacles scroll past.
@@ -70,7 +57,7 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   /** Mirror so the current pose faces `faceDir`, accounting for its natural side. */
   private refreshFlip(): void {
-    this.setFlipX(this.natFacesRight ? this.faceDir === -1 : this.faceDir === 1);
+    this.setFlipX(shouldFlipX(this.natFacesRight, this.faceDir));
   }
 
   /** Horizontal steering + facing + bank tilt. `dir` is -1/0/1. */
@@ -96,7 +83,7 @@ export class Player extends Phaser.GameObjects.Sprite {
 
   /** Apply the desired visual pose (idempotent — safe to call every frame). */
   setPose(pose: Pose): void {
-    this.natFacesRight = FACES_RIGHT[pose.kind] ?? false;
+    this.natFacesRight = poseFacesRight(pose.kind);
     const key = pose.kind === 'celebrate' ? `celebrate:${pose.frame}` : pose.kind;
     if (key !== this.poseKey) {
       this.poseKey = key;

@@ -36,7 +36,8 @@ class MemoryStorage {
 
 vi.stubGlobal('localStorage', new MemoryStorage());
 
-// Each test starts from a clean storage slate.
+// Each test starts from a clean storage slate. Re-install rather than clear so
+// the stub survives suites that call vi.unstubAllGlobals() (e.g. SoundManager).
 beforeEach(() => {
-  localStorage.clear();
+  vi.stubGlobal('localStorage', new MemoryStorage());
 });

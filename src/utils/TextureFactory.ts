@@ -181,8 +181,7 @@ export class TextureFactory {
   /** Colored tiles-with-holes mirroring the real obstacle atlas frame names. */
   private static makeObstaclePack(scene: Phaser.Scene): void {
     const palette = [
-      0x0ca8d8, 0x30cca8, 0x903c78, 0xe47800, 0x54e4e4, 0xf02430, 0xe40c24, 0x84849c,
-      0x24d8fc, 0xfca800
+      0x0ca8d8, 0x30cca8, 0x903c78, 0xf02430, 0xe40c24, 0x84849c, 0x24d8fc, 0xfca800
     ];
     const w = Math.max(...OBSTACLE_FRAMES.map((f) => f.x + f.width));
     const h = Math.max(...OBSTACLE_FRAMES.map((f) => f.y + f.height));

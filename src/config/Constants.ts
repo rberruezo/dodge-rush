@@ -183,8 +183,6 @@ export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
   { name: 'blue_bar', x: 0, y: 0, width: 53, height: 28 },
   { name: 'green_bar', x: 55, y: 0, width: 78, height: 30 },
   { name: 'purple_pillar', x: 135, y: 0, width: 25, height: 42 },
-  { name: 'orange_block', x: 162, y: 0, width: 44, height: 47 },
-  { name: 'ice_block', x: 208, y: 0, width: 45, height: 50 },
   { name: 'red_arrow', x: 255, y: 0, width: 40, height: 33 },
   { name: 'red_spike', x: 297, y: 0, width: 59, height: 42 },
   { name: 'stone_crack', x: 358, y: 0, width: 68, height: 34 },
