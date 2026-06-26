@@ -102,7 +102,7 @@ Verificación en vivo (preview) + revisión de código:
 
 | # | Hallazgo | Tipo | Sev | Esf | Estado |
 |---|---|---|---|---|---|
-| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 7 suites / 38 tests |
+| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 11 suites / 70 tests |
 | 2 | Fairness no verificada de forma automatizada | Riesgo | Alta | Medio | ✅ GapPlanner.test.ts valida el generador real |
 | 3 | Persistencia sin saneo (negativos/NaN) | Bug | Media | Bajo | ✅ corregido |
 | 4 | Sin telemetría/analítica | Mejora | Media | Medio | ⬜ |
@@ -166,6 +166,16 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
   RNG inyectable). `ObstacleGenerator` ahora delega en él. `GapPlanner.test.ts`
   valida el **contrato de fairness real** (gap on-screen, player-sized y
   siempre alcanzable) sobre toda la rampa de dificultad, con RNG sembrado.
+
+- **Sonido:** `SoundManager.test.ts` (mute + persistencia, síntesis de SFX
+  con Web Audio falso, gating por mute, control de música). Lo perceptual
+  ("que se escuche agradable") → checklist manual SND-01..SND-10.
+- **Skins:** `Skins.test.ts` (ids únicos, costos ascendentes, CLASSIC libre/
+  default, presencia del PNG por skin vía `import.meta.glob`, guarda anti-drift
+  contra `PreloadScene`, contrato de animación dentro del grid 6×7).
+- **Orientación:** extraída a `PlayerFacing.ts` (puro) + `PlayerFacing.test.ts`
+  con la invariante "toda pose mira hacia su dirección de viaje". Lo perceptual
+  ("animaciones se ven bien") → checklist manual SK-01..SK-08.
 
 > ⚠️ **Pendiente de verificación E2E:** el gameplay no se pudo probar en vivo
 > porque `GameScene`/`HUD` están a medio refactorizar (feature "power/smash":

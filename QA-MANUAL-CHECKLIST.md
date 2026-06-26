@@ -107,6 +107,47 @@
 - [ ] **Audio:** arranca tras el primer tap (autoplay desbloqueado); mute persiste.
 - [ ] **Observabilidad:** al terminar la sesión, revisar `window.diagnostics.recent` — cualquier evento `error`/`storage`/`asset`/`audio` inesperado se registra como bug.
 
+## Sonido — percepción humana (lo que los unit tests NO pueden validar)
+
+> La *lógica* de sonido está cubierta por `SoundManager.test.ts` (mute,
+> persistencia, síntesis de SFX, control de música). Esto valida que **se
+> escuche bien y sea agradable** — subjetivo, requiere oído.
+
+| ID | Qué escuchar | Esperado | Resultado |
+|---|---|---|---|
+| SND-01 | Música de menú y de juego | Loop **sin click/corte** audible en el empalme; volumen agradable (~0.45), no tapa los SFX | ⬜ |
+| SND-02 | SFX de pase / near-miss | "Swish+ping" satisfactorio; el near-miss se distingue del pase normal | ⬜ |
+| SND-03 | SFX de golpe (`hit`) | "Bonk" cartoon, **no** estridente ni agresivo | ⬜ |
+| SND-04 | SFX de smash | Lee como "metal roto" 8-bit, punchy, no molesto | ⬜ |
+| SND-05 | Combo subiendo | El tono **sube** con el combo y se siente más emocionante en tiers altos | ⬜ |
+| SND-06 | Coin / new-best / skin-unlock | Arpegios alegres, premian sin saturar | ⬜ |
+| SND-07 | Mezcla general | Ningún SFX satura/clippea al solaparse (varios a la vez en combo alto) | ⬜ |
+| SND-08 | Mute / unmute | Silencia SFX **y** música al instante; estado persiste tras recargar | ⬜ |
+| SND-09 | Autoplay móvil | El audio arranca tras el primer tap (no antes); sin error en consola | ⬜ |
+| SND-10 | Pausa/reanudar | El sonido se atenúa/retoma coherente con la pausa | ⬜ |
+
+## Skins y animaciones — percepción humana
+
+> La *integridad estructural* (todos los skins tienen su PNG, animaciones dentro
+> del grid, orientación correcta por pose) está cubierta por `Skins.test.ts` y
+> `PlayerFacing.test.ts`. Esto valida que se **vean bien** — subjetivo, requiere ojo.
+> Recorré **cada skin** desde la tienda y equipalo.
+
+| ID | Qué mirar (por cada skin) | Esperado | Resultado |
+|---|---|---|---|
+| SK-01 | Animación de vuelo idle (hover) | Fluida, en loop, sin frames "saltados" ni glitches | ⬜ |
+| SK-02 | Animación de steering (move / move-hard) | Cambia a "esfuerzo" al mantener; transición limpia | ⬜ |
+| SK-03 | **Orientación al moverse** | Mira **hacia donde se desplaza** (izq/der); al celebrar/boost no "gira" al revés | ⬜ |
+| SK-04 | Celebración de combo / cheer / boost | Frames correctos, sin sprite roto ni recorte | ⬜ |
+| SK-05 | Tint (skins paleta: aqua/lime/violet/gold/shadow) | El recoloreo se ve bien, legible sobre el fondo | ⬜ |
+| SK-06 | Sheets propios (cat, dragon, unicornio, …, nemesis) | Arte correcto del personaje (no el fallback genérico ni textura faltante) | ⬜ |
+| SK-07 | Trail / partículas | El color del trail combina con el skin | ⬜ |
+| SK-08 | Consistencia entre menú, juego y tienda | El mismo skin se ve igual en las 3 pantallas | ⬜ |
+
+> ⚠️ Si algún skin aparece como un **blob genérico/sin animar**, su sheet no se
+> cargó: revisá `window.diagnostics.recent` (evento `asset`) y confirmá que el
+> PNG está en `public/assets/` y listado en `PreloadScene`.
+
 ## Registro de bugs encontrados
 
 | GP/NX | Severidad | Descripción | Pasos para reproducir | Evidencia |
