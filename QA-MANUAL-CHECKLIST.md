@@ -115,7 +115,7 @@
 
 | ID | Qué escuchar | Esperado | Resultado |
 |---|---|---|---|
-| SND-01 | Música de menú y de juego | Loop **sin click/corte** audible en el empalme; volumen agradable (~0.45), no tapa los SFX | ⬜ |
+| SND-01 | Loop de música (menú y juego) | Empalme **sin gap ni click** (loop por crossfade de ~0.9s); sin bajón de volumen en la costura; volumen agradable (~0.45), no tapa los SFX. Dejar sonar ≥1 vuelta completa (~28s/~31s) y escuchar la unión | ⬜ |
 | SND-02 | SFX de pase / near-miss | "Swish+ping" satisfactorio; el near-miss se distingue del pase normal | ⬜ |
 | SND-03 | SFX de golpe (`hit`) | "Bonk" cartoon, **no** estridente ni agresivo | ⬜ |
 | SND-04 | SFX de smash | Lee como "metal roto" 8-bit, punchy, no molesto | ⬜ |

@@ -38,6 +38,43 @@ Este backlog es el **único punto de verdad** compartido entre todos los chats d
 
 ---
 
+## 🎯 VISIÓN MVP — Decisión del Product Owner (2026-06-26)
+
+**El MVP es: lanzar Dodge Rush en Google Play (Android) con el juego actual, monetización real y compliance de Families Policy.**
+
+No es MVP: iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantalla de perfil, analytics, haptics. Todo eso es post-launch.
+
+### Decisiones tomadas por el PO
+
+| ID | Decisión | Resolución |
+|---|---|---|
+| `DEC-001` | Nombre oficial | ✅ **"Dodge Rush"** — El GDD es el único archivo con "Fallcade". Costo de alinear el GDD es mínimo vs. renombrar todo el repo. BRN-002 + DOC-001 deben ejecutarse. |
+| `DEC-003` | iOS | ✅ **Diferir post-launch Android** — Toda la épica iOS pasa a P3. Foco total en Google Play primero. |
+| `DEC-004` | Dog sprite | ✅ **Post-MVP** — 12 skins es más que suficiente para lanzar. Si Dog sprite está listo, se incluye; si no, no bloquea nada. |
+| `DEC-005` | Fuentes offline | ✅ **Aceptar riesgo por ahora** — Fallback a monospace ya existe en el código. Resolver post-launch si hay reportes. |
+
+### Ruta crítica al lanzamiento (en orden)
+
+```
+1. [BRN-001/BRN-002] Oficializar nombre "Dodge Rush" en GDD y toda la documentación
+2. [BG-005]          Corregir bug skyboxes en Android → sin esto el juego se ve mal en device
+3. [BRN-004/AND-009] Crear icon final + splash screen reales
+4. [AND-002]         Crear keystore de producción (firma para Play Store)
+5. [MON-001→004]     Integrar AdMob real (reemplazar Rewarded.ts stub)
+6. [AND-004/MON-006] Configurar Families Policy + COPPA + parental gate IAP
+7. [QA-003/QA-005/QA-007] Smoke test en 3 devices físicos + offline mode + perfil persiste
+8. [AND-003]         Configurar Google Play Console (ficha, age rating, policy)
+9. [ASO-002/003/005/006] Store listing: textos, screenshots, categoría
+10. [AND-005]        Upload a Internal Testing track
+11. [AND-006]        Open Testing → Production
+```
+
+**Items del backlog que son MVP (P0):** BRN-001, BRN-002, BRN-004, BG-005, AND-001→005, AND-009, MON-001→004, MON-006, QA-003, QA-005, QA-007, ASO-001→003, ASO-005, ASO-006, DOC-001, DOC-003.
+
+**Todo lo demás:** P2 o P3 hasta que el MVP esté en Production.
+
+---
+
 ## Estado General del Proyecto
 
 | Fase | Descripción | Estado |
@@ -73,11 +110,11 @@ Estado actual: **12 skins en el catálogo + 5 achievement skins (palette-swaps)*
 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `SKN-001` | Revisar calidad final de `character_hound.png` (sesión Dog character) | P1 | PENDING | Dog character sprite |
-| `SKN-002` | Verificar que todos los sheets tengan frames correctos para todas las poses (idle, move, boost, celebrate, dizzy, sad, trophy, crown) | P1 | PENDING | QA Tech Lead |
-| `SKN-003` | Side-by-side diff contact sheet de todos los skins vs. original (per `docs/skin-process.md`) | P2 | PENDING | Character Design |
-| `SKN-004` | Agregar skin DOG como nuevo personaje (separado de Hound) si la sesión lo decidió así | P2 | PENDING | Dog character sprite |
-| `SKN-005` | Validar que el achievement skin GOLD no se confunde visualmente con el GOLD KING (mismo tint) | P2 | PENDING | — |
+| `SKN-001` | Revisar calidad final de `character_hound.png` (sesión Dog character) | **P2** *(no bloquea MVP)* | PENDING | Dog character sprite |
+| `SKN-002` | Verificar que todos los sheets tengan frames correctos para todas las poses (idle, move, boost, celebrate, dizzy, sad, trophy, crown) | P1 | DONE | QA Tech Lead |
+| `SKN-003` | Side-by-side diff contact sheet de todos los skins vs. original (per `docs/skin-process.md`) | **P3** *(post-MVP)* | PENDING | Character Design |
+| `SKN-004` | Agregar skin DOG como nuevo personaje (separado de Hound) si la sesión lo decidió así | **P3** *(post-MVP — DEC-004)* | PENDING | Dog character sprite |
+| `SKN-005` | Validar que el achievement skin GOLD no se confunde visualmente con el GOLD KING (mismo tint) | **P3** *(post-MVP)* | PENDING | — |
 | `SKN-006` | Revisar que `pilot_kit.py` genere output consistente en todas las plataformas (Python versión) | P3 | PENDING | — |
 
 ---
@@ -88,11 +125,11 @@ Obstáculos actuales en código: Straight, Wide, Narrow, Moving, Danger, Broken,
 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `OBS-001` | Definir y documentar nuevos patrones/tipos de obstáculos propuestos | P1 | PENDING | Obstacle Design |
-| `OBS-002` | Implementar nuevos tipos de obstáculos en `ObstacleTypes.ts` | P1 | PENDING | Obstacle Design |
-| `OBS-003` | Actualizar `obstacles.png` atlas si hay nuevos tiles | P1 | PENDING | Obstacle Design |
-| `OBS-004` | Validar que nuevos obstáculos respetan principio 3 del GDD: "la muerte siempre es culpa del jugador" (reacción legible) | P1 | PENDING | QA Tech Lead |
-| `OBS-005` | Balance de spawn weights con nuevos tipos (no saturar niveles tempranos) | P2 | PENDING | Obstacle Design |
+| `OBS-001` | Definir y documentar nuevos patrones/tipos de obstáculos propuestos | **P3** *(post-MVP)* | PENDING | Obstacle Design |
+| `OBS-002` | Implementar nuevos tipos de obstáculos en `ObstacleTypes.ts` | **P3** *(post-MVP)* | PENDING | Obstacle Design |
+| `OBS-003` | Actualizar `obstacles.png` atlas si hay nuevos tiles | **P3** *(post-MVP)* | PENDING | Obstacle Design |
+| `OBS-004` | Validar que nuevos obstáculos respetan principio 3 del GDD: "la muerte siempre es culpa del jugador" (reacción legible) | **P3** *(post-MVP)* | PENDING | QA Tech Lead |
+| `OBS-005` | Balance de spawn weights con nuevos tipos (no saturar niveles tempranos) | **P3** *(post-MVP)* | PENDING | Obstacle Design |
 | `OBS-006` | [DONE 2026-06-26] Auditoría y polish de los 8 tipos existentes (sprites, animación, diferenciación visual) | P2 | DONE | Obstacle Design |
 
 ---
@@ -107,6 +144,7 @@ Background actual: "Sky City" con 6 zonas (day/dusk/sunset/twilight/night/aurora
 | `BG-002` | Si se agregan nuevas zonas: actualizar `Constants.ts` y `Background.ts` con zone config | P1 | PENDING | — |
 | `BG-003` | Verificar que cross-dissolve entre zonas funciona correctamente en device (APK) | P2 | PENDING | QA Tech Lead |
 | `BG-004` | Asegurar que layers nuevos siguen la guía de parallax speeds existentes | P2 | PENDING | Background Image Design |
+| `BG-005` | **[BUG-004]** Investigar y corregir skyboxes (`bg_sky_*.png`) invisibles o incorrectas en device Android físico — nubes y naves se ven bien, solo las skyboxes fallan. Verificar formato PNG (color space, alpha), cómo las carga `Background.ts` (tint, blendMode, depth) y si WebView Android las renderiza distinto que el browser | P1 | DONE (2026-06-26) — pendiente verificación en device (BG-003) | Background Image Design |
 
 ---
 
@@ -118,8 +156,8 @@ Estado actual: `bgmusic.mp3/.ogg` y `menu.mp3/.ogg` funcionando. SFX es Web Audi
 |---|---|---|---|---|
 | `SND-001` | Documentar qué SFX adicionales están planeados (sesión Sound Effects & Music) | P1 | IN PROGRESS | Sound Effects & Music |
 | `SND-002` | Si se agregan archivos de SFX: asegurar que `SoundManager.ts` los carga y `sync-web.mjs` los incluye | P1 | PENDING | Sound Effects & Music |
-| `SND-003` | Implementar haptics via `navigator.vibrate` (listado como follow-up en roadmap) | P2 | PENDING | — |
-| `SND-004` | Reemplazar Google Fonts CDN con fuentes bundleadas offline (evitar dependency de red en el APK) | P2 | PENDING | — |
+| `SND-003` | Implementar haptics via `navigator.vibrate` (listado como follow-up en roadmap) | **P3** *(post-MVP)* | PENDING | — |
+| `SND-004` | Reemplazar Google Fonts CDN con fuentes bundleadas offline (evitar dependency de red en el APK) | **P3** *(post-MVP — DEC-005)* | PENDING | — |
 | `SND-005` | Verificar que el loop seam del music change (HTML5 Audio vs. buffer crossfade) es aceptable en device | P2 | PENDING | QA Tech Lead |
 
 ---
@@ -128,12 +166,12 @@ Estado actual: `bgmusic.mp3/.ogg` y `menu.mp3/.ogg` funcionando. SFX es Web Audi
 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `GME-001` | Validar que dificultad Classic y Relax están bien balanceadas (curva de 30s steps) | P1 | PENDING | QA Tech Lead |
+| `GME-001` | Validar que dificultad Classic y Relax están bien balanceadas (curva de 30s steps) | P1 | DONE | QA Tech Lead |
 | `GME-002` | Verificar daily missions y login streak en builds fresh (nuevo device, sin localStorage) | P1 | PENDING | QA Tech Lead |
 | `GME-003` | Testear ContinueScene: el timer de 6s auto-declina correctamente | P1 | PENDING | QA Tech Lead |
-| `GME-004` | Verificar combo reset en pérdida de vida | P2 | PENDING | QA Tech Lead |
-| `GME-005` | Probar la ruleta de skins (spin) fluye correctamente con coins reales | P2 | PENDING | QA Tech Lead |
-| `GME-006` | Testear ShopScene: comprar, equipar, desequipar skins | P2 | PENDING | QA Tech Lead |
+| `GME-004` | Verificar combo reset en pérdida de vida | P2 | DONE | QA Tech Lead |
+| `GME-005` | Probar la ruleta de skins (spin) fluye correctamente con coins reales | P1 | PENDING | QA Tech Lead |
+| `GME-006` | Testear ShopScene: comprar, equipar, desequipar skins | P1 | PENDING | QA Tech Lead |
 
 ---
 
@@ -161,11 +199,11 @@ Estado actual: No iniciado. El WebView wrapper debería funcionar sin cambios ma
 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `IOS-001` | Prebuild y build iOS via EAS (`eas build -p ios`) | P1 | PENDING | — |
-| `IOS-002` | Testear en simulador iOS + device real | P1 | PENDING | — |
-| `IOS-003` | Verificar audio en iOS (Safari WebView tiene restricciones distintas) | P1 | PENDING | — |
-| `IOS-004` | Configurar App Store Connect: crear app, completar ficha | P2 | PENDING | — |
-| `IOS-005` | Revisar política de Apple para kids apps (más restrictiva que Google Play Families) | P1 | PENDING | — |
+| `IOS-001` | Prebuild y build iOS via EAS (`eas build -p ios`) | **P3** *(post-MVP — DEC-003)* | PENDING | — |
+| `IOS-002` | Testear en simulador iOS + device real | **P3** *(post-MVP)* | PENDING | — |
+| `IOS-003` | Verificar audio en iOS (Safari WebView tiene restricciones distintas) | **P3** *(post-MVP)* | PENDING | — |
+| `IOS-004` | Configurar App Store Connect: crear app, completar ficha | **P3** *(post-MVP)* | PENDING | — |
+| `IOS-005` | Revisar política de Apple para kids apps (más restrictiva que Google Play Families) | **P3** *(post-MVP)* | PENDING | — |
 
 ---
 
@@ -192,23 +230,25 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 | `ASO-001` | Definir nombre oficial del juego (ver BRN-001) | P0 | PENDING | — |
 | `ASO-002` | Redactar descripción corta y larga para Play Store (basarse en `docs/aso-naming.md`) | P0 | PENDING | — |
 | `ASO-003` | Crear screenshots de store (al menos 4, portrait) | P0 | PENDING | — |
-| `ASO-004` | Crear preview video (15-30s gameplay) | P1 | PENDING | — |
+| `ASO-004` | Crear preview video (15-30s gameplay) | **P2** *(deseable pero no bloquea upload)* | PENDING | — |
 | `ASO-005` | Definir categoría, age rating y tags | P0 | PENDING | — |
-| `ASO-006` | Traducir store listing al inglés (mercado principal) | P1 | PENDING | — |
+| `ASO-006` | Traducir store listing al inglés (mercado principal) | **P0** *(MVP — mercado principal en inglés)* | PENDING | — |
 
 ---
 
 ## ÉPICA 11 — QA y Testing
 
+> 📋 **Catálogo de casos de uso a testear:** [`USE-CASES.md`](USE-CASES.md) — inventario único de QUÉ se testea (73 casos en 15 dominios), con cobertura actual y una **columna de decisión del PO** (Mantener / Modificar / Quitar / Agregar). El PO debería revisarlo para fijar el alcance de QA. También: `QA-PLAN.md` (estrategia) y `QA-MANUAL-CHECKLIST.md` (guion manual).
+
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `QA-001` | Crear plan de pruebas completo (feliz path + edge cases) | P1 | IN PROGRESS | QA Tech Lead |
-| `QA-002` | Ejecutar Vitest unit tests (requiere Node 18+, no corre en sandbox Node 16) | P1 | PENDING | QA Tech Lead |
+| `QA-001` | Crear plan de pruebas completo (feliz path + edge cases) | P1 | DONE | QA Tech Lead |
+| `QA-002` | Ejecutar Vitest unit tests (requiere Node 18+, no corre en sandbox Node 16) | P1 | DONE | QA Tech Lead |
 | `QA-003` | Smoke test del APK en al menos 3 devices físicos distintos | P0 | PENDING | QA Tech Lead |
-| `QA-004` | Verificar graceful fallback a texturas procedurales cuando assets no cargan | P2 | PENDING | QA Tech Lead |
-| `QA-005` | Testear modo offline completo (avión mode en device) | P1 | PENDING | QA Tech Lead |
-| `QA-006` | Verificar que Diagnostics.ts captura errores correctamente en device | P2 | PENDING | QA Tech Lead |
-| `QA-007` | Validar que `ProfileManager` sobrevive a app kill + restart (localStorage persiste) | P1 | PENDING | QA Tech Lead |
+| `QA-004` | Verificar graceful fallback a texturas procedurales cuando assets no cargan | **P3** *(post-MVP)* | DONE | QA Tech Lead |
+| `QA-005` | Testear modo offline completo (avión mode en device) | **P0** *(MVP — el APK es offline-first)* | PENDING | QA Tech Lead |
+| `QA-006` | Verificar que Diagnostics.ts captura errores correctamente en device | **P3** *(post-MVP)* | PENDING | QA Tech Lead |
+| `QA-007` | Validar que `ProfileManager` sobrevive a app kill + restart (localStorage persiste) | **P0** *(MVP — coins y skins deben persistir)* | PENDING | QA Tech Lead |
 | `QA-008` | Testear daily missions con fecha simulada (verificar rotación) | P2 | PENDING | QA Tech Lead |
 
 ---
@@ -218,9 +258,9 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
 | `DOC-001` | Resolver naming "Fallcade" vs "Dodge Rush" en `docs/gdd.md` | P0 | PENDING | — |
-| `DOC-002` | Documentar proceso completo de build APK en `mobile/README.md` (ya parcialmente documentado en memoria) | P1 | PENDING | — |
-| `DOC-003` | Crear runbook de release: cómo hacer una release firmada para Play Store | P0 | PENDING | — |
-| `DOC-004` | Documentar qué nuevos skins/obstacles se agregaron y actualizar `docs/progression-skins.md` | P2 | PENDING | — |
+| `DOC-002` | Documentar proceso completo de build APK en `mobile/README.md` (ya parcialmente documentado en memoria) | **P2** *(no bloquea lanzamiento)* | PENDING | — |
+| `DOC-003` | Crear runbook de release: cómo hacer una release firmada para Play Store | **P0** *(MVP — sin esto el release es artesanal)* | PENDING | — |
+| `DOC-004` | Documentar qué nuevos skins/obstacles se agregaron y actualizar `docs/progression-skins.md` | **P3** *(post-MVP)* | PENDING | — |
 
 ---
 
@@ -229,8 +269,9 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 | ID | Bug | Severidad | Status | Reportado por |
 |---|---|---|---|---|
 | `BUG-001` | Gameplay ANR en emulador Android con software GPU (`-gpu swiftshader_indirect`) | LOW | KNOWN | Dodge Rush General |
-| `BUG-002` | Loop seam en música al cambiar de menú a gameplay (HTML5 Audio vs. buffer crossfade original) | LOW | KNOWN | Dodge Rush General |
+| `BUG-002` | Loop seam en música al cambiar de menú a gameplay (HTML5 Audio vs. buffer crossfade original). **[QA 2026-06-26]** El loop *intra-track* (la música repitiéndose) era el peor offender: tenía gap mudo + fade-out — **RESUELTO** (assets re-procesados a OGG Vorbis gapless + fallback MP3 recortado; loop por crossfade de 2 voces `<audio>` en `SoundManager`). Falta aún crossfade en el *cambio* de track menú↔gameplay (hoy corta seco) → ver REQ-005. Pendiente validar en device (SND-005). | LOW | PARTIAL | Dodge Rush General |
 | `BUG-003` | Live preview en web es inconsistente con HMR (tab throttling + concurrent edits) — validar siempre en device | INFO | KNOWN | — |
+| `BUG-004` | En device físico Android las skyboxes (zonas día/atardecer/noche/aurora) no se ven correctamente. Las capas de parallax (nubes, naves) sí funcionan. Sospecha: problema de decode/render de las `bg_sky_*.png` en WebView Android (posible issue de formato, color space, o alpha premultiplicado). En web se ve bien. **[BG Image Design 2026-06-26]** Causa real NO era el PNG (formato idéntico a las nubes que sí funcionan). Era el **grade wash**: un Phaser `Rectangle` (Shape) que tapaba el cielo en WebView. **FIXED** en `Background.ts` (grade ahora es `Image` tinteada). Build + sync hechos. Pendiente confirmar en APK (BG-003). | HIGH | FIXED (verificar en device) | Product Owner / Background Image Design |
 
 *Agregar bugs nuevos aquí con el formato: `BUG-NNN \| descripción \| severidad (CRITICAL/HIGH/MEDIUM/LOW) \| status \| sesión que lo reporta`*
 
@@ -246,6 +287,8 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 | `REQ-001` | No hay sistema de achievements implementado en código (solo definidos en `Skins.ts` como `achievementId`) — `DailyManager` no cubre esto | — | 2026-06-26 |
 | `REQ-002` | No hay pantalla de perfil del jugador (estadísticas totales: runs, monedas ganadas, mejor streak) | — | 2026-06-26 |
 | `REQ-003` | No hay analytics / telemetría real (solo `Diagnostics.ts` local) — para Fase 5 se necesita un proveedor | — | 2026-06-26 |
+| `REQ-005` | El cambio de track menú↔gameplay corta seco (no hay crossfade entre tracks distintos). El loop intra-track ya es gapless por crossfade; falta extender ese crossfade al *switch* de pista en `playMusic`. Bajo impacto. | QA Tech Lead | 2026-06-26 |
+| `REQ-006` | Los overlays de oscurecimiento de Daily/Info/Shop usan Phaser `Rectangle` (Shape) con alpha 0.78 (`scene.add.rectangle(...)`). BG-005 mostró que el pipeline de Shapes puede no respetar el alpha en WebView Android. Si el síntoma fuese del pipeline de Shapes en general (no solo de `setFillStyle`), esos menús se verían casi negros en device. Verificar en APK; si falla, reemplazar por `Image` tinteada (mismo patrón que el fix del grade). | Background Image Design | 2026-06-26 |
 
 *Agregar con el formato: `REQ-NNN \| descripción \| sesión \| fecha`*
 
@@ -255,7 +298,7 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 
 | ID | Decisión | Status | Notas |
 |---|---|---|---|
-| `DEC-001` | Nombre oficial del juego: "Dodge Rush" o "Fallcade" | **PENDIENTE** | GDD dice "Fallcade", todo lo demás dice "Dodge Rush" |
+| `DEC-001` | Nombre oficial del juego: "Dodge Rush" o "Fallcade" | **PENDIENTE** | GDD dice "Fallcade", todo lo demás dice "Dodge Rush". **[QA 2026-06-26]** Evidencia: `docs/gdd.md` es el ÚNICO archivo con "Fallcade" (3 ocurrencias, 0 de "Dodge Rush"); el resto del repo (código, `package.json`, assets, memoria del proyecto) usa "Dodge Rush" de forma consistente. Costo de cambio asimétrico: alinear el GDD = 1 doc; renombrar a "Fallcade" = código + assets + store + memoria. Sin contexto de negocio que favorezca "Fallcade" (¿conflicto de marca/ASO?), **recomendación QA: oficializar "Dodge Rush"** y actualizar el GDD (BRN-002/DOC-001). Decisión final del PM. |
 | `DEC-002` | Proveedor de AdMob para Families Policy | PENDIENTE | Debe ser certificado Families. Verificar con Google antes de integrar. |
 | `DEC-003` | iOS: lanzar simultáneamente con Android o diferir | PENDIENTE | |
 | `DEC-004` | Dog sprite: ¿es un skin adicional nuevo (> 12) o reemplaza a Hound? | PENDIENTE | Sesión "Dog character sprite" en progreso |
@@ -271,7 +314,12 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 |---|---|---|---|
 | 2026-06-25 | Dodge Rush General | Fase 1, Fase 2 completa | APK funcional, música corregida, daily missions, dificultad Relax/Classic |
 | 2026-06-26 | Product Owner | Creación de este backlog | Relevamiento completo del código y sesiones activas |
+| 2026-06-26 | Product Owner | Priorización MVP | Definida visión MVP: Android-first, juego existente + monetización real + Families Policy. Decisiones tomadas: nombre="Dodge Rush" (DEC-001 ✅), iOS diferido (DEC-003 ✅), Dog post-MVP (DEC-004 ✅), fuentes online aceptado (DEC-005 ✅). Toda la épica iOS + nuevos obstáculos + nuevos skins bajados a P3. Ruta crítica de 11 pasos documentada en sección VISIÓN MVP. |
 | 2026-06-26 | Obstacle Design | OBS-006 (auditoría existentes) | **Lo que se hizo:** (1) Eliminados `orange_block` e `ice_block` de `OBSTACLE_FRAMES` y `build-obstacles.py` — eran tiles sin ObstacleType asignado (assets huérfanos). Sus pixels siguen en el atlas PNG pero no se registran ni usan. (2) Verificado que el escalado vertical (atlas 50px → bandHeight 88px) es uniforme en ambos ejes — sin distorsión. (3) Verificado que `purple_pillar` se tilea correctamente como barra horizontal. (4) `blue_tile` (Glowing) diferenciado de `blue_bar` (Straight): fill cambiado a violeta `0x7722ee`, glow pulse a `0x9933ff`. (5) Sistema de animación de sprites implementado: `ObstacleTypeDef` extendido con `animFrames`/`animMs`, `OBSTACLE_ANIM_FRAMES` en Constants.ts, registro de frames `_f1` en TextureFactory, ciclo de frames en `Barrier.advance()`. (6) Atlas extendido a 545×92 con row 1 de animación: `red_arrow_f1` (shift 2px right, 150ms), `red_spike_f1` (shift 2px up, 400ms), `gold_block_f1` (shift 1px diagonal, 600ms). (7) Fill colors documentados en `ObstacleTypes.ts`. (8) `build-obstacles.py` preparado para fuente 2048 (instrucciones en el script). **Lo que NO se hizo:** OBS-001 (nuevos tipos) — ver nota abajo. |
+| 2026-06-26 | QA Tech Lead | QA-001, QA-002, SKN-002, GME-004 | **QA-001:** plan de pruebas completo en `QA-PLAN.md` (estrategia, casos GP/SC/EC/PE/LD/NF, métricas, DoD) + `QA-MANUAL-CHECKLIST.md` (GP-01..GP-10, audio SND-01..10, skins SK-01..08 — lo perceptual que no se automatiza). **QA-002:** suite Vitest montada y verde — **90 tests / 12 suites** en Node 20 (`@types/node` agregado; `engines: node>=20` en package.json). Cubre lógica pura: scoring, combo, colisión, dificultad+modos, generador (fairness con seed), persistencia/saneo, diagnostics, sonido (crossfade+formato), orientación, higiene de audio. **SKN-002:** verificado por test — los 12 character sheets son exactamente 720×840 (grid 6×7 de 120px) → toda pose (0..41) mapea a celda real; rangos de animación dentro del grid. (La calidad *visual* del arte por frame queda como check manual SK-01..08.) **GME-004:** `loseLife()` llama `combo.reset()` (GameScene.ts:338) + cubierto por ComboManager.test. **Audio (pedido del usuario, fuera de épica):** loop intra-track ahora gapless (OGG + crossfade 2 voces) — ver BUG-002/REQ-005. |
+| 2026-06-26 | Background Image Design | BG-005 / BUG-004 | **Diagnóstico:** El bug NO estaba en los `bg_sky_*.png`. Verifiqué que skyboxes y capas de parallax (las que funcionan) son PNG **idénticos en formato**: 8-bit, colortype 6 (RGBA), no interlazado, sin ICC profile, mismo loader y misma ruta. El spaceship (540×4800) renderiza, así que no hay límite de `MAX_TEXTURE_SIZE` por debajo de eso. Descarté formato/alpha-premult/tamaño/sync (assets presentes en `mobile/web` y `dist`). **Causa raíz:** el **grade wash** (tinte atmosférico por zona) era el único elemento del fondo que (a) está en el orden de dibujo *por encima* del cielo+capas lejanas pero *por debajo* de nubes cercanas+luces, y (b) se renderizaba con un Phaser **`Rectangle` (Shape)**, no un `Image`. Se construía opaco (`0xffffff,1`) y se atenuaba con `setFillStyle(color,alpha)` cada frame; en WebGL de WebView Android ese alpha del pipeline de Shapes no se aplicaba bien → el wash quedaba casi opaco y **tapaba el cielo**, dejando ver solo las nubes cercanas y las luces aditivas de las naves (exactamente el síntoma reportado). En Chrome el Shape sí respeta el alpha → por eso en web se veía bien. Esto explica por qué unas Images (nubes) se ven y otras (cielo) no: no es la Image, es lo que la tapa. **Solución:** en `Background.ts` el grade ahora es un `Image` (pixel blanco `bg_grade_px` estirado a pantalla) con `setTint(color)`+`setAlpha(alpha)` — mismo pipeline de textured-quad que TODAS las capas que ya funcionan, render idéntico en web y device. Verificado en web (grade sutil, tint/alpha correctos por zona, orden de dibujo y crossfade intactos). `tsc` limpio; `vite build` + `npm run sync:web` hechos (fix presente en bundle android). **Pendiente:** confirmar en APK físico (BG-003). **Follow-up detectado:** los overlays de oscurecimiento de Daily/Info/Shop también son `Rectangle` Shapes (alpha 0.78) — si el problema fuese del pipeline de Shapes en general (y no solo del `setFillStyle`), podrían verse demasiado oscuros en device; QA debería revisarlo (anotado como REQ-006). |
+| 2026-06-26 | QA Tech Lead | GME-001, QA-004 | **98 tests / 13 suites verdes.** **GME-001:** contrato de balance objetivo verificado en `DifficultyManager.test` sobre toda la rampa (0..300s): RELAX nunca más difícil que CLASSIC en velocidad/gap/spacing y con más vidas; ambas rampas monótonas sin saltos; ventana de reacción ≥ `reactionMinMs` (600ms) en todo punto y en ambos modos (principio "muerte = culpa del jugador"); plateau en el `maxStep` de cada modo (sin runaway). El "¿es divertido?" sigue siendo playtest manual (checklist GME-001). **QA-004:** `TextureFactory.test` (Phaser + escena mockeados) ejecuta `ensureFallbacks` real y verifica que regenera un stand-in para CADA asset cargable (12 sheets + 6 skyboxes + 6 capas parallax + obstáculos), que solo regenera lo reportado como `failed`, que detecta el placeholder `__MISSING`, y que `ensureCoin`/`ensureParticleTexture` funcionan. **Nota (corregido):** `SHEET_FALLBACK` solo definía color propio para 3 de 12 sheets (los otros 9 caían al rosa por defecto). Ahora los 12 tienen color de identidad (hound marrón, dragon verde, witch púrpura, etc.) y hay un test que falla si un skin futuro queda sin color. |
+| 2026-06-26 | QA Tech Lead | Catálogo de casos de uso | Creado `USE-CASES.md`: inventario único de los 73 casos de uso a testear en 15 dominios (carga, navegación, gameplay, scoring/combo, dificultad, obstáculos, skins, economía/tienda, daily/streak, continue/rewarded, audio, persistencia, backgrounds, observabilidad, no-funcionales). Cada caso mapea su cobertura actual (✅ auto / ⚙️ código / 🧪 manual / ⬜ sin cubrir) al test o ítem de checklist, y tiene una **columna de decisión del PO** (Mantener/Modificar/Quitar) + sección "Casos nuevos" para que el PO dirija el alcance. Incluye brechas de automatización detectadas (DailyManager, Rewarded stub, coins-by-score, countdown 6s son automatizables sin device). Enlazado desde la ÉPICA 11. **Acción requerida del PO:** revisar y marcar decisiones. |
 
 ---
 

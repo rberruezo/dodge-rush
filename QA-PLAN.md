@@ -176,6 +176,16 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
 - **Orientación:** extraída a `PlayerFacing.ts` (puro) + `PlayerFacing.test.ts`
   con la invariante "toda pose mira hacia su dirección de viaje". Lo perceptual
   ("animaciones se ven bien") → checklist manual SK-01..SK-08.
+- **Loop de música (gap/fade feo):** detectado por análisis de los MP3
+  (menu: gap ~115 ms + fade-out a 0.32×; bgmusic: gap ~51 ms en borde fuerte).
+  Arreglado: (1) assets re-procesados con ffmpeg — silencio de bordes a <12 ms,
+  fade del menú eliminado; (2) **OGG Vorbis gapless** como formato primario con
+  fallback MP3 (`pickSrc` por `canPlayType`); (3) **loop por crossfade** de 2
+  voces `<audio>` en `SoundManager` (reemplaza `loop=true`). Cubierto por
+  `SoundManager.test.ts` (crossfade, formato) y `AudioAssets.test.ts` (higiene
+  de loop con ffmpeg: falla si vuelve a aparecer silencio en bordes o fade-out).
+  Originales respaldados en el scratchpad de la sesión.
+  Requiere `@types/node` (devDep) para el test de assets.
 
 > ⚠️ **Pendiente de verificación E2E:** el gameplay no se pudo probar en vivo
 > porque `GameScene`/`HUD` están a medio refactorizar (feature "power/smash":
