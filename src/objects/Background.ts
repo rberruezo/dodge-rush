@@ -1,80 +1,203 @@
 import Phaser from 'phaser';
-import { BG_TILE_KEYS, BG_CFG, GAME_WIDTH, GAME_HEIGHT, SCROLL_CFG } from '../config/Constants';
+import {
+  BG_ZONES,
+  BG_LAYERS,
+  BG_CFG,
+  BgLayer,
+  GAME_WIDTH,
+  GAME_HEIGHT
+} from '../config/Constants';
 
 /**
- * Endless descent rendered as a vertical stack of interchangeable night tiles.
+ * "Sky City" infinite background (see docs/background-skycity.md).
  *
- * Each tile is one screen tall and its art is edge-matched so any tile can
- * follow any other (see scripts/build-backgrounds.py). We keep just enough tile
- * sprites to cover the viewport plus one spare entering from below. As the world
- * scrolls up (which reads as falling), each sprite is mapped to a "virtual" tile
- * index derived from how far we've fallen; the texture for that index is picked
- * by a cheap deterministic hash, so the order is effectively random, never snaps,
- * and loops forever with no fixed seam.
+ * Composition, back to front:
+ *   1. Sky — two full-screen skyboxes that cross-dissolve as zones cycle. The sky
+ *      itself never scrolls; only the zone (day -> dusk -> ... -> aurora) changes.
+ *   2. Parallax layers — far clouds, a rare cruiser, occasional airships. Each is
+ *      a single loopable tile drawn as a stack of plain Images that we reposition
+ *      every frame (no Phaser TileSprite, so non-power-of-two tiles loop cleanly).
+ *   3. Grade — a translucent per-zone colour wash over the silhouettes for depth.
+ *   4. Neon lights — the vehicles' ADD-blended light layers (never tinted).
+ *   5. Near clouds — bright foreground, tinted to the zone.
+ *   6. Vignette — optional edge darkening.
+ *
+ * Each layer scrolls at its own parallax speed, so the world reads as an endless
+ * aerial descent. `scrollY` is the raw fall distance; it also drives the zone
+ * cycle and is handed between scenes so the descent never jumps.
  */
+
+interface Layer {
+  cfg: BgLayer;
+  sprites: Phaser.GameObjects.Image[];
+}
+
+const mod = (x: number, n: number): number => ((x % n) + n) % n;
+
+const lerpColor = (a: number, b: number, t: number): number => {
+  const ca = Phaser.Display.Color.IntegerToColor(a);
+  const cb = Phaser.Display.Color.IntegerToColor(b);
+  const c = Phaser.Display.Color.Interpolate.ColorWithColor(ca, cb, 100, Math.round(t * 100));
+  return Phaser.Display.Color.GetColor(c.r, c.g, c.b);
+};
+
 export class Background {
-  private tiles: Phaser.GameObjects.Image[] = [];
+  private scene: Phaser.Scene;
   private scrollY = 0;
-  private readonly tileH = BG_CFG.tileHeight;
+
+  private skyA: Phaser.GameObjects.Image; // current zone (opaque)
+  private skyB: Phaser.GameObjects.Image; // next zone (fades in)
+  private layers: Layer[] = [];
+  private grade!: Phaser.GameObjects.Rectangle;
+  private vignette?: Phaser.GameObjects.Image;
+
+  private zoneI = -1; // last applied zone index (forces a refresh on first frame)
+  private structTint = -1; // cached tints so we only re-apply on change
+  private cloudTint = -1;
 
   constructor(scene: Phaser.Scene, startScrollY = 0) {
+    this.scene = scene;
     this.scrollY = startScrollY;
 
-    // Cover the screen + 1 spare so a fresh tile is always ready below the fold.
-    const count = Math.ceil(GAME_HEIGHT / this.tileH) + 1;
-    for (let i = 0; i < count; i++) {
-      this.tiles.push(
-        scene.add.image(0, 0, BG_TILE_KEYS[0]).setOrigin(0, 0).setDisplaySize(GAME_WIDTH, this.tileH)
-      );
+    const mkFull = (key: string) =>
+      scene.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+
+    // 1. Sky pair (textures set in syncZone()).
+    this.skyA = mkFull(BG_ZONES[0].sky);
+    this.skyB = mkFull(BG_ZONES[0].sky).setAlpha(0);
+
+    // 2/4/5. Parallax + light + near-cloud layers, plus the grade wash injected
+    // at the configured point. Build in draw order; depth offsets lock that order.
+    for (const cfg of BG_LAYERS) {
+      if (cfg.key === BG_CFG.gradeBeforeKey) this.buildGrade();
+      this.buildLayer(cfg);
     }
+    if (!this.grade) this.buildGrade(); // safety: ensure grade exists if misconfigured
+
+    // 6. Optional vignette on top.
+    if (BG_CFG.vignetteAlpha > 0 && scene.textures.exists('bg_vignette')) {
+      this.vignette = mkFull('bg_vignette').setAlpha(BG_CFG.vignetteAlpha);
+    }
+
+    this.syncZone(true);
     this.layout();
   }
 
-  /** Distance fallen — passed between scenes so the scroll never jumps. */
+  /** Raw fall distance — handed between scenes so the descent never jumps. */
   get scroll(): number {
     return this.scrollY;
   }
 
-  /** Advance the fall and re-place the tiles. */
+  /** Advance the fall, re-place looping layers, and update the zone cycle. */
   update(dt: number, speed: number): void {
-    this.scrollY += speed * dt * SCROLL_CFG.bgParallax;
+    this.scrollY += speed * dt;
     this.layout();
+    this.syncZone(false);
   }
 
-  /** Map each sprite to its current virtual tile slot + texture. */
+  // ---- construction helpers -------------------------------------------------
+
+  private buildGrade(): void {
+    this.grade = this.scene.add
+      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 1)
+      .setOrigin(0, 0);
+  }
+
+  private buildLayer(cfg: BgLayer): void {
+    const count = Math.ceil(GAME_HEIGHT / cfg.tile) + 2; // +1 above, +1 spare below
+    const sprites: Phaser.GameObjects.Image[] = [];
+    for (let i = 0; i < count; i++) {
+      const img = this.scene.add
+        .image(0, 0, cfg.key)
+        .setOrigin(0, 0)
+        .setDisplaySize(GAME_WIDTH, cfg.tile);
+      if (cfg.additive) img.setBlendMode(Phaser.BlendModes.ADD);
+      sprites.push(img);
+    }
+    this.layers.push({ cfg, sprites });
+  }
+
+  // ---- per-frame ------------------------------------------------------------
+
+  /** Reposition every looping layer for the current scroll offset. */
   private layout(): void {
-    const v0 = Math.floor(this.scrollY / this.tileH); // topmost visible virtual tile
-    const off = this.scrollY - v0 * this.tileH; // how far it has scrolled off-top
-    for (let j = 0; j < this.tiles.length; j++) {
-      const img = this.tiles[j];
-      img.y = j * this.tileH - off;
-      const key = this.keyForTile(v0 + j);
-      if (img.texture.key !== key) {
-        img.setTexture(key).setDisplaySize(GAME_WIDTH, this.tileH);
+    for (const layer of this.layers) {
+      const tile = layer.cfg.tile;
+      const o = mod(this.scrollY * layer.cfg.parallax, tile);
+      const sprites = layer.sprites;
+      for (let j = 0; j < sprites.length; j++) {
+        sprites[j].y = -o + (j - 1) * tile; // first tile sits one step above the top
       }
     }
   }
 
-  /**
-   * Deterministic texture for a virtual tile index: a multiplicative hash spreads
-   * the indices across the tile set, nudged so a tile never repeats the one
-   * directly above it (keeps the descent visibly varied).
-   */
-  private keyForTile(v: number): string {
-    const n = BG_TILE_KEYS.length;
-    const hash = (k: number) => ((k * 2654435761) >>> 0) % n;
-    let idx = hash(v);
-    if (idx === hash(v - 1)) idx = (idx + 1) % n;
-    return BG_TILE_KEYS[idx];
+  /** Drive the day-cycle: swap sky textures on zone change, blend tints + grade. */
+  private syncZone(force: boolean): void {
+    const n = BG_ZONES.length;
+    const zf = this.scrollY / BG_CFG.zoneLength;
+    const ci = Math.floor(zf);
+    const frac = zf - ci;
+
+    const cur = BG_ZONES[mod(ci, n)];
+    const nxt = BG_ZONES[mod(ci + 1, n)];
+
+    // Crossfade only across the tail `crossfadeFrac` of each zone.
+    const cf = BG_CFG.crossfadeFrac;
+    const t = frac <= 1 - cf ? 0 : (frac - (1 - cf)) / cf;
+
+    // Sky textures only change when we cross into a new zone band.
+    if (force || ci !== this.zoneI) {
+      this.zoneI = ci;
+      this.skyA.setTexture(cur.sky).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+      this.skyB.setTexture(nxt.sky).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+    }
+    this.skyA.setAlpha(1);
+    this.skyB.setAlpha(t);
+
+    // Interpolated tints (cheap; re-applied to sprites only when they change).
+    const struct = lerpColor(cur.struct, nxt.struct, t);
+    const cloud = lerpColor(cur.cloudTint, nxt.cloudTint, t);
+    if (struct !== this.structTint || cloud !== this.cloudTint) {
+      this.structTint = struct;
+      this.cloudTint = cloud;
+      for (const layer of this.layers) {
+        const tint = layer.cfg.tint;
+        if (tint === 'none') continue;
+        const color = tint === 'cloud' ? cloud : struct;
+        for (const s of layer.sprites) s.setTint(color);
+      }
+    }
+
+    // Grade wash: interpolate colour + opacity.
+    const gradeColor = lerpColor(cur.grade, nxt.grade, t);
+    const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
+    this.grade.setFillStyle(gradeColor, gradeA);
   }
 
+  // ---- lifecycle ------------------------------------------------------------
+
+  /**
+   * Place the whole background at `depth`. Every piece shares this depth; their
+   * back-to-front order is the order they were created in (Phaser's stable sort
+   * preserves it), which already follows the documented draw order. Sharing one
+   * depth also keeps anything a scene adds afterwards (e.g. a dimming overlay) on
+   * top of the background.
+   */
   setDepth(depth: number): this {
-    this.tiles.forEach((t) => t.setDepth(depth));
+    this.skyA.setDepth(depth);
+    this.skyB.setDepth(depth);
+    this.grade.setDepth(depth);
+    for (const layer of this.layers) layer.sprites.forEach((s) => s.setDepth(depth));
+    this.vignette?.setDepth(depth);
     return this;
   }
 
   destroy(): void {
-    this.tiles.forEach((t) => t.destroy());
-    this.tiles = [];
+    this.skyA.destroy();
+    this.skyB.destroy();
+    this.grade.destroy();
+    this.vignette?.destroy();
+    for (const layer of this.layers) layer.sprites.forEach((s) => s.destroy());
+    this.layers = [];
   }
 }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DAILY_CFG, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { COLORS, DAILY_CFG, GAME_WIDTH, GAME_HEIGHT, BG_CFG } from '../config/Constants';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
@@ -22,7 +22,7 @@ export class DailyScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.bg = new Background(this, GAME_HEIGHT * 2).setDepth(0);
+    this.bg = new Background(this, BG_CFG.zoneLength * 2).setDepth(0); // sunset zone
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x140b28, 0.82).setOrigin(0, 0);
     this.render();
   }

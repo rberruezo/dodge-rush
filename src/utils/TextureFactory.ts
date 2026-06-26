@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
-  BG_TILE_KEYS,
-  BG_CFG,
+  BG_ZONES,
+  BG_LAYERS,
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
   OBSTACLE_CFG,
   COIN_CFG,
-  GAME_WIDTH
+  GAME_WIDTH,
+  GAME_HEIGHT
 } from '../config/Constants';
 import { SKIN_SHEETS } from '../config/Skins';
 
@@ -16,15 +17,6 @@ const SHEET_FALLBACK: Record<string, number> = {
   character: 0xff4f9a,
   character_cat: 0xffa24a,
   character_unicorn: 0x9fe6d2
-};
-
-/** Fallback gradient palette per background theme (top sky → bottom horizon). */
-/** Top/bottom gradient per night tile so stand-ins still vary tile-to-tile. */
-const TILE_FALLBACK: Record<string, [number, number]> = {
-  bg_night_0: [0x0a1030, 0x4f3bff],
-  bg_night_1: [0x100a30, 0x6f3bff],
-  bg_night_2: [0x0a1838, 0x3b6bff],
-  bg_night_3: [0x140a38, 0x8f3bdf]
 };
 
 /**
@@ -59,11 +51,17 @@ export class TextureFactory {
         TextureFactory.makeCharacterSheet(scene, sheet, SHEET_FALLBACK[sheet] ?? 0xff4f9a);
       }
     }
-    for (const key of BG_TILE_KEYS) {
-      if (need(key)) {
-        reset(key);
-        const [top, bot] = TILE_FALLBACK[key] ?? [0x0a1030, 0x4f7bff];
-        TextureFactory.makeBackgroundTile(scene, key, top, bot);
+    // Sky City: per-zone skyboxes (gradients) + looping parallax tiles.
+    for (const zone of BG_ZONES) {
+      if (need(zone.sky)) {
+        reset(zone.sky);
+        TextureFactory.makeSkyFallback(scene, zone.sky, zone.struct, zone.cloudTint);
+      }
+    }
+    for (const layer of BG_LAYERS) {
+      if (need(layer.key)) {
+        reset(layer.key);
+        TextureFactory.makeLayerFallback(scene, layer.key, layer.tile, !!layer.additive);
       }
     }
     if (need(ASSET_KEYS.OBSTACLES)) {
@@ -107,19 +105,15 @@ export class TextureFactory {
     }
   }
 
-  /**
-   * One full-screen night tile: a top-to-bottom gradient with twinkles. Edges
-   * carry no fixed detail, so any stand-in tile still stacks cleanly under any
-   * other (matching the real edge-matched art).
-   */
-  private static makeBackgroundTile(
+  /** Full-screen skybox stand-in: a dark-to-bright vertical gradient + stars. */
+  private static makeSkyFallback(
     scene: Phaser.Scene,
     key: string,
     topColor: number,
     botColor: number
   ): void {
     const w = GAME_WIDTH;
-    const h = BG_CFG.tileHeight;
+    const h = GAME_HEIGHT;
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
     const top = Phaser.Display.Color.ValueToColor(topColor);
     const bot = Phaser.Display.Color.ValueToColor(botColor);
@@ -131,12 +125,57 @@ export class TextureFactory {
       g.fillStyle(Phaser.Display.Color.GetColor(col.r, col.g, col.b), 1);
       g.fillRect(0, Math.floor(y), w, Math.ceil(h / steps) + 1);
     }
-    g.fillStyle(0xffffff, 0.5); // twinkles
-    for (let i = 0; i < 80; i++) {
-      g.fillRect((i * 97) % w, (i * 211) % h, 2, 2);
-    }
+    g.fillStyle(0xffffff, 0.5); // stars
+    for (let i = 0; i < 80; i++) g.fillRect((i * 97) % w, (i * 211) % h, 2, 2);
     g.generateTexture(key, w, h);
     g.destroy();
+  }
+
+  /**
+   * Looping parallax tile stand-in (transparent). Content is kept clear of the
+   * top/bottom edges so the hand-stacked tiles still seam cleanly. Light layers
+   * draw a couple of bright dots (ADD-blended at runtime); other layers draw a
+   * few soft silhouettes spaced down the tile.
+   */
+  private static makeLayerFallback(
+    scene: Phaser.Scene,
+    key: string,
+    tile: number,
+    additive: boolean
+  ): void {
+    const w = GAME_WIDTH;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    const blobs = Math.max(1, Math.round(tile / 600));
+    for (let i = 0; i < blobs; i++) {
+      const cx = ((i * 211) % (w - 160)) + 80;
+      const cy = (tile / (blobs + 1)) * (i + 1); // evenly spaced, away from edges
+      if (additive) {
+        g.fillStyle(i % 2 ? 0x46e8ff : 0xff5cc0, 0.9);
+        g.fillRect(cx - 22, cy, 44, 3);
+      } else {
+        g.fillStyle(0xffffff, 0.32);
+        g.fillEllipse(cx, cy, 150, 46);
+      }
+    }
+    g.generateTexture(key, w, Math.round(tile));
+    g.destroy();
+  }
+
+  /** Radial edge-darkening vignette (procedural; never loaded from disk). */
+  static ensureVignette(scene: Phaser.Scene): void {
+    const key = 'bg_vignette';
+    if (scene.textures.exists(key)) return;
+    const w = GAME_WIDTH;
+    const h = GAME_HEIGHT;
+    const tex = scene.textures.createCanvas(key, w, h);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.28, w / 2, h / 2, h * 0.62);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    tex.refresh();
   }
 
   /** Colored tiles-with-holes mirroring the real obstacle atlas frame names. */

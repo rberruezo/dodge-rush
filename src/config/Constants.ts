@@ -24,17 +24,79 @@ export const ASSET_KEYS = {
 export const COIN_CFG = { frame: 40, frames: 13, animKey: 'coin-spin', frameRate: 9 } as const;
 
 /**
- * Background is an endless vertical stack of interchangeable "night" tiles.
- * Each tile is one full screen tall and its art is edge-matched so any tile can
- * follow any other — the engine shuffles them in any order to sell an eternal
- * fall with no fixed loop point (see scripts/build-backgrounds.py + Background.ts,
- * loaded from bg_night_0..3.png).
+ * "Sky City" infinite background (see docs/background-skycity.md).
+ *
+ * The sky is a FIXED full-screen skybox that cross-dissolves through a cycle of
+ * zones (day -> dusk -> ... -> aurora -> repeat). Over it, several layers loop
+ * vertically at different parallax speeds to sell an endless aerial descent:
+ * distant clouds, a rare sci-fi cruiser, occasional steampunk airships, and
+ * near clouds. Each vehicle also has an ADDITIVE neon-light layer. A translucent
+ * per-zone "grade" wash tints the scene for atmosphere.
+ *
+ * Every knob below is tunable: zone length/cadence, crossfade window, per-layer
+ * parallax + tint, grade strength, and vignette.
  */
-export const BG_TILE_KEYS = ['bg_night_0', 'bg_night_1', 'bg_night_2', 'bg_night_3'] as const;
+
+/** A sky zone: its skybox texture key + the colours that tint the layers. */
+export interface BgZone {
+  id: string;
+  name: string;
+  sky: string; // skybox texture key (loaded from bg_sky_<id>.png)
+  struct: number; // tint for distant silhouettes (far clouds / vehicles)
+  cloudTint: number; // tint for the bright near clouds (foreground)
+  grade: number; // atmospheric wash colour drawn over the silhouettes
+  gradeA: number; // wash opacity (0..1)
+}
+
+/** Zone cycle + palette, ported from art-src/skycity/palettes.json. */
+export const BG_ZONES: readonly BgZone[] = [
+  { id: 'day',      name: 'Día Nublado',        sky: 'bg_sky_day',      struct: 0x2b3f7a, cloudTint: 0xbfe8ff, grade: 0x9fd0ff, gradeA: 0.1 },
+  { id: 'dusk',     name: 'Atardecer Lavanda',  sky: 'bg_sky_dusk',     struct: 0x3a2a66, cloudTint: 0xd9a0d6, grade: 0xcaa0e6, gradeA: 0.14 },
+  { id: 'sunset',   name: 'Ocaso Naranja',      sky: 'bg_sky_sunset',   struct: 0x5a2a52, cloudTint: 0xffd060, grade: 0xff9a5a, gradeA: 0.18 },
+  { id: 'twilight', name: 'Crepúsculo Magenta', sky: 'bg_sky_twilight', struct: 0x3a1450, cloudTint: 0xb03a9a, grade: 0xc45ad6, gradeA: 0.16 },
+  { id: 'night',    name: 'Noche Profunda',     sky: 'bg_sky_night',    struct: 0x1a1f55, cloudTint: 0x2b3fb0, grade: 0x3a52c4, gradeA: 0.12 },
+  { id: 'aurora',   name: 'Aurora Boreal',      sky: 'bg_sky_aurora',   struct: 0x1c2a66, cloudTint: 0x6fb0e0, grade: 0x5fd0e0, gradeA: 0.12 }
+] as const;
+
+/** One vertically-looping parallax layer drawn over the sky. */
+export interface BgLayer {
+  key: string; // texture key (bg_*.png)
+  parallax: number; // scroll multiplier — smaller = further away / slower
+  tile: number; // tile height in screen px (== the asset's downscaled height)
+  /** none: untinted · struct: distant silhouette tint · cloud: near-cloud tint */
+  tint: 'none' | 'struct' | 'cloud';
+  additive?: boolean; // neon lights: ADD blend, never tinted
+}
+
+/**
+ * Draw order (back -> front). The per-zone grade wash is injected right after the
+ * silhouette layers (gradeBeforeKey) so distant structure recedes while the neon
+ * lights and near clouds stay crisp on top.
+ */
+export const BG_LAYERS: readonly BgLayer[] = [
+  { key: 'bg_clouds_far',       parallax: 0.18, tile: 675,  tint: 'struct' },
+  { key: 'bg_spaceship',        parallax: 0.28, tile: 4800, tint: 'struct' },
+  { key: 'bg_airships',         parallax: 0.34, tile: 1800, tint: 'struct' },
+  // --- per-zone atmospheric grade wash is drawn here ---
+  { key: 'bg_spaceship_lights', parallax: 0.28, tile: 4800, tint: 'none', additive: true },
+  { key: 'bg_airships_lights',  parallax: 0.34, tile: 1800, tint: 'none', additive: true },
+  { key: 'bg_clouds',           parallax: 0.52, tile: 675,  tint: 'cloud' }
+] as const;
 
 export const BG_CFG = {
-  tileHeight: GAME_HEIGHT // each tile spans exactly one screen
+  /** Index in BG_LAYERS the grade wash is drawn in front of (i.e. over silhouettes). */
+  gradeBeforeKey: 'bg_spaceship_lights',
+  /** Scroll distance (px of raw fall) each zone lasts before the next begins. */
+  zoneLength: 9000,
+  /** Fraction of a zone (at its tail) spent cross-dissolving into the next. */
+  crossfadeFrac: 0.16,
+  /** Edge-darkening vignette opacity on top of everything (0 disables it). */
+  vignetteAlpha: 0.22
 } as const;
+
+/** All background texture keys that the preloader must fetch. */
+export const BG_SKY_KEYS = BG_ZONES.map((z) => z.sky);
+export const BG_LAYER_KEYS = BG_LAYERS.map((l) => l.key);
 
 export const ANIM_KEYS = {
   HOVER: 'player-hover', // not steering (alive idle float)
@@ -165,8 +227,8 @@ export const OBSTACLE_CFG = {
 export const SCROLL_CFG = {
   startSpeed: 0.2, // initial fall speed (px/ms)
   maxSpeed: 0.6, // speed cap
-  accelPerSec: 0.006, // speed gained each second survived
-  bgParallax: 0.55 // background scrolls slower than obstacles for depth
+  accelPerSec: 0.006 // speed gained each second survived
+  // Background depth comes from per-layer parallax in BG_LAYERS, not a global mult.
 } as const;
 
 /** Difficulty ramps in 30s steps (values interpolate smoothly between steps). */

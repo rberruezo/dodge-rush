@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { COLORS, GAME_WIDTH, GAME_HEIGHT, BG_CFG } from '../config/Constants';
 import { SKINS, SkinDef } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
@@ -18,7 +18,7 @@ export class ShopScene extends Phaser.Scene {
 
   create(): void {
     const cx = GAME_WIDTH / 2;
-    this.bg = new Background(this, GAME_HEIGHT * 3).setDepth(0);
+    this.bg = new Background(this, BG_CFG.zoneLength * 4).setDepth(0); // night zone
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x140b28, 0.78).setOrigin(0, 0);
 
     this.add.text(cx, 56, 'SKINS', Text.title(34)).setOrigin(0.5);

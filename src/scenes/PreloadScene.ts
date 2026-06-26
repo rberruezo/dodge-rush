@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
-  BG_TILE_KEYS,
+  BG_SKY_KEYS,
+  BG_LAYER_KEYS,
   CHARACTER_FRAME,
   COIN_CFG,
   GAME_WIDTH,
@@ -83,7 +84,8 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: CHARACTER_FRAME.width,
       frameHeight: CHARACTER_FRAME.height
     });
-    BG_TILE_KEYS.forEach((key, i) => this.load.image(key, `assets/bg_night_${i}.png`));
+    // Sky City background: fixed skyboxes per zone + looping parallax layers.
+    [...BG_SKY_KEYS, ...BG_LAYER_KEYS].forEach((key) => this.load.image(key, `assets/${key}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');
     this.load.spritesheet(ASSET_KEYS.COIN, 'assets/coin.png', {
       frameWidth: COIN_CFG.frame,
@@ -102,6 +104,7 @@ export class PreloadScene extends Phaser.Scene {
     TextureFactory.registerObstacleFrames(this);
     TextureFactory.ensureParticleTexture(this);
     TextureFactory.ensureCoin(this);
+    TextureFactory.ensureVignette(this);
 
     // Build character animations from whichever sheet we ended up with.
     AnimationManager.create(this);

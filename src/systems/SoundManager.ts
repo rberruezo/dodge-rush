@@ -141,14 +141,38 @@ class SoundManagerImpl {
     const ctx = this.ensureCtx();
     if (!ctx || this.buffers.has(key)) return;
     try {
-      const res = await fetch(url);
-      const data = await res.arrayBuffer();
+      const data = await this.loadArrayBuffer(url);
       const buffer = await ctx.decodeAudioData(data);
       this.buffers.set(key, buffer);
       this.startDesired(); // in case this track was requested while still loading
     } catch (e) {
       Diagnostics.warn('audio', `Could not load music "${key}"`, e);
     }
+  }
+
+  /**
+   * Load a binary asset as an ArrayBuffer via XHR — NOT `fetch`.
+   *
+   * The Fetch API does not support the `file://` scheme in the Android WebView,
+   * so `fetch()` throws there; that's why bundled music silently failed to play
+   * in the packaged app (SFX are synthesized, so they were unaffected). XHR reads
+   * `file://` fine (with the WebView's file-access flags) and behaves identically
+   * over http(s), so this works in the browser and in the APK. Note: a successful
+   * `file://` read reports `status === 0`, so we accept that as success.
+   */
+  private loadArrayBuffer(url: string): Promise<ArrayBuffer> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onload = () => {
+        const ok = xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300);
+        if (ok && xhr.response) resolve(xhr.response as ArrayBuffer);
+        else reject(new Error(`Failed to load "${url}" (status ${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error(`Network error loading "${url}"`));
+      xhr.send();
+    });
   }
 
   /** Crossfade to a looping track. No-op if it's already the one playing. */

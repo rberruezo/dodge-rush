@@ -1,0 +1,101 @@
+{
+  "order": [
+    "day",
+    "dusk",
+    "sunset",
+    "twilight",
+    "night",
+    "aurora"
+  ],
+  "zones": [
+    {
+      "id": "day",
+      "name": "Día Nublado",
+      "skyTop": "#1f4fb0",
+      "skyMid": "#3f86d8",
+      "skyBot": "#bfe8ff",
+      "star": "#eaffff",
+      "aur": null,
+      "sun": null,
+      "struct": "#2b3f7a",
+      "grade": "#9fd0ff",
+      "gradeA": 0.1,
+      "neonHue": "cyan"
+    },
+    {
+      "id": "dusk",
+      "name": "Atardecer Lavanda",
+      "skyTop": "#3a1f6e",
+      "skyMid": "#8a4fb0",
+      "skyBot": "#d9a0d6",
+      "star": "#fff0ff",
+      "aur": null,
+      "sun": null,
+      "struct": "#3a2a66",
+      "grade": "#caa0e6",
+      "gradeA": 0.14,
+      "neonHue": "magenta"
+    },
+    {
+      "id": "sunset",
+      "name": "Ocaso Naranja",
+      "skyTop": "#4a1a66",
+      "skyMid": "#e0568a",
+      "skyBot": "#ffd060",
+      "star": "#fff6d0",
+      "aur": null,
+      "sun": "#fff2b0",
+      "struct": "#5a2a52",
+      "grade": "#ff9a5a",
+      "gradeA": 0.18,
+      "neonHue": "magenta"
+    },
+    {
+      "id": "twilight",
+      "name": "Crepúsculo Magenta",
+      "skyTop": "#2a0a4a",
+      "skyMid": "#6a1a8a",
+      "skyBot": "#b03a9a",
+      "star": "#ffe6ff",
+      "aur": null,
+      "sun": null,
+      "struct": "#3a1450",
+      "grade": "#c45ad6",
+      "gradeA": 0.16,
+      "neonHue": "magenta"
+    },
+    {
+      "id": "night",
+      "name": "Noche Profunda",
+      "skyTop": "#070726",
+      "skyMid": "#16208a",
+      "skyBot": "#2b3fb0",
+      "star": "#dff0ff",
+      "aur": null,
+      "sun": null,
+      "struct": "#1a1f55",
+      "grade": "#3a52c4",
+      "gradeA": 0.12,
+      "neonHue": "cyan"
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora Boreal",
+      "skyTop": "#0a1248",
+      "skyMid": "#1f3f9a",
+      "skyBot": "#6fb0e0",
+      "star": "#eaffff",
+      "aur": [
+        "#4dffc3",
+        "#7b5cff",
+        "#46e8ff"
+      ],
+      "sun": null,
+      "struct": "#1c2a66",
+      "grade": "#5fd0e0",
+      "gradeA": 0.12,
+      "neonHue": "cyan"
+    }
+  ],
+  "note": "Ciclo loopea aurora->day. Cada zona tiñe las capas parallax (struct/grade) y colorea neón."
+}
