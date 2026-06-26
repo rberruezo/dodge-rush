@@ -139,7 +139,7 @@ export class Barrier {
     this.capDisplayW = capPx * tileScale;
 
     this.showGlow = def.glowing || def.danger || def.golden;
-    const glowColor = def.golden ? 0xffd54a : def.danger ? 0xff3030 : 0x46e6ff;
+    const glowColor = def.golden ? 0xffd54a : def.danger ? 0xff3030 : def.glowing ? 0x9933ff : 0x46e6ff;
 
     // Left wall's cap faces right (toward the gap); right wall's cap faces left.
     this.left.cap.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_r`);
@@ -160,6 +160,14 @@ export class Barrier {
     this.y -= riseBy;
     if (this.moveAmp > 0) {
       this.gapX = this.baseGapX + Math.sin(this.t * this.moveOmega) * this.moveAmp;
+    }
+    if (this.def.animFrames > 1) {
+      const frameIdx = Math.floor(this.t / this.def.animMs) % this.def.animFrames;
+      const frameName = frameIdx === 0 ? this.def.frame : `${this.def.frame}_f${frameIdx}`;
+      this.left.cap.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_r`);
+      this.right.cap.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_l`);
+      this.left.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
+      this.right.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
     }
     this.layout();
   }

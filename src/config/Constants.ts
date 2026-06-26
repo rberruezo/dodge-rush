@@ -179,6 +179,24 @@ export interface ObstacleFrameDef {
   height: number;
 }
 
+/**
+ * Additional animation frames for obstacles that have >1 sprite frame.
+ * Each entry maps `<frame>_f<n>` → atlas rect. Row 1 of the atlas (y=50) holds
+ * these so they live alongside the base tiles without disturbing frame 0 coords.
+ */
+export interface ObstacleAnimFrameDef {
+  name: string; // "<baseName>_f<n>"
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export const OBSTACLE_ANIM_FRAMES: ObstacleAnimFrameDef[] = [
+  { name: 'red_arrow_f1', x: 255, y: 50, width: 40, height: 33 },
+  { name: 'red_spike_f1', x: 297, y: 50, width: 59, height: 42 }
+];
+
 export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
   { name: 'blue_bar', x: 0, y: 0, width: 53, height: 28 },
   { name: 'green_bar', x: 55, y: 0, width: 78, height: 30 },

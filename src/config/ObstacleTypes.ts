@@ -26,6 +26,8 @@ export interface ObstacleTypeDef {
   danger: boolean; // red warning pulse (cosmetic; all collisions are fatal)
   glowing: boolean; // neon glow pulse
   golden: boolean; // reward obstacle (bonus + score boost)
+  animFrames: number; // sprite animation frame count (1 = static)
+  animMs: number; // ms per animation frame
 }
 
 export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
@@ -40,7 +42,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Wide]: {
     type: ObstacleType.Wide,
@@ -53,7 +57,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Narrow]: {
     type: ObstacleType.Narrow,
@@ -66,7 +72,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Moving]: {
     type: ObstacleType.Moving,
@@ -79,7 +87,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: true,
     danger: false,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 2,
+    animMs: 150
   },
   [ObstacleType.Danger]: {
     type: ObstacleType.Danger,
@@ -92,7 +102,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: true,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 2,
+    animMs: 400
   },
   [ObstacleType.Broken]: {
     type: ObstacleType.Broken,
@@ -105,12 +117,14 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: false,
-    golden: false
+    golden: false,
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Glowing]: {
     type: ObstacleType.Glowing,
     frame: 'blue_tile',
-    fill: 0x24d8fc,
+    fill: 0x7722ee,
     baseWeight: 2,
     gapFactor: 1.0,
     bandFactor: 1,
@@ -118,7 +132,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: true,
-    golden: false
+    golden: false,
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Golden]: {
     type: ObstacleType.Golden,
@@ -131,7 +147,9 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     moving: false,
     danger: false,
     glowing: true,
-    golden: true
+    golden: true,
+    animFrames: 1,
+    animMs: 0
   }
 };
 

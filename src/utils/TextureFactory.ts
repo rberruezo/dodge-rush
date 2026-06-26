@@ -5,6 +5,7 @@ import {
   BG_LAYERS,
   CHARACTER_FRAME,
   OBSTACLE_FRAMES,
+  OBSTACLE_ANIM_FRAMES,
   OBSTACLE_CFG,
   COIN_CFG,
   GAME_WIDTH,
@@ -240,16 +241,18 @@ export class TextureFactory {
    */
   static registerObstacleFrames(scene: Phaser.Scene): void {
     const tex = scene.textures.get(ASSET_KEYS.OBSTACLES);
-    OBSTACLE_FRAMES.forEach((f) => {
-      if (!tex.has(f.name)) tex.add(f.name, 0, f.x, f.y, f.width, f.height);
 
-      const capW = Math.max(8, Math.round(f.width * OBSTACLE_CFG.capFraction));
-      const stripW = Math.min(4, f.width);
-      const stripX = Math.max(f.x, f.x + capW - stripW); // solid column just inside the left cap
+    const slice = (name: string, x: number, y: number, w: number, h: number) => {
+      if (!tex.has(name)) tex.add(name, 0, x, y, w, h);
+      const capW = Math.max(8, Math.round(w * OBSTACLE_CFG.capFraction));
+      const stripW = Math.min(4, w);
+      const stripX = Math.max(x, x + capW - stripW);
+      if (!tex.has(`${name}_l`)) tex.add(`${name}_l`, 0, x, y, capW, h);
+      if (!tex.has(`${name}_r`)) tex.add(`${name}_r`, 0, x + w - capW, y, capW, h);
+      if (!tex.has(`${name}_c`)) tex.add(`${name}_c`, 0, stripX, y, stripW, h);
+    };
 
-      if (!tex.has(`${f.name}_l`)) tex.add(`${f.name}_l`, 0, f.x, f.y, capW, f.height);
-      if (!tex.has(`${f.name}_r`)) tex.add(`${f.name}_r`, 0, f.x + f.width - capW, f.y, capW, f.height);
-      if (!tex.has(`${f.name}_c`)) tex.add(`${f.name}_c`, 0, stripX, f.y, stripW, f.height);
-    });
+    OBSTACLE_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height));
+    OBSTACLE_ANIM_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height));
   }
 }
