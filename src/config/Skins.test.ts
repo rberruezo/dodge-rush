@@ -1,16 +1,25 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { SKINS, ACHIEVEMENT_SKINS, SKIN_SHEETS, getSkin } from './Skins';
-import { CHARACTER_ANIMS, CHAR_FRAMES, ANIM_KEYS } from './Constants';
+import { CHARACTER_ANIMS, CHAR_FRAMES, ANIM_KEYS, CHARACTER_FRAME } from './Constants';
 
-// Enumerate the shipped art + the loader source via Vite's glob (no node:fs,
-// so no @types/node dependency).
+// Enumerate the shipped art + the loader source via Vite's glob.
 const assetKeys = Object.keys(import.meta.glob('../../public/assets/*.png'));
 const hasAsset = (sheet: string) => assetKeys.some((k) => k.endsWith(`/${sheet}.png`));
 const preloadSrc = Object.values(
   import.meta.glob('../scenes/PreloadScene.ts', { query: '?raw', import: 'default', eager: true })
 )[0] as string;
 
-const FRAME_COUNT = 6 * 7; // documented 6 cols x 7 rows sprite-sheet grid (indices 0..41)
+const COLS = 6;
+const ROWS = 7;
+const FRAME_COUNT = COLS * ROWS; // documented 6 cols x 7 rows grid (indices 0..41)
+
+/** Read a PNG's pixel dimensions straight from its IHDR header (no decode). */
+function pngSize(sheet: string): { w: number; h: number } {
+  const buf = readFileSync(fileURLToPath(new URL(`../../public/assets/${sheet}.png`, import.meta.url)));
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
 
 describe('Skins — catalogue integrity', () => {
   it('has unique ids', () => {
@@ -112,4 +121,20 @@ describe('Animation contract (must hold for every skin sheet)', () => {
       expect(idx, name).toBeLessThan(FRAME_COUNT);
     }
   });
+});
+
+// SKN-002: every skin sheet must physically contain all 6x7 = 42 pose frames,
+// i.e. be exactly (COLS*frameW) x (ROWS*frameH). A wrong-sized sheet would make
+// poses (boost/celebrate/dizzy/trophy/crown...) slice blank or misaligned cells.
+describe('Skins — sprite-sheet dimensions (SKN-002)', () => {
+  const expectedW = COLS * CHARACTER_FRAME.width;
+  const expectedH = ROWS * CHARACTER_FRAME.height;
+
+  for (const sheet of SKIN_SHEETS) {
+    it(`${sheet}.png is a ${COLS}x${ROWS} grid (${expectedW}x${expectedH})`, () => {
+      const { w, h } = pngSize(sheet);
+      expect(w, `${sheet} width`).toBe(expectedW);
+      expect(h, `${sheet} height`).toBe(expectedH);
+    });
+  }
 });

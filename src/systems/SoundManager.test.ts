@@ -224,25 +224,30 @@ describe('SoundManager — SFX synthesis', () => {
   });
 });
 
+// The track's real voices (the format probe `new Audio()` has no src set).
+const voices = () => audioInstances.filter((e) => e.src !== '');
+
 describe('SoundManager — music control', () => {
   it('prepares two crossfade voices per track (loop disabled) and de-dupes', async () => {
     const Sound = await freshSound();
     Sound.loadMusic('menu', 'assets/menu.mp3');
     Sound.loadMusic('menu', 'assets/menu.mp3'); // dupe -> ignored
-    expect(audioInstances).toHaveLength(2); // A/B voices
-    expect(audioInstances.every((e) => e.loop === false)).toBe(true); // manual crossfade, not loop
-    expect(audioInstances.every((e) => e.preload === 'auto')).toBe(true);
+    const v = voices();
+    expect(v).toHaveLength(2); // A/B voices
+    expect(v.every((e) => e.loop === false)).toBe(true); // manual crossfade, not loop
+    expect(v.every((e) => e.preload === 'auto')).toBe(true);
   });
 
   it('prefers the OGG source when supported, falls back to MP3 otherwise', async () => {
     const Sound = await freshSound();
     Sound.loadMusic('menu', 'assets/menu.mp3');
-    expect(audioInstances[0].src).toBe('assets/menu.ogg');
+    expect(voices()[0].src).toBe('assets/menu.ogg');
 
     oggSupported = false;
+    audioInstances = []; // ignore the OGG run's voices
     const Sound2 = await freshSound();
     Sound2.loadMusic('game', 'assets/bgmusic.mp3');
-    expect(audioInstances[audioInstances.length - 1].src).toBe('assets/bgmusic.mp3');
+    expect(voices()[0].src).toBe('assets/bgmusic.mp3');
   });
 
   it('plays at the music volume after unlock, and mute drops it to 0', async () => {
@@ -250,7 +255,7 @@ describe('SoundManager — music control', () => {
     Sound.loadMusic('menu', 'assets/menu.mp3');
     Sound.unlock();
     Sound.playMusic('menu');
-    const el = audioInstances[0]; // foreground voice
+    const el = voices()[0]; // foreground voice
     expect(el.playCount).toBeGreaterThanOrEqual(1);
     expect(el.volume).toBeCloseTo(0.45);
     expect(el.paused).toBe(false);
@@ -269,7 +274,7 @@ describe('SoundManager — music control', () => {
       await Promise.resolve(); // commit currentKey + arm the loop monitor
       await Promise.resolve();
 
-      const [a, b] = audioInstances;
+      const [a, b] = voices();
       expect(a.paused).toBe(false);
       expect(b.paused).toBe(true);
 
@@ -296,7 +301,8 @@ describe('SoundManager — music control', () => {
     await Promise.resolve(); // let play().then commit currentKey
     await Promise.resolve();
     Sound.stopMusic();
-    expect(audioInstances[0].paused).toBe(true);
-    expect(audioInstances[0].currentTime).toBe(0);
+    const v = voices();
+    expect(v[0].paused).toBe(true);
+    expect(v[0].currentTime).toBe(0);
   });
 });

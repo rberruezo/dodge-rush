@@ -13,11 +13,25 @@ import {
 } from '../config/Constants';
 import { SKIN_SHEETS } from '../config/Skins';
 
-/** Fallback body colour per character sheet key. */
-const SHEET_FALLBACK: Record<string, number> = {
-  character: 0xff4f9a,
-  character_cat: 0xffa24a,
-  character_unicorn: 0x9fe6d2
+/**
+ * Fallback body colour per character sheet key — picked to echo each skin's
+ * identity so a missing sheet still reads as "that character" rather than a
+ * generic blob. Keep one entry per distinct sheet in `SKIN_SHEETS`
+ * (enforced by TextureFactory.test.ts).
+ */
+export const SHEET_FALLBACK: Record<string, number> = {
+  character: 0xff4f9a, // classic — pink hero
+  character_cat: 0xffa24a, // orange tabby
+  character_unicorn: 0x9fe6d2, // mint
+  character_hound: 0x9c6b43, // old brown dog
+  character_dragon: 0x5fbf5a, // green
+  character_witch: 0xa84dc4, // purple
+  character_phoenix: 0xff6a3d, // fiery orange
+  character_wizard: 0x6a5acd, // indigo robe
+  character_frost: 0x8fd6ff, // ice blue
+  character_ghost: 0xb8c0e8, // pale lavender
+  character_king: 0xffd24a, // gold
+  character_evil: 0x8a3fb8 // nemesis violet
 };
 
 /**

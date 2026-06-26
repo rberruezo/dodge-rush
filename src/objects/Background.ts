@@ -48,7 +48,7 @@ export class Background {
   private skyA: Phaser.GameObjects.Image; // current zone (opaque)
   private skyB: Phaser.GameObjects.Image; // next zone (fades in)
   private layers: Layer[] = [];
-  private grade!: Phaser.GameObjects.Rectangle;
+  private grade!: Phaser.GameObjects.Image;
   private vignette?: Phaser.GameObjects.Image;
 
   private zoneI = -1; // last applied zone index (forces a refresh on first frame)
@@ -97,10 +97,26 @@ export class Background {
 
   // ---- construction helpers -------------------------------------------------
 
+  /**
+   * Atmospheric wash. Rendered as a tinted full-screen Image (not a Phaser
+   * `Rectangle` Shape): the Shapes pipeline mis-applied the wash's alpha on some
+   * Android WebView GL drivers, leaving it near-opaque and hiding the sky +
+   * distant layers below it (BG-005). Routing it through the same textured-quad
+   * pipeline as every other layer — a white pixel tinted to the grade colour —
+   * renders identically across web and device.
+   */
   private buildGrade(): void {
+    const key = 'bg_grade_px';
+    if (!this.scene.textures.exists(key)) {
+      const g = this.scene.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(0xffffff, 1).fillRect(0, 0, 8, 8);
+      g.generateTexture(key, 8, 8);
+      g.destroy();
+    }
     this.grade = this.scene.add
-      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 1)
-      .setOrigin(0, 0);
+      .image(0, 0, key)
+      .setOrigin(0, 0)
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
   }
 
   private buildLayer(cfg: BgLayer): void {
@@ -168,10 +184,10 @@ export class Background {
       }
     }
 
-    // Grade wash: interpolate colour + opacity.
+    // Grade wash: interpolate colour + opacity (tint + alpha on the Image).
     const gradeColor = lerpColor(cur.grade, nxt.grade, t);
     const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
-    this.grade.setFillStyle(gradeColor, gradeA);
+    this.grade.setTint(gradeColor).setAlpha(gradeA);
   }
 
   // ---- lifecycle ------------------------------------------------------------
