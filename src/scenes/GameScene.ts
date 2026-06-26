@@ -402,8 +402,8 @@ export class GameScene extends Phaser.Scene {
     if (coins > 0) Profile.addCoins(coins);
 
     // Feed the daily mission (best-in-run progress) and flag a fresh completion.
-    Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore, smash: this.smashCount });
-    const missionDone = Daily.missionClaimable();
+    Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore });
+    const missionDone = Daily.hasUnclaimed();
 
     this.cameras.main.shake(300, 0.016);
     this.time.delayedCall(420, () => {

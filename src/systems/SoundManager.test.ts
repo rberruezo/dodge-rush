@@ -69,19 +69,35 @@ class FakeAudioContext {
     return Promise.resolve();
   }
 }
+let oggSupported = true; // toggled per test to exercise format selection
+
 class FakeAudio {
   src = '';
   loop = false;
   preload = '';
   volume = 1;
   currentTime = 0;
+  duration = 30;
   paused = true;
   error: { code: number } | null = null;
   playCount = 0;
+  private handlers = new Map<string, Set<() => void>>();
   constructor() {
     audioInstances.push(this);
   }
-  addEventListener() {}
+  canPlayType(type: string): string {
+    if (type.includes('ogg')) return oggSupported ? 'probably' : '';
+    return 'maybe';
+  }
+  addEventListener(type: string, fn: () => void) {
+    (this.handlers.get(type) ?? this.handlers.set(type, new Set()).get(type)!).add(fn);
+  }
+  removeEventListener(type: string, fn: () => void) {
+    this.handlers.get(type)?.delete(fn);
+  }
+  emit(type: string) {
+    this.handlers.get(type)?.forEach((fn) => fn());
+  }
   play() {
     this.playCount++;
     this.paused = false;
@@ -103,12 +119,15 @@ async function freshSound() {
 beforeEach(() => {
   oscCount = bufSrcCount = resumeCount = 0;
   audioInstances = [];
+  oggSupported = true;
   vi.stubGlobal('window', {
     AudioContext: FakeAudioContext,
     setTimeout: (fn: () => void) => {
       fn(); // run scheduled tones synchronously so we can count them
       return 0;
-    }
+    },
+    setInterval: (fn: () => void, ms?: number) => globalThis.setInterval(fn, ms),
+    clearInterval: (id: number) => globalThis.clearInterval(id)
   });
   vi.stubGlobal('AudioContext', FakeAudioContext);
   vi.stubGlobal('Audio', FakeAudio);

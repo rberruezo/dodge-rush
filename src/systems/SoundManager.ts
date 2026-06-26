@@ -17,18 +17,32 @@ export const MUSIC = {
  * the synthesized SFX kept working. `<audio>` uses the platform media decoder
  * (MP3 works) and loads `file://` media, so it works both in the browser and the
  * APK. A single mute flag silences SFX (master gain) and music (element volume).
+ *
+ * MUSIC loops *gaplessly* via a short crossfade between two `<audio>` elements
+ * per track (HTML5 `loop` re-plays the MP3 encoder-delay silence -> an audible
+ * gap). The source assets are prefered as OGG Vorbis (no encoder delay), with an
+ * MP3 fallback for engines that can't decode OGG.
  */
+interface MusicTrack {
+  els: HTMLAudioElement[]; // two voices, ping-ponged for the loop crossfade
+  active: number; // index (0|1) of the currently-foreground voice
+}
+
 class SoundManagerImpl {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null; // SFX master (handles SFX mute)
   private muted = false;
 
-  // Music: one looping <audio> per track. Decoded by the platform, not Web Audio.
-  private musicEls = new Map<string, HTMLAudioElement>();
+  // Music: two <audio> voices per track, crossfaded for a gapless loop.
+  private tracks = new Map<string, MusicTrack>();
   private currentKey: string | null = null;
   private desiredKey: string | null = null; // requested track, started once loaded + unlocked
+  private oggSupported: boolean | null = null; // memoized format probe
+  private rampTimer: number | null = null; // active crossfade volume ramp
 
   private static readonly MUSIC_VOLUME = 0.45;
+  private static readonly CROSSFADE_SEC = 0.9; // overlap window at the loop seam
+  private static readonly RAMP_MS = 50; // crossfade volume-step interval
 
   constructor() {
     try {
@@ -59,24 +73,49 @@ class SoundManagerImpl {
     this.startDesired(); // begin/resume music now that we have a user gesture
   }
 
+  /** Volume music elements should play at right now (0 while muted). */
+  private musicVol(): number {
+    return this.muted ? 0 : SoundManagerImpl.MUSIC_VOLUME;
+  }
+
   /**
-   * Prepare a looping music track via HTML5 `<audio>`. Safe to call before the
-   * first gesture: the element preloads, and playback starts on unlock/playMusic.
+   * Prefer OGG Vorbis (gapless — no MP3 encoder-delay) when the engine can
+   * decode it, otherwise fall back to the given MP3 url. Memoized.
+   */
+  private pickSrc(url: string): string {
+    if (this.oggSupported === null) {
+      try {
+        this.oggSupported = new Audio().canPlayType('audio/ogg; codecs="vorbis"') !== '';
+      } catch {
+        this.oggSupported = false;
+      }
+    }
+    return this.oggSupported ? url.replace(/\.mp3$/i, '.ogg') : url;
+  }
+
+  /**
+   * Prepare a track's two looping voices via HTML5 `<audio>`. Safe to call
+   * before the first gesture: elements preload and playback starts on
+   * unlock/playMusic.
    */
   loadMusic(key: string, url: string): void {
-    if (this.musicEls.has(key)) return;
+    if (this.tracks.has(key)) return;
     try {
-      const el = new Audio();
-      el.src = url;
-      el.loop = true;
-      el.preload = 'auto';
-      el.volume = 0;
-      el.addEventListener(
-        'error',
-        () => Diagnostics.warn('audio', `Music element error "${key}"`, el.error?.code),
-        { once: true }
-      );
-      this.musicEls.set(key, el);
+      const src = this.pickSrc(url);
+      const make = (): HTMLAudioElement => {
+        const el = new Audio();
+        el.src = src;
+        el.loop = false; // looped manually via crossfade, not the element's loop
+        el.preload = 'auto';
+        el.volume = 0;
+        el.addEventListener(
+          'error',
+          () => Diagnostics.warn('audio', `Music element error "${key}"`, el.error?.code),
+          { once: true }
+        );
+        return el;
+      };
+      this.tracks.set(key, { els: [make(), make()], active: 0 });
       this.startDesired(); // start now if this is the track we're waiting for (and unlocked)
     } catch (e) {
       Diagnostics.warn('audio', `Could not prepare music "${key}"`, e);
@@ -92,12 +131,13 @@ class SoundManagerImpl {
 
   stopMusic(_fadeOut = 0.6): void {
     this.desiredKey = null;
+    this.clearRamp();
     if (this.currentKey) {
-      const el = this.musicEls.get(this.currentKey);
-      if (el) {
+      const track = this.tracks.get(this.currentKey);
+      track?.els.forEach((el) => {
         el.pause();
         el.currentTime = 0;
-      }
+      });
     }
     this.currentKey = null;
   }
@@ -106,27 +146,98 @@ class SoundManagerImpl {
   private startDesired(): void {
     const key = this.desiredKey;
     if (!key) return;
-    const el = this.musicEls.get(key);
-    if (!el) return; // not loaded yet — loadMusic() will retry
+    const track = this.tracks.get(key);
+    if (!track) return; // not loaded yet — loadMusic() will retry
+    const el = track.els[track.active];
     if (this.currentKey === key && !el.paused) return; // already playing
 
     // Pause any other track (single music voice at a time).
-    this.musicEls.forEach((other, k) => {
-      if (k !== key && !other.paused) other.pause();
+    this.tracks.forEach((other, k) => {
+      if (k !== key) other.els.forEach((e) => !e.paused && e.pause());
     });
 
-    el.volume = this.muted ? 0 : SoundManagerImpl.MUSIC_VOLUME;
+    el.currentTime = 0;
+    el.volume = this.musicVol();
     const p: Promise<void> | undefined = el.play();
+    const onPlaying = (): void => {
+      this.currentKey = key;
+      this.armLoop(key); // schedule the seamless crossfade near the end
+    };
     if (p && typeof p.then === 'function') {
       // currentKey is only committed once playback actually starts, so an
       // autoplay-blocked attempt before the first gesture is retried on unlock.
-      p.then(() => {
-        this.currentKey = key;
-      }).catch(() => {
+      p.then(onPlaying).catch(() => {
         /* autoplay-blocked before a gesture — retried from unlock() */
       });
     } else {
-      this.currentKey = key;
+      onPlaying();
+    }
+  }
+
+  /**
+   * Watch the foreground voice and, CROSSFADE_SEC before it ends, crossfade into
+   * the track's other voice — a gapless loop that masks the seam (and any
+   * residual encoder-delay silence of an MP3 fallback).
+   */
+  private armLoop(key: string): void {
+    const track = this.tracks.get(key);
+    if (!track) return;
+    const el = track.els[track.active];
+    const onTime = (): void => {
+      if (this.currentKey !== key) {
+        el.removeEventListener('timeupdate', onTime);
+        return;
+      }
+      const dur = el.duration;
+      if (!dur || !isFinite(dur)) return;
+      if (dur - el.currentTime <= SoundManagerImpl.CROSSFADE_SEC) {
+        el.removeEventListener('timeupdate', onTime);
+        this.crossfadeLoop(key);
+      }
+    };
+    el.addEventListener('timeupdate', onTime);
+  }
+
+  /** Perform one loop crossfade: fade the foreground voice out, the other in. */
+  private crossfadeLoop(key: string): void {
+    const track = this.tracks.get(key);
+    if (!track) return;
+    const from = track.els[track.active];
+    const to = track.els[track.active ^ 1];
+    const target = this.musicVol();
+
+    to.currentTime = 0;
+    to.volume = 0;
+    const pp = to.play();
+    if (pp && typeof pp.then === 'function') pp.catch(() => {});
+    track.active ^= 1; // `to` is now the foreground voice
+
+    const steps = Math.max(
+      1,
+      Math.round((SoundManagerImpl.CROSSFADE_SEC * 1000) / SoundManagerImpl.RAMP_MS)
+    );
+    let i = 0;
+    this.clearRamp();
+    this.rampTimer = window.setInterval(() => {
+      i += 1;
+      const r = Math.min(1, i / steps);
+      if (!this.muted) {
+        to.volume = target * r;
+        from.volume = target * (1 - r);
+      }
+      if (r >= 1) {
+        this.clearRamp();
+        from.pause();
+        from.currentTime = 0;
+        this.armLoop(key); // re-arm on the new foreground voice
+      }
+    }, SoundManagerImpl.RAMP_MS);
+  }
+
+  private clearRamp(): void {
+    if (this.rampTimer !== null) {
+      window.clearInterval(this.rampTimer);
+      this.rampTimer = null;
     }
   }
 
@@ -137,9 +248,8 @@ class SoundManagerImpl {
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.9;
-    this.musicEls.forEach((el) => {
-      el.volume = this.muted ? 0 : SoundManagerImpl.MUSIC_VOLUME;
-    });
+    const v = this.musicVol();
+    this.tracks.forEach((t) => t.els.forEach((el) => !el.paused && (el.volume = v)));
     try {
       localStorage.setItem(STORAGE_KEYS.MUTED, this.muted ? '1' : '0');
     } catch {

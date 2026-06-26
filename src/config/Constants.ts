@@ -299,12 +299,22 @@ export const COMBO_CFG = {
 } as const;
 
 /**
- * Smash power (double-tap a side). Shatters the next approaching obstacle so the
- * player passes through it safely (counts as a clean pass). Has a cooldown.
+ * Smash power — DISABLED. Config kept here for reference only; do not wire up.
+ *
+ * The double-tap-to-destroy mechanic was removed after design review. Reasons:
+ *   1. Breaks the single-input purity of the core loop (tap L / tap R, nothing else).
+ *   2. Creates a natural pay-to-win vector if charges are ever monetised.
+ *   3. Double-tap is ambiguous on a tap-to-move input scheme → accidental fires.
+ *   4. Obscures skill-based progression (did I survive because I'm better, or because
+ *      I used a charge?).
+ * See docs/core-loop.md → "Decisión de diseño: por qué NO hay mecánica de destruir
+ * obstáculos" for the full rationale and the checklist to evaluate any future revival.
+ *
+ * If you are reading this and want to bring it back: read that section first.
  */
 export const POWER_CFG = {
-  doubleTapMs: 300, // two taps on the same side within this = activate the power
-  cooldownMs: 3000 // recharge time
+  doubleTapMs: 300,
+  cooldownMs: 3000
 } as const;
 
 /** Lives & post-hit invincibility. */
@@ -394,19 +404,47 @@ export const DAILY_CFG = {
   resetAfterHours: 48 // miss this long -> streak resets to day 1
 } as const;
 
-/** Daily mission archetypes — one is chosen deterministically per calendar day. */
-export type MissionKind = 'passes' | 'combo' | 'score' | 'smash';
+/**
+ * Daily mission system — three missions per day (easy / medium / hard).
+ *
+ * MissionKind drives which RunStats field is read. 'smash' is intentionally
+ * absent: the smash power was removed (see POWER_CFG above and docs/core-loop.md).
+ *
+ * Difficulty tiers control reward size and, in DailyManager, how targets are
+ * scaled to the player's personal best so missions are never trivial for experts
+ * nor impossible for beginners.
+ */
+export type MissionKind = 'passes' | 'combo' | 'score';
+export type MissionDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface MissionDef {
   kind: MissionKind;
+  difficulty: MissionDifficulty;
   target: number;
-  reward: number;
+  reward: number; // coins for easy/medium; ignored for hard (hard always gives a spin)
   label: (t: number) => string;
 }
 
+/**
+ * Mission pool. DailyManager picks one easy + one medium + one hard per day,
+ * deterministically from the date. No two missions on the same day share a kind.
+ *
+ * Targets here are baselines; DailyManager scales hard-tier targets against the
+ * player's personal best so they remain achievable but not trivial.
+ */
 export const DAILY_MISSIONS: MissionDef[] = [
-  { kind: 'passes', target: 40, reward: 80, label: (t) => `Clear ${t} obstacles in one run` },
-  { kind: 'combo', target: 12, reward: 90, label: (t) => `Reach a x10 combo (chain ${t})` },
-  { kind: 'score', target: 600, reward: 100, label: (t) => `Score ${t} in a single run` },
-  { kind: 'smash', target: 5, reward: 70, label: (t) => `SMASH ${t} obstacles in one run` }
+  // Easy — accumulative across runs, completable in 2-3 sessions.
+  { kind: 'passes', difficulty: 'easy',   target: 50,  reward: 10,  label: (t) => `Dodge ${t} obstacles today`            },
+  { kind: 'score',  difficulty: 'easy',   target: 200, reward: 10,  label: (t) => `Earn ${t} total points today`           },
+  { kind: 'combo',  difficulty: 'easy',   target: 4,   reward: 10,  label: (t) => `Reach a x${t} combo in any run`         },
+
+  // Medium — accumulative, takes a real session to finish.
+  { kind: 'passes', difficulty: 'medium', target: 150, reward: 25,  label: (t) => `Dodge ${t} obstacles today`            },
+  { kind: 'score',  difficulty: 'medium', target: 600, reward: 25,  label: (t) => `Earn ${t} total points today`           },
+  { kind: 'combo',  difficulty: 'medium', target: 12,  reward: 25,  label: (t) => `Reach a x10 combo (chain ${t})`         },
+
+  // Hard — single-run goal, scaled to player PB, rewards a free spin.
+  { kind: 'score',  difficulty: 'hard',   target: 800, reward: 0,   label: (t) => `Score ${t} in a single run`             },
+  { kind: 'passes', difficulty: 'hard',   target: 60,  reward: 0,   label: (t) => `Clear ${t} obstacles in one run`        },
+  { kind: 'combo',  difficulty: 'hard',   target: 7,   reward: 0,   label: (t) => `Chain a x5 combo ${t} times in one run` },
 ];

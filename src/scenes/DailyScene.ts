@@ -105,41 +105,90 @@ export class DailyScene extends Phaser.Scene {
   // --- Mission ------------------------------------------------------------
 
   private renderMission(cx: number, top: number): void {
-    const m = Daily.mission;
-    this.layer.push(this.add.text(cx, top, "TODAY'S MISSION", Text.label(28, COLORS.gold)).setOrigin(0.5));
+    this.layer.push(this.add.text(cx, top, "TODAY'S MISSIONS", Text.label(28, COLORS.gold)).setOrigin(0.5));
 
-    const label = this.add
-      .text(cx, top + 48, m.label, Text.body(28, COLORS.white))
+    const missions = Daily.missions;
+    const cardH    = 120;
+    const cardGap  = 12;
+
+    missions.forEach((m, i) => {
+      const cardY = top + 44 + i * (cardH + cardGap);
+      this.renderMissionCard(cx, cardY, cardH, m);
+    });
+  }
+
+  private renderMissionCard(
+    cx: number,
+    cardY: number,
+    cardH: number,
+    m: ReturnType<typeof Daily.missionView>
+  ): void {
+    const cardW    = GAME_WIDTH - 48;
+    const barW     = cardW - 24;
+    const diffColor: Record<string, number> = { easy: 0x2f9e57, medium: 0xff9a00, hard: 0xff4f9a };
+    const fillColor = diffColor[m.difficulty] ?? 0xff4f9a;
+
+    // Card background.
+    const card = this.add
+      .rectangle(cx, cardY, cardW, cardH, 0x1a0f38, 0.9)
+      .setStrokeStyle(2, m.claimed ? 0x3a3060 : fillColor);
+    this.layer.push(card);
+
+    // Difficulty badge.
+    const badge = this.add.text(
+      cx - cardW / 2 + 10, cardY - cardH / 2 + 8,
+      m.difficulty.toUpperCase(),
+      Text.body(18, m.claimed ? '#564a78' : `#${fillColor.toString(16).padStart(6, '0')}`)
+    ).setOrigin(0, 0);
+    this.layer.push(badge);
+
+    // Reward label (right side of badge row).
+    const rewardStr = m.hardRewardsSpin ? '🎰 FREE SPIN' : `+${m.reward} 🪙`;
+    const rewardTxt = this.add.text(
+      cx + cardW / 2 - 10, cardY - cardH / 2 + 8,
+      rewardStr,
+      Text.body(18, m.claimed ? '#564a78' : COLORS.gold)
+    ).setOrigin(1, 0);
+    this.layer.push(rewardTxt);
+
+    // Mission label.
+    const labelTxt = this.add
+      .text(cx, cardY - 14, m.label, Text.body(22, m.claimed ? '#564a78' : COLORS.white))
       .setOrigin(0.5)
       .setAlign('center');
-    label.setWordWrapWidth(GAME_WIDTH - 80);
-    this.layer.push(label);
+    labelTxt.setWordWrapWidth(cardW - 20);
+    this.layer.push(labelTxt);
 
     // Progress bar.
-    const barW = 360;
-    const barY = top + 108;
-    const frac = Phaser.Math.Clamp(m.progress / m.target, 0, 1);
-    const barBg = this.add.rectangle(cx, barY, barW, 26, 0x000000, 0.5).setStrokeStyle(2, 0x564a78);
+    const barY  = cardY + cardH / 2 - 20;
+    const frac  = Phaser.Math.Clamp(m.progress / m.target, 0, 1);
+    const barBg = this.add
+      .rectangle(cx, barY, barW, 18, 0x000000, 0.5)
+      .setStrokeStyle(1, 0x564a78);
     const barFill = this.add
-      .rectangle(cx - barW / 2 + 3, barY, (barW - 6) * frac, 20, m.completed ? 0x2f9e57 : 0xff4f9a)
+      .rectangle(cx - barW / 2 + 2, barY, (barW - 4) * frac, 14, m.completed ? 0x2f9e57 : fillColor)
       .setOrigin(0, 0.5);
-    const barTxt = this.add.text(cx, barY, `${m.progress} / ${m.target}`, Text.body(22, COLORS.white)).setOrigin(0.5);
+    const barTxt = this.add
+      .text(cx, barY, `${m.progress} / ${m.target}`, Text.body(18, COLORS.white))
+      .setOrigin(0.5);
     this.layer.push(barBg, barFill, barTxt);
 
+    // Claim / done state.
     if (m.claimed) {
-      const done = this.add.text(cx, barY + 70, '✓ MISSION COMPLETE', Text.body(28, '#7bf0a8')).setOrigin(0.5);
+      const done = this.add
+        .text(cx + cardW / 2 - 12, cardY, '✓', Text.body(28, '#7bf0a8'))
+        .setOrigin(1, 0.5);
       this.layer.push(done);
     } else if (m.completed) {
-      const btn = new Button(this, cx, barY + 78, `CLAIM  +${m.reward}`, () => {
-        const r = Daily.claimMission();
+      const claimLabel = m.hardRewardsSpin ? 'CLAIM SPIN' : `CLAIM  +${m.reward}`;
+      const btn = new Button(this, cx, cardY, claimLabel, () => {
+        const r = Daily.claimMission(m.difficulty);
         if (r !== null) {
           Sound.newBest();
           this.render();
         }
-      }, { width: 320, height: 76, fontSize: 26, fill: 0x2f9e57 });
+      }, { width: 200, height: 44, fontSize: 20, fill: 0x2f9e57 });
       this.layer.push(btn);
-    } else {
-      this.layer.push(coinCounter(this, cx, barY + 64, `REWARD  ${m.reward}`, { size: 24 }));
     }
   }
 }

@@ -93,7 +93,7 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const tip = this.add
-      .text(cx, 790, 'Tap LEFT / RIGHT to steer\nDouble-tap to SMASH an obstacle', Text.body(26, '#ffd9ec'))
+      .text(cx, 790, 'Tap LEFT to go left · Tap RIGHT to go right', Text.body(26, '#ffd9ec'))
       .setOrigin(0.5)
       .setAlign('center');
     tip.setLineSpacing(6);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SKINS, SKIN_SHEETS, getSkin } from './Skins';
+import { SKINS, ACHIEVEMENT_SKINS, SKIN_SHEETS, getSkin } from './Skins';
 import { CHARACTER_ANIMS, CHAR_FRAMES, ANIM_KEYS } from './Constants';
 
 // Enumerate the shipped art + the loader source via Vite's glob (no node:fs,
@@ -44,9 +44,23 @@ describe('Skins — catalogue integrity', () => {
     }
   });
 
-  it('palette-swap skins (tinted) reuse the base character sheet', () => {
+  it('no purchasable skin uses a tint — tinted variants are achievement-only', () => {
     for (const s of SKINS) {
-      if (s.tint !== null) expect(s.sheet).toBe('character');
+      expect(s.tint, `skin "${s.id}" should have tint: null`).toBeNull();
+    }
+  });
+
+  it('all achievement skins are palette-swaps of the base character sheet', () => {
+    for (const s of ACHIEVEMENT_SKINS) {
+      expect(s.sheet, `achievement skin "${s.id}" must reuse the character sheet`).toBe('character');
+      expect(typeof s.tint).toBe('number');
+    }
+  });
+
+  it('achievement skin ids are disjoint from purchasable skin ids', () => {
+    const shopIds = new Set(SKINS.map((s) => s.id));
+    for (const s of ACHIEVEMENT_SKINS) {
+      expect(shopIds.has(s.id), `"${s.id}" appears in both SKINS and ACHIEVEMENT_SKINS`).toBe(false);
     }
   });
 });
