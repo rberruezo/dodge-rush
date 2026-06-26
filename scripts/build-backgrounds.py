@@ -1,40 +1,38 @@
 #!/usr/bin/env python3
 """
-Build seamless, vertically-loopable background textures for the infinite descent.
+Build the interchangeable "night" background tiles for the infinite descent.
 
-The source skies are NOT vertically tileable (bright sun at the bottom, dark sky
-at the top). To loop them forever without a visible seam, each image is downscaled
-to the game's resolution and stacked with its own vertical mirror:
+The descent is rendered as an endless vertical stack of full-screen tiles (see
+src/objects/Background.ts). Each source tile is hand-drawn so its left/right
+building columns line up with every other tile's, which means the tiles can be
+shuffled into ANY order and still flow seamlessly — selling an eternal fall with
+no fixed loop point.
 
-    [ image ] [ flip(image) ]      ->  540 x 1920
-
-Tiling this vertically is perfectly seamless: every wrap/junction is a mirror
-reflection (sun-meets-sun, sky-meets-sky), which reads naturally against the
-dreamy clouds. A TileSprite then scrolls it for an endless fall.
+Each source is simply downscaled to the game's resolution (one tile == one
+screen). No mirroring is needed: continuity comes from the edge-matched art, not
+from reflection.
 
 Usage: python3 scripts/build-backgrounds.py
 """
 from PIL import Image
 
-W, H = 540, 960  # game resolution
+W, H = 540, 960  # game resolution; each tile spans exactly one screen
 
-# day-cycle order: sunset -> twilight -> night
+# Night-theme tiles. Order here is irrelevant at runtime — the engine shuffles
+# them — it only sets the bg_night_<i>.png filenames.
 SOURCES = [
-    ("/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 07_42_04 p.m..png", "public/assets/background_0.png"),
-    ("/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 07_39_22 p.m..png", "public/assets/background_1.png"),
-    ("/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 07_39_15 p.m..png", "public/assets/background_2.png"),
+    ("/Users/rama/Downloads/bg-image-night-tile-A.png", "public/assets/bg_night_0.png"),
+    ("/Users/rama/Downloads/bg-image-night-tile-B.png", "public/assets/bg_night_1.png"),
+    ("/Users/rama/Downloads/bg-image-night-tile-C.png", "public/assets/bg_night_2.png"),
+    ("/Users/rama/Downloads/bg-image-night-tile-D.png", "public/assets/bg_night_3.png"),
 ]
 
 
 def main() -> None:
     for src, out in SOURCES:
         im = Image.open(src).convert("RGB").resize((W, H), Image.LANCZOS)
-        flipped = im.transpose(Image.FLIP_TOP_BOTTOM)
-        doubled = Image.new("RGB", (W, H * 2))
-        doubled.paste(im, (0, 0))
-        doubled.paste(flipped, (0, H))
-        doubled.save(out)
-        print(f"wrote {out} {doubled.size}")
+        im.save(out)
+        print(f"wrote {out} {im.size}")
 
 
 if __name__ == "__main__":
