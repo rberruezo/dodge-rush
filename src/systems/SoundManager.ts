@@ -8,97 +8,27 @@ export const MUSIC = {
 } as const;
 
 /**
- * A seamlessly-looping music voice.
+ * Sound manager: procedural Web Audio SFX + looping background music.
  *
- * MP3 looping normally has an audible gap (encoder padding) and an obvious
- * restart. Instead we schedule overlapping copies of the buffer: each copy fades
- * out over its last `xf` seconds while the next copy fades in over its first
- * `xf` seconds, so the loop point is a cross-dissolve — you never hear it restart.
- */
-class MusicTrack {
-  private stopped = false;
-  private timer: number | null = null;
-  private voices: { src: AudioBufferSourceNode; gain: GainNode }[] = [];
-  private xf: number;
-
-  constructor(
-    private ctx: AudioContext,
-    private bus: GainNode,
-    private buffer: AudioBuffer,
-    fadeIn: number
-  ) {
-    this.xf = Math.min(1.2, buffer.duration * 0.08);
-    this.scheduleVoice(ctx.currentTime + 0.06, fadeIn);
-  }
-
-  private scheduleVoice(when: number, fadeIn: number): void {
-    if (this.stopped) return;
-    const { ctx, bus, buffer, xf } = this;
-    const dur = buffer.duration;
-
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    const gain = ctx.createGain();
-    src.connect(gain);
-    gain.connect(bus);
-
-    // Fade in, hold, then fade out over the final `xf` seconds.
-    gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.linearRampToValueAtTime(1, when + Math.max(0.02, fadeIn));
-    gain.gain.setValueAtTime(1, Math.max(when + fadeIn, when + dur - xf));
-    gain.gain.linearRampToValueAtTime(0.0001, when + dur);
-
-    src.start(when);
-    src.stop(when + dur + 0.05);
-    const voice = { src, gain };
-    this.voices.push(voice);
-    src.onended = () => {
-      const i = this.voices.indexOf(voice);
-      if (i >= 0) this.voices.splice(i, 1);
-    };
-
-    // Start the next copy `xf` seconds before this one ends → overlapping cross-dissolve.
-    const nextWhen = when + dur - xf;
-    const delayMs = Math.max(0, (nextWhen - ctx.currentTime - 0.5) * 1000);
-    this.timer = window.setTimeout(() => this.scheduleVoice(nextWhen, xf), delayMs);
-  }
-
-  stop(fadeOut: number): void {
-    this.stopped = true;
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    const now = this.ctx.currentTime;
-    for (const { src, gain } of this.voices) {
-      try {
-        gain.gain.cancelScheduledValues(now);
-        gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
-        gain.gain.linearRampToValueAtTime(0.0001, now + fadeOut);
-        src.stop(now + fadeOut + 0.05);
-      } catch {
-        /* already stopped */
-      }
-    }
-    this.voices = [];
-  }
-}
-
-/**
- * Web Audio sound manager: procedural SFX plus streamed, crossfade-looped music.
- * One shared, mobile-unlocked AudioContext. Music sits on its own (quieter) bus
- * so SFX stay punchy; a single mute flag silences everything.
+ * SFX are synthesized on a shared, mobile-unlocked AudioContext. MUSIC, however,
+ * plays through HTML5 `<audio>` elements — NOT Web Audio. Reason: the Android
+ * System WebView cannot decode MP3 via `AudioContext.decodeAudioData` (it throws
+ * an EncodingError), so bundled music silently failed in the packaged app while
+ * the synthesized SFX kept working. `<audio>` uses the platform media decoder
+ * (MP3 works) and loads `file://` media, so it works both in the browser and the
+ * APK. A single mute flag silences SFX (master gain) and music (element volume).
  */
 class SoundManagerImpl {
   private ctx: AudioContext | null = null;
-  private master: GainNode | null = null; // SFX + music master (handles mute)
-  private musicBus: GainNode | null = null; // music sub-mix (quieter than SFX)
+  private master: GainNode | null = null; // SFX master (handles SFX mute)
   private muted = false;
 
-  private buffers = new Map<string, AudioBuffer>();
-  private currentTrack: MusicTrack | null = null;
+  // Music: one looping <audio> per track. Decoded by the platform, not Web Audio.
+  private musicEls = new Map<string, HTMLAudioElement>();
   private currentKey: string | null = null;
-  private desiredKey: string | null = null; // requested track, started once ready/unlocked
+  private desiredKey: string | null = null; // requested track, started once loaded + unlocked
+
+  private static readonly MUSIC_VOLUME = 0.45;
 
   constructor() {
     try {
@@ -118,95 +48,86 @@ class SoundManagerImpl {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 0.9;
       this.master.connect(this.ctx.destination);
-      this.musicBus = this.ctx.createGain();
-      this.musicBus.gain.value = 0.5;
-      this.musicBus.connect(this.master);
     }
     return this.ctx;
   }
 
   /** Call from a pointer/keyboard handler to satisfy mobile autoplay rules. */
   unlock(): void {
-    const ctx = this.ensureCtx();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') {
-      void ctx.resume().then(() => this.startDesired());
-    } else {
-      this.startDesired();
-    }
-  }
-
-  /** Fetch + decode a music file. Safe to call before unlock (decodes suspended). */
-  async loadMusic(key: string, url: string): Promise<void> {
-    const ctx = this.ensureCtx();
-    if (!ctx || this.buffers.has(key)) return;
-    try {
-      const data = await this.loadArrayBuffer(url);
-      const buffer = await ctx.decodeAudioData(data);
-      this.buffers.set(key, buffer);
-      this.startDesired(); // in case this track was requested while still loading
-    } catch (e) {
-      Diagnostics.warn('audio', `Could not load music "${key}"`, e);
-    }
+    const ctx = this.ensureCtx(); // SFX context
+    if (ctx && ctx.state === 'suspended') void ctx.resume();
+    this.startDesired(); // begin/resume music now that we have a user gesture
   }
 
   /**
-   * Load a binary asset as an ArrayBuffer via XHR — NOT `fetch`.
-   *
-   * The Fetch API does not support the `file://` scheme in the Android WebView,
-   * so `fetch()` throws there; that's why bundled music silently failed to play
-   * in the packaged app (SFX are synthesized, so they were unaffected). XHR reads
-   * `file://` fine (with the WebView's file-access flags) and behaves identically
-   * over http(s), so this works in the browser and in the APK. Note: a successful
-   * `file://` read reports `status === 0`, so we accept that as success.
+   * Prepare a looping music track via HTML5 `<audio>`. Safe to call before the
+   * first gesture: the element preloads, and playback starts on unlock/playMusic.
    */
-  private loadArrayBuffer(url: string): Promise<ArrayBuffer> {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', url, true);
-      xhr.responseType = 'arraybuffer';
-      xhr.onload = () => {
-        const ok = xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300);
-        if (ok && xhr.response) resolve(xhr.response as ArrayBuffer);
-        else reject(new Error(`Failed to load "${url}" (status ${xhr.status})`));
-      };
-      xhr.onerror = () => reject(new Error(`Network error loading "${url}"`));
-      xhr.send();
-    });
-  }
-
-  /** Crossfade to a looping track. No-op if it's already the one playing. */
-  playMusic(key: string, fadeIn = 0.7): void {
-    this.desiredKey = key;
-    const ctx = this.ensureCtx();
-    if (!ctx) return;
-    if (this.currentKey === key && this.currentTrack) return;
-    if (ctx.state !== 'running' || !this.buffers.has(key)) return; // deferred to startDesired()
-    this.startTrack(key, fadeIn);
-  }
-
-  stopMusic(fadeOut = 0.6): void {
-    this.desiredKey = null;
-    if (this.currentTrack) this.currentTrack.stop(fadeOut);
-    this.currentTrack = null;
-    this.currentKey = null;
-  }
-
-  private startDesired(): void {
-    const key = this.desiredKey;
-    if (!key || this.currentKey === key) return;
-    if (this.ctx?.state === 'running' && this.buffers.has(key)) {
-      this.startTrack(key, 0.7);
+  loadMusic(key: string, url: string): void {
+    if (this.musicEls.has(key)) return;
+    try {
+      const el = new Audio();
+      el.src = url;
+      el.loop = true;
+      el.preload = 'auto';
+      el.volume = 0;
+      el.addEventListener(
+        'error',
+        () => Diagnostics.warn('audio', `Music element error "${key}"`, el.error?.code),
+        { once: true }
+      );
+      this.musicEls.set(key, el);
+      this.startDesired(); // start now if this is the track we're waiting for (and unlocked)
+    } catch (e) {
+      Diagnostics.warn('audio', `Could not prepare music "${key}"`, e);
     }
   }
 
-  private startTrack(key: string, fadeIn: number): void {
-    const ctx = this.ctx;
-    const buffer = this.buffers.get(key);
-    if (!ctx || !this.musicBus || !buffer) return;
-    if (this.currentTrack) this.currentTrack.stop(0.6); // crossfade out the old one
-    this.currentTrack = new MusicTrack(ctx, this.musicBus, buffer, fadeIn);
-    this.currentKey = key;
+  /** Switch to a looping track. No-op if it's already the current one. */
+  playMusic(key: string, _fadeIn = 0.7): void {
+    this.desiredKey = key;
+    if (this.currentKey === key) return;
+    this.startDesired();
+  }
+
+  stopMusic(_fadeOut = 0.6): void {
+    this.desiredKey = null;
+    if (this.currentKey) {
+      const el = this.musicEls.get(this.currentKey);
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+      }
+    }
+    this.currentKey = null;
+  }
+
+  /** Start the desired track if it's loaded; retried on load + on unlock. */
+  private startDesired(): void {
+    const key = this.desiredKey;
+    if (!key) return;
+    const el = this.musicEls.get(key);
+    if (!el) return; // not loaded yet — loadMusic() will retry
+    if (this.currentKey === key && !el.paused) return; // already playing
+
+    // Pause any other track (single music voice at a time).
+    this.musicEls.forEach((other, k) => {
+      if (k !== key && !other.paused) other.pause();
+    });
+
+    el.volume = this.muted ? 0 : SoundManagerImpl.MUSIC_VOLUME;
+    const p: Promise<void> | undefined = el.play();
+    if (p && typeof p.then === 'function') {
+      // currentKey is only committed once playback actually starts, so an
+      // autoplay-blocked attempt before the first gesture is retried on unlock.
+      p.then(() => {
+        this.currentKey = key;
+      }).catch(() => {
+        /* autoplay-blocked before a gesture — retried from unlock() */
+      });
+    } else {
+      this.currentKey = key;
+    }
   }
 
   get isMuted(): boolean {
@@ -216,6 +137,9 @@ class SoundManagerImpl {
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.9;
+    this.musicEls.forEach((el) => {
+      el.volume = this.muted ? 0 : SoundManagerImpl.MUSIC_VOLUME;
+    });
     try {
       localStorage.setItem(STORAGE_KEYS.MUTED, this.muted ? '1' : '0');
     } catch {

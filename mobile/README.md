@@ -44,13 +44,23 @@ npx expo install         # aligns native module versions to the Expo SDK
 ## Build → run loop (local device/emulator)
 
 ```bash
-cd dodge-rush && npm run build      # rebuild the game whenever web code changes
-cd mobile && npm run sync:web       # copy dist -> mobile/web
-npm run android                     # expo prebuild (copies web into assets) + run
+cd dodge-rush && npm run build                 # rebuild the game when web code changes
+cd mobile && npm run sync:web                  # copy dist -> mobile/web AND android assets
+cd android && ./gradlew assembleRelease        # standalone APK (JS + Hermes bundled)
+#   …or `npm run android` to (re)prebuild + run a debug client via Metro
 ```
 
-> Re-run all three after any change to the web game. The `withWebAssets` plugin
-> re-copies `web/` into the native assets on every `prebuild`.
+> ⚠️ **Gotcha (learned the hard way):** the web build is copied into native
+> assets by the `withWebAssets` plugin only during `expo prebuild`. A plain
+> `gradlew assembleRelease` does NOT re-run prebuild, so on its own it would
+> package a **stale** web bundle. `npm run sync:web` therefore copies the build
+> into `android/app/src/main/assets/web` directly (when the native project
+> exists), so an `assembleRelease` after `sync:web` always ships the current
+> game. Only a fresh `expo prebuild` is needed when native config changes.
+
+> ⚠️ **Debug APKs don't run standalone:** RN debug builds expect the Metro dev
+> server. For a self-contained, offline, sideloadable APK use **release**
+> (`assembleRelease`) — it bundles the JS.
 
 ## Store build (Google Play)
 
@@ -81,6 +91,11 @@ the **official Google Play Families policy** — do not treat this list as final
 
 ## Known limitations / follow-ups
 
+- **Music** plays via HTML5 `<audio>` (not Web Audio): the Android WebView can't
+  decode MP3 through `decodeAudioData`, so `SoundManager` uses `<audio>` for the
+  two tracks (SFX stay on Web Audio). Tradeoff: the loop uses `audio.loop` (a
+  tiny seam at the loop point) instead of the old buffer cross-dissolve. To
+  restore seamless looping, alternate two `<audio>` elements with a volume fade.
 - **Fonts**: the web build links Google Fonts (Press Start 2P / VT323). Offline
   they fall back to monospace — playable but less crisp. To fix: self-host the
   two `woff2` files and add a local `@font-face` in `index.html` (no CDN).

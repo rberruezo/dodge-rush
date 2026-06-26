@@ -1,12 +1,12 @@
 # Art assets
 
-Drop the three provided pixel-art images here with **these exact filenames**:
+Drop the provided pixel-art images here with **these exact filenames**:
 
 | File             | What it is                          | Notes                                                        |
 | ---------------- | ----------------------------------- | ------------------------------------------------------------ |
 | `character.png`  | The cute pink propeller-hat hero    | A 6-column sprite sheet (idle / fly / hurt / cheer rows).    |
-| `background.png` | The dreamy floating-city sky        | Portrait. Tiled vertically for the infinite scroll.          |
 | `obstacles.png`  | The block-with-hole obstacle pack   | One packed PNG; sub-frames are sliced by coordinates in code.|
+| `bg_*.png`       | The Sky City infinite background    | Skyboxes + parallax cloud/vehicle layers. Built from `art-src/skycity/` via `scripts/build-backgrounds.py`; see [`docs/background-skycity.md`](../../docs/background-skycity.md). |
 
 The game runs **without** these files — it generates simple placeholder
 textures so you can play immediately — but dropping the real art in gives you

@@ -19,9 +19,10 @@ npm run preview     # serve the production build (also exposed on your LAN)
 ```
 
 > The game is playable immediately with generated placeholder art. To get the
-> intended look, drop the three pixel-art images into `public/assets/`
-> (`character.png`, `background.png`, `obstacles.png`) — see
-> [`public/assets/README.md`](public/assets/README.md).
+> intended look, drop the pixel-art images into `public/assets/`
+> (`character.png`, `obstacles.png`, and the Sky City `bg_*.png` layers) — see
+> [`public/assets/README.md`](public/assets/README.md) and, for the background,
+> [`docs/background-skycity.md`](docs/background-skycity.md).
 
 ## Controls
 
@@ -62,7 +63,7 @@ src/
 ├─ objects/                 Visual game entities.
 │  ├─ Player.ts             Falling hero: steer, tilt, hitbox, crash pose.
 │  ├─ Barrier.ts            One wall-with-hole; pooled & recyclable.
-│  └─ Background.ts         Infinite parallax sky (TileSprite).
+│  └─ Background.ts         Sky City infinite background — see docs/background-skycity.md.
 ├─ systems/                 Reusable, mostly render-free logic.
 │  ├─ ObstacleGenerator.ts  Infinite pooled barrier stream + difficulty + scoring hooks.
 │  ├─ CollisionSystem.ts    AABB player-vs-barrier check.

@@ -20,6 +20,31 @@ const GAME_URI =
     ? 'file:///android_asset/web/index.html'
     : './web/index.html'; // iOS uses the bundled resources dir (configure later)
 
+// Forward the WebView's JS console + uncaught errors to native logs (logcat as
+// "ReactNativeJS"), so issues inside the game are visible without remote debugging.
+const CONSOLE_BRIDGE = `(function(){
+  if (window.__bridged) return; window.__bridged = true;
+  function send(level, args){
+    try {
+      var msg = Array.prototype.map.call(args, function(a){
+        try { return (typeof a === 'object') ? JSON.stringify(a) : String(a); }
+        catch (e) { return String(a); }
+      }).join(' ');
+      window.ReactNativeWebView.postMessage(JSON.stringify({ __log: 1, level: level, msg: msg }));
+    } catch (e) {}
+  }
+  ['log','info','warn','error'].forEach(function(k){
+    var orig = console[k] ? console[k].bind(console) : function(){};
+    console[k] = function(){ send(k, arguments); orig.apply(console, arguments); };
+  });
+  window.addEventListener('error', function(e){
+    send('error', ['[uncaught] ' + e.message + ' @ ' + (e.filename||'') + ':' + (e.lineno||'')]);
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    send('error', ['[promise] ' + (e.reason && e.reason.message ? e.reason.message : e.reason)]);
+  });
+})(); true;`;
+
 export default function App() {
   const webRef = useRef<WebView>(null);
 
@@ -51,6 +76,15 @@ export default function App() {
         ref={webRef}
         source={{ uri: GAME_URI }}
         style={styles.web}
+        injectedJavaScriptBeforeContentLoaded={CONSOLE_BRIDGE}
+        onMessage={(e) => {
+          try {
+            const d = JSON.parse(e.nativeEvent.data);
+            if (d.__log) console.log(`[WV:${d.level}] ${d.msg}`);
+          } catch {
+            /* non-log message */
+          }
+        }}
         // --- offline file:// loading of the bundled build + its sub-assets ---
         originWhitelist={['*']}
         allowFileAccess
