@@ -193,8 +193,9 @@ export interface ObstacleAnimFrameDef {
 }
 
 export const OBSTACLE_ANIM_FRAMES: ObstacleAnimFrameDef[] = [
-  { name: 'red_arrow_f1', x: 255, y: 50, width: 40, height: 33 },
-  { name: 'red_spike_f1', x: 297, y: 50, width: 59, height: 42 }
+  { name: 'red_arrow_f1',  x: 255, y: 50, width: 40, height: 33 },
+  { name: 'red_spike_f1',  x: 297, y: 50, width: 59, height: 42 },
+  { name: 'gold_block_f1', x: 487, y: 50, width: 58, height: 39 }
 ];
 
 export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [

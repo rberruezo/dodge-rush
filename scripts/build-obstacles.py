@@ -2,13 +2,23 @@
 """
 Build a clean, pixel-art obstacle atlas from the raw obstacle pack.
 
-Crops each of the 10 obstacles by its detected bounding box, downscales +
-quantises to a limited palette with hard alpha edges (matching the character
-art style), and packs them tightly into a single-row atlas. Prints the frame
-rectangles and each obstacle's dominant colour (used as the solid "wall fill"
-behind the tiled texture so the barriers never look see-through).
+Crops each obstacle by its detected bounding box, downscales + quantises to a
+limited palette with hard alpha edges (matching the character art style), and
+packs them tightly into a single-row atlas. Prints the frame rectangles and each
+obstacle's dominant colour (used as the solid "wall fill" behind the tiled texture
+so the barriers never look see-through).
 
-Usage: python3 scripts/build-obstacles.py "/path/to/raw_obstacles.png"
+Source resolution guide:
+  1024×1024 source → DOWNSCALE=4.0 → ~40-55px tiles (current baseline)
+  2048×2048 source → DOWNSCALE=2.0 → ~80-110px tiles (recommended for future art)
+  Higher-res tiles survive the 88px bandHeight scaling without upscaling blur and
+  give animators more pixel budget for detail. BOXES coords must be re-mapped when
+  switching sources.
+
+After regenerating the atlas, always re-run gen-anim-frames.py to rebuild row 1
+(animation frames), then sync the PNG to dist/ and mobile/web/assets/.
+
+Usage: python3 scripts/build-obstacles.py [/path/to/raw_obstacles.png]
 """
 import sys
 from collections import Counter
@@ -18,6 +28,8 @@ DEFAULT_SRC = "/Users/rama/Downloads/ChatGPT Image 24 jun 2026, 09_17_51 a.m..pn
 OUT = "public/assets/obstacles.png"
 
 # name -> (x, y, w, h) tight bbox in the 1024x1024 source (arrow uses left piece)
+# NOTE: if the source is upgraded to 2048×2048, multiply all coords by 2 and set
+# DOWNSCALE = 2.0 for higher-fidelity output tiles.
 BOXES = [
     ("blue_bar", (86, 76, 211, 110)),
     ("green_bar", (364, 72, 312, 119)),
@@ -29,6 +41,7 @@ BOXES = [
     ("gold_block", (393, 734, 234, 155)),
 ]
 
+# Set to 2.0 when using a 2048×2048 source for higher-resolution output tiles.
 DOWNSCALE = 4.0
 PALETTE_COLORS = 64
 ALPHA_CUT = 110

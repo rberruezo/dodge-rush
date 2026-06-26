@@ -30,11 +30,17 @@ export interface ObstacleTypeDef {
   animMs: number; // ms per animation frame
 }
 
+/**
+ * fill values are the dominant colour of each tile as reported by build-obstacles.py.
+ * If a tile is redrawn, re-run the script and copy the printed fill= hex here.
+ * Glowing fill was manually shifted to violet (0x7722ee) to distinguish it from
+ * the blue Straight type (0x0ca8d8) which shares a similar hue in the source art.
+ */
 export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Straight]: {
     type: ObstacleType.Straight,
     frame: 'blue_bar',
-    fill: 0x0ca8d8,
+    fill: 0x0ca8d8, // dominant: blue_bar — medium sky-blue
     baseWeight: 46,
     gapFactor: 1.25,
     bandFactor: 1,
@@ -49,7 +55,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Wide]: {
     type: ObstacleType.Wide,
     frame: 'green_bar',
-    fill: 0x30cca8,
+    fill: 0x30cca8, // dominant: green_bar — mint green
     baseWeight: 18,
     gapFactor: 0.95,
     bandFactor: 1.18,
@@ -64,7 +70,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Narrow]: {
     type: ObstacleType.Narrow,
     frame: 'purple_pillar',
-    fill: 0x903c78,
+    fill: 0x903c78, // dominant: purple_pillar — deep magenta-purple
     baseWeight: 15,
     gapFactor: 0.66,
     bandFactor: 1,
@@ -79,7 +85,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Moving]: {
     type: ObstacleType.Moving,
     frame: 'red_arrow',
-    fill: 0xf02430,
+    fill: 0xf02430, // dominant: red_arrow — vivid red
     baseWeight: 8,
     gapFactor: 0.92,
     bandFactor: 1,
@@ -94,7 +100,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Danger]: {
     type: ObstacleType.Danger,
     frame: 'red_spike',
-    fill: 0xe40c24,
+    fill: 0xe40c24, // dominant: red_spike — deep red
     baseWeight: 6,
     gapFactor: 0.74,
     bandFactor: 1.05,
@@ -109,7 +115,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Broken]: {
     type: ObstacleType.Broken,
     frame: 'stone_crack',
-    fill: 0x84849c,
+    fill: 0x84849c, // dominant: stone_crack — cool grey
     baseWeight: 4,
     gapFactor: 1.0,
     bandFactor: 1,
@@ -124,7 +130,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Glowing]: {
     type: ObstacleType.Glowing,
     frame: 'blue_tile',
-    fill: 0x7722ee,
+    fill: 0x7722ee, // manually set to violet (source dominant was 0x24d8fc — too close to blue_bar)
     baseWeight: 2,
     gapFactor: 1.0,
     bandFactor: 1,
@@ -139,7 +145,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
   [ObstacleType.Golden]: {
     type: ObstacleType.Golden,
     frame: 'gold_block',
-    fill: 0xfca800,
+    fill: 0xfca800, // dominant: gold_block — warm amber-gold
     baseWeight: 1,
     gapFactor: 1.05,
     bandFactor: 1,
@@ -148,8 +154,8 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: false,
     glowing: true,
     golden: true,
-    animFrames: 1,
-    animMs: 0
+    animFrames: 2,
+    animMs: 600
   }
 };
 
