@@ -225,13 +225,24 @@ describe('SoundManager — SFX synthesis', () => {
 });
 
 describe('SoundManager — music control', () => {
-  it('prepares one looping element per track and de-dupes', async () => {
+  it('prepares two crossfade voices per track (loop disabled) and de-dupes', async () => {
     const Sound = await freshSound();
     Sound.loadMusic('menu', 'assets/menu.mp3');
     Sound.loadMusic('menu', 'assets/menu.mp3'); // dupe -> ignored
-    expect(audioInstances).toHaveLength(1);
-    expect(audioInstances[0].loop).toBe(true);
-    expect(audioInstances[0].preload).toBe('auto');
+    expect(audioInstances).toHaveLength(2); // A/B voices
+    expect(audioInstances.every((e) => e.loop === false)).toBe(true); // manual crossfade, not loop
+    expect(audioInstances.every((e) => e.preload === 'auto')).toBe(true);
+  });
+
+  it('prefers the OGG source when supported, falls back to MP3 otherwise', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('menu', 'assets/menu.mp3');
+    expect(audioInstances[0].src).toBe('assets/menu.ogg');
+
+    oggSupported = false;
+    const Sound2 = await freshSound();
+    Sound2.loadMusic('game', 'assets/bgmusic.mp3');
+    expect(audioInstances[audioInstances.length - 1].src).toBe('assets/bgmusic.mp3');
   });
 
   it('plays at the music volume after unlock, and mute drops it to 0', async () => {
@@ -239,13 +250,42 @@ describe('SoundManager — music control', () => {
     Sound.loadMusic('menu', 'assets/menu.mp3');
     Sound.unlock();
     Sound.playMusic('menu');
-    const el = audioInstances[0];
+    const el = audioInstances[0]; // foreground voice
     expect(el.playCount).toBeGreaterThanOrEqual(1);
     expect(el.volume).toBeCloseTo(0.45);
     expect(el.paused).toBe(false);
 
     Sound.toggleMute();
     expect(el.volume).toBe(0);
+  });
+
+  it('crossfades into the second voice near the end (gapless loop)', async () => {
+    vi.useFakeTimers();
+    try {
+      const Sound = await freshSound();
+      Sound.loadMusic('menu', 'assets/menu.mp3');
+      Sound.unlock();
+      Sound.playMusic('menu');
+      await Promise.resolve(); // commit currentKey + arm the loop monitor
+      await Promise.resolve();
+
+      const [a, b] = audioInstances;
+      expect(a.paused).toBe(false);
+      expect(b.paused).toBe(true);
+
+      // Near the end -> the timeupdate handler should trigger the crossfade.
+      a.currentTime = a.duration - 0.5; // within CROSSFADE_SEC (0.9)
+      a.emit('timeupdate');
+      expect(b.playCount).toBeGreaterThanOrEqual(1); // second voice started
+      expect(b.currentTime).toBe(0); // from the top
+
+      // Run the ramp to completion: incoming full, outgoing paused.
+      vi.advanceTimersByTime(1000);
+      expect(b.volume).toBeCloseTo(0.45);
+      expect(a.paused).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stopMusic pauses and rewinds the current track', async () => {
