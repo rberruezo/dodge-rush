@@ -62,8 +62,10 @@ SHEETS = [
         'cols': 6, 'rows': 7,
         # witch on a broom; every row already in the game's category order, and
         # row 6 already matches the specials slots (sad/think/trophy/crown/star/cry).
+        # ⚠️ BUG-006: the shipped PNG was hand-corrected (rows 0,3,4,5,6 flipped to
+        # face RIGHT). Source is gone; if you re-add it and rebuild, RE-VALIDATE
+        # facing (hover/boost/cheer/combo/specials → RIGHT, move/move_hard → LEFT).
         'row_map': [0, 1, 2, 3, 4, 5, 6],
-        # all poses face LEFT; move/move_hard stay, the rest must face RIGHT.
         'flip': {0, 3, 4, 5, 6},
     },
     {
@@ -74,6 +76,9 @@ SHEETS = [
         # Per-row natural facing varies: src0/1/3/4/5/6 face RIGHT, src2 faces
         # LEFT. Game wants move(1)+move_hard(2) LEFT -> only src1 needs flipping.
         # NOTE: re-download the source to this path to rebuild (it was removed).
+        # ⚠️ BUG-006: the shipped PNG was hand-corrected (rows 1,2 flipped to face
+        # LEFT). If rebuilding from source, RE-VALIDATE facing (move/move_hard →
+        # LEFT; hover/boost/cheer/combo/specials → RIGHT).
         'row_map': [0, 1, 2, 3, 4, 5, 6],
         'flip': {1},
     },

@@ -12,6 +12,13 @@ export const GAME_WIDTH = 540;
 export const GAME_HEIGHT = 960;
 export const TARGET_FPS = 60;
 
+/**
+ * Manual build counter shown in-game next to the version (GME-016). Bump this by
+ * hand with every QA/release build — keep it in sync with `versionCode` in
+ * `mobile/app.json`. See mobile/README.md → "Version bump protocol".
+ */
+export const BUILD_NUMBER = 1;
+
 /** Texture / animation lookup keys (avoid magic strings around the codebase). */
 export const ASSET_KEYS = {
   CHARACTER: 'character',
@@ -115,7 +122,8 @@ export const STORAGE_KEYS = {
   SELECTED_SKIN: 'dodgerush.skin',
   DIFFICULTY: 'dodgerush.difficulty', // selected difficulty mode id
   DAILY: 'dodgerush.daily', // daily-reward streak + daily-mission state (JSON)
-  TOTAL_RUNS: 'dodgerush.totalruns'
+  TOTAL_RUNS: 'dodgerush.totalruns',
+  ACHIEVEMENTS: 'dodgerush.achievements' // unlocked achievement ids (JSON array — GME-GD-007)
 } as const;
 
 export const COLORS = {
@@ -149,6 +157,23 @@ export const CHARACTER_FRAME = {
   width: 120,
   height: 120
 } as const;
+
+/**
+ * Zone milestones (GME-GD-006): a brief, non-intrusive banner shown the first
+ * time the run's score crosses each threshold. Names are altitude-themed; the
+ * score doubles as the "distance" metric (~10/s + combo bonuses).
+ */
+export interface ZoneMilestone {
+  at: number; // score threshold
+  name: string; // banner text
+}
+
+export const ZONE_MILESTONES: ZoneMilestone[] = [
+  { at: 50, name: '¡Las Nubes!' },
+  { at: 150, name: '¡Tormenta!' },
+  { at: 300, name: '¡Estratosfera!' },
+  { at: 500, name: '¡Órbita!' }
+];
 
 /** Single-purpose frames (not animations). */
 export const CHAR_FRAMES = {
@@ -363,14 +388,14 @@ export const DIFFICULTY_MODES: Record<DifficultyModeId, DifficultyMode> = {
   classic: {
     id: 'classic',
     label: 'CLASSIC',
-    blurb: 'The full challenge',
+    blurb: 'One hit. Pure arcade.',
     speedScale: 1,
     rampScale: 1,
     gapScale: 1,
     spacingScale: 1,
     comboSpeedScale: 1,
     maxStep: DIFFICULTY_CFG.maxStep,
-    lives: LIVES_CFG.count
+    lives: 1 // one-hit death (GME-015 / DEC-007 — arcade purity)
   },
   relax: {
     id: 'relax',
@@ -382,11 +407,11 @@ export const DIFFICULTY_MODES: Record<DifficultyModeId, DifficultyMode> = {
     spacingScale: 1.18,
     comboSpeedScale: 0.45,
     maxStep: 4,
-    lives: 5
+    lives: 3 // kindness mechanic (GME-015 / DEC-007)
   }
 } as const;
 
-export const DEFAULT_DIFFICULTY: DifficultyModeId = 'classic';
+export const DEFAULT_DIFFICULTY: DifficultyModeId = 'relax'; // GME-015 — new players start in the forgiving mode
 
 /**
  * Gap-legibility markers. Bright posts drawn on the inner (gap-facing) edge of
@@ -447,17 +472,20 @@ export interface MissionDef {
  */
 export const DAILY_MISSIONS: MissionDef[] = [
   // Easy — accumulative across runs, completable in 2-3 sessions.
-  { kind: 'passes', difficulty: 'easy',   target: 50,  reward: 10,  label: (t) => `Dodge ${t} obstacles today`            },
-  { kind: 'score',  difficulty: 'easy',   target: 200, reward: 10,  label: (t) => `Earn ${t} total points today`           },
-  { kind: 'combo',  difficulty: 'easy',   target: 4,   reward: 10,  label: (t) => `Reach a x${t} combo in any run`         },
+  { kind: 'passes', difficulty: 'easy',   target: 50,  reward: 10,  label: (t) => `Dodge ${t} obstacles today`                        },
+  { kind: 'score',  difficulty: 'easy',   target: 200, reward: 10,  label: (t) => `Earn ${t} total points today`                       },
+  // target 4 = chain of 4 → x3 multiplier tier
+  { kind: 'combo',  difficulty: 'easy',   target: 4,   reward: 10,  label: (_t) => `Reach a x3 combo in any run (dodge 4 in a row)`    },
 
   // Medium — accumulative, takes a real session to finish.
-  { kind: 'passes', difficulty: 'medium', target: 150, reward: 25,  label: (t) => `Dodge ${t} obstacles today`            },
-  { kind: 'score',  difficulty: 'medium', target: 600, reward: 25,  label: (t) => `Earn ${t} total points today`           },
-  { kind: 'combo',  difficulty: 'medium', target: 12,  reward: 25,  label: (t) => `Reach a x10 combo (chain ${t})`         },
+  { kind: 'passes', difficulty: 'medium', target: 150, reward: 25,  label: (t) => `Dodge ${t} obstacles today`                        },
+  { kind: 'score',  difficulty: 'medium', target: 600, reward: 25,  label: (t) => `Earn ${t} total points today`                       },
+  // target 12 = chain of 12 → x10 multiplier tier
+  { kind: 'combo',  difficulty: 'medium', target: 12,  reward: 25,  label: (_t) => `Reach a x10 combo in any run (dodge 12 in a row)`  },
 
-  // Hard — single-run goal, scaled to player PB, rewards a free spin.
-  { kind: 'score',  difficulty: 'hard',   target: 800, reward: 0,   label: (t) => `Score ${t} in a single run`             },
-  { kind: 'passes', difficulty: 'hard',   target: 60,  reward: 0,   label: (t) => `Clear ${t} obstacles in one run`        },
-  { kind: 'combo',  difficulty: 'hard',   target: 7,   reward: 0,   label: (t) => `Chain a x5 combo ${t} times in one run` },
+  // Hard — single-run goal, rewards a free spin.
+  { kind: 'score',  difficulty: 'hard',   target: 800, reward: 0,   label: (t) => `Score ${t} in a single run`                        },
+  { kind: 'passes', difficulty: 'hard',   target: 60,  reward: 0,   label: (t) => `Clear ${t} obstacles in one run`                   },
+  // target 20 = chain of 20 → x20 multiplier tier (genuinely hard, achievable in one Classic run)
+  { kind: 'combo',  difficulty: 'hard',   target: 20,  reward: 0,   label: (_t) => `Reach a x20 combo in one run (dodge 20 in a row)`  },
 ];

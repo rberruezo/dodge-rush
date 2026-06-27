@@ -106,6 +106,24 @@ the **official Google Play Families policy** — do not treat this list as final
 - **Rewarded ads** (`Rewarded.ts` in the web game) are still a stub. Wire a
   Families-certified network in Phase 4 behind that same interface.
 
+## Version bump protocol (GME-016)
+
+The in-game version stamp (bottom-right of the main menu) reads `vX.Y.Z (build N)`.
+**Before every QA or release build, bump all three in lockstep so QA always knows
+exactly what they're testing:**
+
+1. **`package.json`** → `version` (semver, e.g. `1.0.0` → `1.0.1`). This is what
+   the web build shows (injected via `vite.config.ts` `define` →
+   `import.meta.env.VITE_APP_VERSION`).
+2. **`mobile/app.json`** → `expo.android.versionCode` (integer, **always
+   increasing**: `1` → `2`). Google Play rejects a re-used versionCode.
+3. **`src/config/Constants.ts`** → `BUILD_NUMBER` (the `(build N)` shown in-game).
+   Keep it equal to the `versionCode` above.
+
+Keep `version` in `package.json` and `mobile/app.json` in sync too (both are the
+human-readable semver). After bumping, rebuild the web bundle and re-sync before
+packaging the APK.
+
 ## Verification status
 
 Authored as a scaffold; **not built/run in the dev sandbox** (Node too old, and

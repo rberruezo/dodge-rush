@@ -16,15 +16,19 @@ describe('DifficultyManager — difficulty modes', () => {
   });
   afterEach(() => DifficultyManager.setMode(DEFAULT_DIFFICULTY));
 
-  it('defaults to CLASSIC', () => {
+  it('reports the active mode (CLASSIC, set in beforeEach)', () => {
     expect(DifficultyManager.mode.id).toBe('classic');
     expect(DifficultyManager.mode.lives).toBe(DIFFICULTY_MODES.classic.lives);
+  });
+
+  it('DEFAULT_DIFFICULTY is RELAX — new players start forgiving (GME-015)', () => {
+    expect(DEFAULT_DIFFICULTY).toBe('relax');
   });
 
   it('setMode() switches the active mode and persists it', () => {
     DifficultyManager.setMode('relax');
     expect(DifficultyManager.mode.id).toBe('relax');
-    expect(DifficultyManager.mode.lives).toBe(5);
+    expect(DifficultyManager.mode.lives).toBe(DIFFICULTY_MODES.relax.lives); // GME-015: derive, not hardcode
     expect(localStorage.getItem(STORAGE_KEYS.DIFFICULTY)).toBe('relax');
   });
 

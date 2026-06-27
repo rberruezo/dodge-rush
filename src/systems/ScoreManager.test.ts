@@ -1,14 +1,40 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ScoreManager } from './ScoreManager';
 import { DifficultyManager } from './DifficultyManager';
-import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
+import { SCORE_CFG, STORAGE_KEYS, ZONE_MILESTONES } from '../config/Constants';
 
 describe('ScoreManager', () => {
+  // The high score is per mode (GME-012); pin CLASSIC so these tests exercise the
+  // legacy HIGH_SCORE key deterministically regardless of DEFAULT_DIFFICULTY.
+  beforeEach(() => {
+    localStorage.clear();
+    DifficultyManager.setMode('classic');
+  });
+
   it('scores survival time at pointsPerSecond', () => {
     const s = new ScoreManager();
     s.update(2000); // 2 seconds
     expect(s.current).toBe(2 * SCORE_CFG.pointsPerSecond);
     expect(s.elapsedSeconds).toBe(2);
+  });
+
+  it('fires each zone milestone once, in order, when the score crosses it (GME-GD-006)', () => {
+    const s = new ScoreManager();
+    expect(s.pollMilestone()).toBeNull(); // nothing crossed yet
+
+    const seen: string[] = [];
+    let acc = 0;
+    for (const m of ZONE_MILESTONES) {
+      s.addBonus(m.at - acc); // bring the score up to exactly this threshold
+      acc = m.at;
+      const got = s.pollMilestone();
+      if (got) seen.push(got);
+    }
+    expect(seen).toEqual(ZONE_MILESTONES.map((m) => m.name));
+    expect(s.pollMilestone()).toBeNull(); // all consumed — no repeats
+
+    s.reset();
+    expect(s.pollMilestone()).toBeNull(); // reset re-arms milestones for the next run
   });
 
   it('adds rounded bonus points on top of time score', () => {

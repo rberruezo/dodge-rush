@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH } from '../config/Constants';
+import { COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 import { Text } from '../config/TextStyles';
 
 /**
@@ -44,8 +44,36 @@ export class HUD {
     this.pauseBtn = this.createPauseButton(onPause);
   }
 
+  /**
+   * Zone milestone banner (GME-GD-006): a brief, non-intrusive title that pops in,
+   * holds, and floats out over ~1.5s. Self-destroys; safe to call repeatedly.
+   */
+  showZoneBanner(name: string): void {
+    const banner = this.scene.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, name, Text.title(34, COLORS.gold))
+      .setOrigin(0.5)
+      .setDepth(101)
+      .setAlpha(0)
+      .setScale(0.8);
+    this.scene.tweens.add({ targets: banner, alpha: 1, scale: 1, duration: 220, ease: 'Back.out' });
+    this.scene.tweens.add({
+      targets: banner,
+      alpha: 0,
+      y: GAME_HEIGHT * 0.3 - 36,
+      delay: 1100,
+      duration: 400,
+      ease: 'Cubic.in',
+      onComplete: () => banner.destroy()
+    });
+  }
+
   /** Render remaining lives as filled/empty hearts. */
   setLives(lives: number, max: number): void {
+    // One-hit modes (max <= 1, e.g. CLASSIC) show no hearts — there's nothing to track.
+    if (max <= 1) {
+      this.livesText.setText('');
+      return;
+    }
     let s = '';
     for (let i = 0; i < max; i++) s += i < lives ? '♥' : '♡';
     this.livesText.setText(s);

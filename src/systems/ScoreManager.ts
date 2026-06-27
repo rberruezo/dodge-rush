@@ -1,4 +1,4 @@
-import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
+import { SCORE_CFG, STORAGE_KEYS, ZONE_MILESTONES } from '../config/Constants';
 import { DifficultyManager } from './DifficultyManager';
 import { Diagnostics } from './Diagnostics';
 
@@ -12,6 +12,7 @@ export class ScoreManager {
   private elapsedMs_ = 0;
   private bonus = 0;
   private highScore = 0;
+  private milestoneIdx = 0; // next un-crossed ZONE_MILESTONES entry (GME-GD-006)
 
   constructor() {
     this.highScore = ScoreManager.load();
@@ -20,6 +21,22 @@ export class ScoreManager {
   reset(): void {
     this.elapsedMs_ = 0;
     this.bonus = 0;
+    this.milestoneIdx = 0;
+  }
+
+  /**
+   * Zone milestone (GME-GD-006): returns the name of the next milestone the
+   * moment the score crosses its threshold, then null until the following one.
+   * Call once per frame; each milestone fires exactly once per run.
+   */
+  pollMilestone(): string | null {
+    if (this.milestoneIdx >= ZONE_MILESTONES.length) return null;
+    const m = ZONE_MILESTONES[this.milestoneIdx];
+    if (this.current >= m.at) {
+      this.milestoneIdx++;
+      return m.name;
+    }
+    return null;
   }
 
   /** Advance the survival clock. `dt` is the frame delta in milliseconds. */
@@ -67,15 +84,27 @@ export class ScoreManager {
       : STORAGE_KEYS.HIGH_SCORE;
   }
 
-  private static load(): number {
+  /** Read + sanitise a stored high score by key (NaN/negative -> 0). */
+  private static readKey(key: string): number {
     try {
-      // Reject NaN / negative high scores (tampered or corrupt storage).
-      const v = parseInt(localStorage.getItem(ScoreManager.highScoreKey()) ?? '0', 10);
+      const v = parseInt(localStorage.getItem(key) ?? '0', 10);
       return Number.isFinite(v) && v > 0 ? v : 0;
     } catch (e) {
       Diagnostics.warn('storage', 'high-score read failed', e);
       return 0;
     }
+  }
+
+  private static load(): number {
+    return ScoreManager.readKey(ScoreManager.highScoreKey());
+  }
+
+  /** Best score across ALL modes — used by cross-mode achievements (GME-GD-007). */
+  static bestOverall(): number {
+    return Math.max(
+      ScoreManager.readKey(STORAGE_KEYS.HIGH_SCORE),
+      ScoreManager.readKey(STORAGE_KEYS.HIGH_SCORE_RELAX)
+    );
   }
 
   private static save(value: number): void {

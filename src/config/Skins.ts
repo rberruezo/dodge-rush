@@ -23,6 +23,8 @@ export interface SkinDef {
   tint: number | null; // recolour tint, or null for the sheet's own colours
   trail: number; // jet trail particle colour
   cost: number; // 0 = always unlocked
+  /** If true, this skin only appears in the spin pool when the last run was Classic mode. */
+  classicOnly?: boolean;
 }
 
 export interface AchievementSkinDef {
@@ -51,6 +53,10 @@ export const SKINS: SkinDef[] = [
   { id: 'witch',   name: 'WITCH',    tier: 'rare',      sheet: 'character_witch', tint: null, trail: 0xc24dd6, cost: 680  },
   { id: 'phoenix', name: 'PHOENIX',  tier: 'rare',      sheet: 'character_phoenix',tint: null,trail: 0xff6a3d, cost: 750  },
   { id: 'wizard',  name: 'WIZARD',   tier: 'rare',      sheet: 'character_wizard',tint: null, trail: 0xffe08a, cost: 820  },
+
+  // Epic — Classic-exclusive: only spinnable after a Classic mode run.
+  { id: 'iron',    name: 'IRON',     tier: 'epic',      sheet: 'character',       tint: 0x8ab4e0, trail: 0x8ab4e0, cost: 0, classicOnly: true },
+  { id: 'ember',   name: 'EMBER',    tier: 'epic',      sheet: 'character',       tint: 0xe85c2d, trail: 0xe85c2d, cost: 0, classicOnly: true },
 
   // Legendary — status symbol, the pinnacle of the collection.
   { id: 'nemesis', name: 'NEMESIS',  tier: 'legendary', sheet: 'character_evil',  tint: null, trail: 0xb24dff, cost: 1400 },

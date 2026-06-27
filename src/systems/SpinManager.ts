@@ -10,6 +10,7 @@
  */
 
 import { SKINS, type SkinDef, type SkinTier } from '../config/Skins';
+import { DifficultyManager } from './DifficultyManager';
 import { Profile } from './ProfileManager';
 
 export const SPIN_CONSOLATION_COINS = 50;
@@ -55,7 +56,10 @@ class SpinManagerImpl {
       }
     }
 
-    const pool = SKINS.filter((s) => s.tier !== 'free' && !Profile.isOwned(s.id));
+    const isClassic = DifficultyManager.mode.id === 'classic';
+    const pool = SKINS.filter(
+      (s) => s.tier !== 'free' && !Profile.isOwned(s.id) && (!s.classicOnly || isClassic)
+    );
     if (pool.length === 0) return { kind: 'coins', amount: SPIN_CONSOLATION_COINS };
 
     // Count skins per tier to spread weight evenly within each tier.

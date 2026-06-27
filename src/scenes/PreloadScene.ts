@@ -106,6 +106,10 @@ export class PreloadScene extends Phaser.Scene {
     TextureFactory.ensureCoin(this);
     TextureFactory.ensureVignette(this);
 
+    // BG-005: audit the background textures (logs to logcat on device) and heal
+    // any that decoded broken, so the sky can never silently go blank.
+    this.auditBackgroundTextures();
+
     // Build character animations from whichever sheet we ended up with.
     AnimationManager.create(this);
 
@@ -115,6 +119,39 @@ export class PreloadScene extends Phaser.Scene {
     void Sound.loadMusic(MUSIC.GAME, 'assets/bgmusic.mp3');
 
     this.scene.start('MainMenu');
+  }
+
+  /**
+   * BG-005 field probe + self-heal. The skyboxes failed to render on a physical
+   * Android WebView while the (smaller) parallax PNGs worked. To distinguish a
+   * decode/load failure from a pure GPU-render issue, log the real state of every
+   * background texture — whether it's the real asset or a fallback, and its
+   * decoded size — which surfaces in logcat via App.tsx's console bridge. A
+   * silently-broken decode can load 0×0 WITHOUT firing 'loaderror' (so
+   * `ensureFallbacks`, which only checks existence, would miss it); detect that
+   * here and regenerate a procedural stand-in so the sky never goes blank.
+   */
+  private auditBackgroundTextures(): void {
+    const keys = [...BG_SKY_KEYS, ...BG_LAYER_KEYS];
+    const broken: string[] = [];
+    const report = keys
+      .map((key) => {
+        const tex = this.textures.exists(key) ? this.textures.get(key) : undefined;
+        const real = !!tex && tex.key === key;
+        const src = tex?.getSourceImage() as { width?: number; height?: number } | undefined;
+        const w = src?.width ?? 0;
+        const h = src?.height ?? 0;
+        if (!real || w === 0 || h === 0) broken.push(key);
+        return `${key.replace('bg_', '')}=${real ? `${w}x${h}` : 'FB'}`;
+      })
+      .join(' ');
+    Diagnostics.warn('bg-audit', report);
+
+    if (broken.length) {
+      Diagnostics.warn('bg-audit', `healing broken bg textures: ${broken.join(',')}`);
+      broken.forEach((k) => this.failed.add(k));
+      TextureFactory.ensureFallbacks(this, this.failed);
+    }
   }
 
   private buildLoadingBar(): void {

@@ -6,6 +6,7 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   PLAYER_CFG,
+  BUILD_NUMBER,
   DifficultyModeId
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
@@ -123,8 +124,15 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const daily = this.createDailyButton();
+    const achievements = this.createAchievementsButton();
 
-    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText, this.diffText, daily];
+    // Build/version stamp (bottom-right, discreet) so QA knows what they're testing.
+    const version = this.add
+      .text(GAME_WIDTH - 14, GAME_HEIGHT - 12, `v${import.meta.env.VITE_APP_VERSION} (build ${BUILD_NUMBER})`, Text.body(18, '#ffffff'))
+      .setOrigin(1, 1)
+      .setAlpha(0.5);
+
+    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText, this.diffText, daily, achievements, version];
 
     // First time at the menu this session, surface the Daily hub if there's
     // something to claim — the core "come back tomorrow" retention hook.
@@ -156,6 +164,25 @@ export class MainMenuScene extends Phaser.Scene {
     hit.on(Phaser.Input.Events.POINTER_UP, () => {
       Sound.button();
       this.scene.start('Daily');
+    });
+    c.add(hit);
+    return c;
+  }
+
+  /** Top-right trophy button → achievements screen (GME-GD-007). */
+  private createAchievementsButton(): Phaser.GameObjects.Container {
+    const c = this.add.container(GAME_WIDTH - 60, 64).setDepth(50);
+    const bg = this.add.circle(0, 0, 34, COLORS.panel, 0.9).setStrokeStyle(3, COLORS.panelStroke);
+    const icon = this.add.text(0, 2, '🏆', Text.body(36)).setOrigin(0.5);
+    c.add([bg, icon]);
+
+    const hit = this.add
+      .rectangle(0, 0, 84, 84, 0xffffff, 0)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    hit.on(Phaser.Input.Events.POINTER_UP, () => {
+      Sound.button();
+      this.scene.start('Achievements');
     });
     c.add(hit);
     return c;

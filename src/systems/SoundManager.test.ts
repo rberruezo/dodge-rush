@@ -266,9 +266,9 @@ describe('SoundManager — music control', () => {
     vi.useFakeTimers();
     try {
       const Sound = await freshSound();
-      Sound.loadMusic('menu', 'assets/menu.mp3');
+      Sound.loadMusic('game', 'assets/bgmusic.mp3'); // game loops via crossfade (menu rests — BUG-009)
       Sound.unlock();
-      Sound.playMusic('menu');
+      Sound.playMusic('game');
       await Promise.resolve(); // commit currentKey + arm the loop monitor
       await Promise.resolve();
 
@@ -277,18 +277,44 @@ describe('SoundManager — music control', () => {
       expect(b.paused).toBe(true);
 
       // Near the end -> the timeupdate handler should trigger the crossfade.
-      a.currentTime = a.duration - 0.5; // within CROSSFADE_SEC (0.9)
+      a.currentTime = a.duration - 0.5; // within CROSSFADE_SEC (1.8)
       a.emit('timeupdate');
       expect(b.playCount).toBeGreaterThanOrEqual(1); // second voice started
       expect(b.currentTime).toBe(0); // from the top
 
-      // Run the ramp to completion: incoming full, outgoing paused.
-      vi.advanceTimersByTime(1000);
+      // Run the ramp to completion (1.8s crossfade): incoming full, outgoing paused.
+      vi.advanceTimersByTime(2000);
       expect(b.volume).toBeCloseTo(0.45);
       expect(a.paused).toBe(true);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('menu track rests in silence then restarts, never crossfades (BUG-009)', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('menu', 'assets/menu.mp3');
+    Sound.unlock();
+    Sound.playMusic('menu');
+    await Promise.resolve(); // commit currentKey + arm the rest loop
+    await Promise.resolve();
+
+    const [a, b] = voices();
+    expect(a.paused).toBe(false);
+    const playsBefore = a.playCount;
+
+    // Menu must NOT crossfade: a timeupdate near the end does nothing to voice B.
+    a.currentTime = a.duration - 0.5;
+    a.emit('timeupdate');
+    expect(b.playCount).toBe(0); // second voice is never used for the menu
+    expect(b.paused).toBe(true);
+
+    // On end, after the silent rest, the SAME voice restarts from the top. (The
+    // test's setTimeout mock runs synchronously, so the 5s rest elapses instantly
+    // here — we assert the restart behaviour, not the wall-clock delay.)
+    a.emit('ended');
+    expect(a.playCount).toBe(playsBefore + 1); // replayed from the top
+    expect(a.currentTime).toBe(0);
   });
 
   it('stopMusic pauses and rewinds the current track', async () => {

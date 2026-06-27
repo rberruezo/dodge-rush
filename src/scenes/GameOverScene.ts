@@ -9,6 +9,7 @@ import { DifficultyManager } from '../systems/DifficultyManager';
 import { Profile } from '../systems/ProfileManager';
 import { Rewarded } from '../systems/Rewarded';
 import { Spin } from '../systems/SpinManager';
+import { Achievements } from '../systems/AchievementManager';
 import { Sound } from '../systems/SoundManager';
 
 interface GameOverData {
@@ -74,8 +75,25 @@ export class GameOverScene extends Phaser.Scene {
       Sound.newBest();
     }
 
-    coinCounter(this, cx, 556, `+${coins}   TOTAL ${Profile.coins}`, { size: 26 });
+    const isClassic = DifficultyManager.mode.id === 'classic';
+    const coinLabel = isClassic && coins > 0
+      ? `+${coins}  ×1.5  TOTAL ${Profile.coins}`
+      : `+${coins}   TOTAL ${Profile.coins}`;
+    coinCounter(this, cx, 556, coinLabel, { size: 26 });
     if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
+
+    // Achievement unlock(s) earned by this run — drained once, shown as a top toast.
+    const earned = Achievements.takePending();
+    if (earned.length) {
+      const names = earned.map((a) => a.name).join(' + ');
+      const toast = this.add
+        .text(cx, 162, `🏆 ${names} unlocked!`, Text.button(22, COLORS.gold))
+        .setOrigin(0.5)
+        .setDepth(200)
+        .setAlpha(0);
+      this.tweens.add({ targets: toast, alpha: 1, duration: 320, hold: 1900, yoyo: true, onComplete: () => toast.destroy() });
+      this.time.delayedCall(400, () => Sound.newBest());
+    }
 
     if (data?.missionDone) {
       this.add
@@ -122,8 +140,12 @@ export class GameOverScene extends Phaser.Scene {
         fontSize: 24,
         fill: 0x6a2fc0
       });
+      const isClassic = DifficultyManager.mode.id === 'classic';
+      const subText = isClassic
+        ? 'Watch a short video  ·  🏆 Classic pilots available!'
+        : 'Watch a short video  ·  Play Classic to unlock more pilots';
       const sub = this.add
-        .text(cx, y + 42, 'Watch a short video', Text.body(20, '#bfe9ff'))
+        .text(cx, y + 42, subText, Text.body(18, isClassic ? '#ffd54a' : '#bfe9ff'))
         .setOrigin(0.5);
       container.add([btn as unknown as Phaser.GameObjects.GameObject, sub]);
     }

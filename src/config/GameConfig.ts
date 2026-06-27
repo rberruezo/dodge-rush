@@ -9,6 +9,7 @@ import { GameOverScene } from '../scenes/GameOverScene';
 import { ShopScene } from '../scenes/ShopScene';
 import { InfoScene } from '../scenes/InfoScene';
 import { DailyScene } from '../scenes/DailyScene';
+import { AchievementsScene } from '../scenes/AchievementsScene';
 
 /**
  * Root Phaser configuration. Portrait, pixel-art, FIT-scaled so one logical
@@ -49,6 +50,7 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
     GameOverScene,
     ShopScene,
     InfoScene,
-    DailyScene
+    DailyScene,
+    AchievementsScene
   ]
 });

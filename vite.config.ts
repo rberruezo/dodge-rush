@@ -1,9 +1,14 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
+import pkg from './package.json';
 
 // Mobile-friendly, relative-base build so the game can be hosted from any subpath.
 export default defineConfig({
   base: './',
+  // Expose the package version to the app (shown in-game for QA — GME-016).
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version)
+  },
   // Unit tests run the game's pure logic systems (no Phaser/DOM needed).
   test: {
     environment: 'node',

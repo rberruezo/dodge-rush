@@ -39,10 +39,14 @@ class SoundManagerImpl {
   private desiredKey: string | null = null; // requested track, started once loaded + unlocked
   private oggSupported: boolean | null = null; // memoized format probe
   private rampTimer: number | null = null; // active crossfade volume ramp
+  private restTimer: number | null = null; // menu "rest in silence" timeout
+  private restEnded: { el: HTMLAudioElement; fn: () => void } | null = null; // menu end-listener
 
   private static readonly MUSIC_VOLUME = 0.45;
-  private static readonly CROSSFADE_SEC = 0.9; // overlap window at the loop seam
+  // Longer overlap + equal-power curve = a gentler, less mechanical loop seam (BUG-009).
+  private static readonly CROSSFADE_SEC = 1.8; // overlap window at the loop seam
   private static readonly RAMP_MS = 50; // crossfade volume-step interval
+  private static readonly MENU_REST_MS = 5000; // menu: silence between plays (no loop)
 
   constructor() {
     try {
@@ -132,6 +136,7 @@ class SoundManagerImpl {
   stopMusic(_fadeOut = 0.6): void {
     this.desiredKey = null;
     this.clearRamp();
+    this.clearMenuRest();
     if (this.currentKey) {
       const track = this.tracks.get(this.currentKey);
       track?.els.forEach((el) => {
@@ -149,9 +154,12 @@ class SoundManagerImpl {
     const track = this.tracks.get(key);
     if (!track) return; // not loaded yet — loadMusic() will retry
     const el = track.els[track.active];
-    if (this.currentKey === key && !el.paused) return; // already playing
+    // Already the current track and either playing or in its menu rest? Leave it.
+    if (this.currentKey === key && (!el.paused || this.restTimer !== null)) return;
 
-    // Pause any other track (single music voice at a time).
+    // (Re)starting some track now — drop any pending menu rest, and pause the
+    // other tracks (single music voice at a time).
+    this.clearMenuRest();
     this.tracks.forEach((other, k) => {
       if (k !== key) other.els.forEach((e) => !e.paused && e.pause());
     });
@@ -161,7 +169,9 @@ class SoundManagerImpl {
     const p: Promise<void> | undefined = el.play();
     const onPlaying = (): void => {
       this.currentKey = key;
-      this.armLoop(key); // schedule the seamless crossfade near the end
+      // Menu rests in silence between plays (BUG-009); other tracks loop via crossfade.
+      if (key === MUSIC.MENU) this.armRestLoop(key);
+      else this.armLoop(key); // schedule the seamless crossfade near the end
     };
     if (p && typeof p.then === 'function') {
       // currentKey is only committed once playback actually starts, so an
@@ -222,8 +232,11 @@ class SoundManagerImpl {
       i += 1;
       const r = Math.min(1, i / steps);
       if (!this.muted) {
-        to.volume = target * r;
-        from.volume = target * (1 - r);
+        // Equal-power curve (sin/cos): keeps perceived loudness constant across
+        // the fade. A linear ramp dips at the midpoint and that audible dip is
+        // the mechanical "seam" the player hears (BUG-009).
+        to.volume = target * Math.sin((r * Math.PI) / 2);
+        from.volume = target * Math.cos((r * Math.PI) / 2);
       }
       if (r >= 1) {
         this.clearRamp();
@@ -238,6 +251,45 @@ class SoundManagerImpl {
     if (this.rampTimer !== null) {
       window.clearInterval(this.rampTimer);
       this.rampTimer = null;
+    }
+  }
+
+  /**
+   * Menu loop, BUG-009 variant: instead of crossfading back to the top, let the
+   * track play out, rest in silence for MENU_REST_MS, then restart from the
+   * beginning. The pause removes the repetitive "loop" perception of the short
+   * menu track. Used for MUSIC.MENU only (one voice; never crossfaded).
+   */
+  private armRestLoop(key: string): void {
+    const track = this.tracks.get(key);
+    if (!track) return;
+    const el = track.els[track.active];
+    this.clearMenuRest(); // never stack handlers/timers
+    const onEnded = (): void => {
+      if (this.currentKey !== key || this.desiredKey !== key) return;
+      this.restTimer = window.setTimeout(() => {
+        this.restTimer = null;
+        if (this.currentKey !== key || this.desiredKey !== key) return;
+        el.currentTime = 0;
+        el.volume = this.musicVol();
+        const p: Promise<void> | undefined = el.play();
+        if (p && typeof p.then === 'function') p.catch(() => {});
+        this.armRestLoop(key); // arm the next rest cycle
+      }, SoundManagerImpl.MENU_REST_MS);
+    };
+    this.restEnded = { el, fn: onEnded };
+    el.addEventListener('ended', onEnded);
+  }
+
+  /** Cancel any pending menu rest timer and its end-listener. */
+  private clearMenuRest(): void {
+    if (this.restTimer !== null) {
+      window.clearTimeout(this.restTimer);
+      this.restTimer = null;
+    }
+    if (this.restEnded) {
+      this.restEnded.el.removeEventListener('ended', this.restEnded.fn);
+      this.restEnded = null;
     }
   }
 

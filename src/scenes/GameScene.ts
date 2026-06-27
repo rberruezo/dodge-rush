@@ -20,6 +20,7 @@ import { DifficultyManager } from '../systems/DifficultyManager';
 import { InputController } from '../systems/InputController';
 import { Profile } from '../systems/ProfileManager';
 import { Daily } from '../systems/DailyManager';
+import { Achievements } from '../systems/AchievementManager';
 import { HUD } from '../ui/HUD';
 import { EffectsLayer } from '../ui/EffectsLayer';
 import { Sound, MUSIC } from '../systems/SoundManager';
@@ -163,6 +164,8 @@ export class GameScene extends Phaser.Scene {
     const now = this.score.elapsedMs;
 
     this.score.update(dt);
+    const zone = this.score.pollMilestone(); // GME-GD-006: zone-name banner on threshold crossings
+    if (zone) this.hud.showZoneBanner(zone);
     const snapshot = DifficultyManager.sample(this.score.elapsedSeconds);
 
     // Speed scales with time only (DifficultyManager ramp). Combo no longer
@@ -350,11 +353,16 @@ export class GameScene extends Phaser.Scene {
     const finalScore = this.score.current;
     const isNewBest = this.score.commit();
 
-    // Coins from this run (by score + a combo bonus), banked to the profile.
-    const coins = Math.floor(finalScore / 100) + Math.floor(this.maxCombo / 10);
+    // Classic mode earns 1.5× coins as a skill reward (Relax keeps the base rate).
+    const coinMult = DifficultyManager.mode.id === 'classic' ? 1.5 : 1;
+    const coins = Math.floor((Math.floor(finalScore / 100) + Math.floor(this.maxCombo / 10)) * coinMult);
     if (coins > 0) Profile.addCoins(coins);
 
     Profile.recordRun();
+
+    // Unlock any achievements newly met by this run (high score / run count / etc.)
+    // and grant their reward skins. GameOverScene drains the notification queue.
+    Achievements.evaluate();
 
     // Feed the daily mission (best-in-run progress) and flag a fresh completion.
     Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore });

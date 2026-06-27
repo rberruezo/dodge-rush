@@ -148,6 +148,39 @@
 > cargó: revisá `window.diagnostics.recent` (evento `asset`) y confirmá que el
 > PNG está en `public/assets/` y listado en `PreloadScene`.
 
+## Fondo "Sky City" — verificación en DEVICE (BG-005 / BUG-008) · **P0 Android**
+
+> El fondo se ve perfecto en navegador pero **las skyboxes (el cielo) NO se ven en
+> device Android físico** (las nubes y naves sí). En web es imposible reproducirlo
+> — **esta sección SOLO tiene sentido corriendo el APK en un device real.** El
+> objetivo es (a) confirmar si quedó resuelto y, si no, (b) capturar la evidencia
+> que dice por qué. Hacer estos pasos en **cada build de APK** hasta cerrar BUG-008.
+
+**Antes de empezar:** asegurarse de que el APK probado se compiló DESPUÉS del último
+cambio — `vite build` → `npm run sync:web` → `./gradlew assembleRelease` (o
+`expo run:android`). Confirmar con la fecha del `.apk` vs la del último commit.
+
+**Cómo capturar el logcat (evidencia decisiva):** con el device conectado por USB:
+```
+adb logcat -c && adb logcat | grep -i "bg-audit"
+```
+Arrancar el juego; al boot aparece UNA línea `[DodgeRush:bg-audit] ...`. **Copiarla entera** y pegarla en Notas de BG-02.
+
+| ID | Qué | Cómo | Esperado | Resultado |
+|---|---|---|---|---|
+| BG-01 | **Skyboxes visibles (el bug)** · P0 | Abrir el juego y mirar el cielo de fondo (menú y gameplay) | Se ve el **cielo pintado** (gradiente + estrellas; sol en sunset; cintas en aurora). **NO** negro, **NO** un color plano liso, **NO** solo nubes/naves flotando sobre vacío | ⬜ |
+| BG-02 | **Línea `bg-audit` del logcat** · P0 | Capturar logcat (ver arriba); pegar la línea completa | Interpretar: `sky_*=540x960` → la sky **cargó y decodificó OK** (⇒ el problema es de render/GPU). `sky_*=FB` o `sky_*=0x0` → la sky **NO se decodificó** (⇒ decode-failure; el fix es encoger los `bg_sky_*` a JPEG). Anotar el valor de los 6 `sky_*` y de `clouds/airships/spaceship` | ⬜ |
+| BG-03 | **Self-heal activo** | Si las skyboxes se ven como un **gradiente liso** (no el arte pintado) | Es el fallback procedural entrando: el cielo no quedó en negro (mitigación OK) **pero** confirma decode-failure de la sky real → logcat BG-02 debe mostrar `FB`/`0x0` + línea `healing broken bg textures` | ⬜ |
+| BG-04 | **Parallax sigue OK (control)** | Observar nubes lejanas/cercanas, airships y (raro) el crucero | Se mueven a distintas velocidades (profundidad); las luces neón de las naves brillan. Esto ya funcionaba — confirmar que el cambio no lo rompió | ⬜ |
+| BG-05 | **Crossfade de zonas en gameplay** | Sobrevivir ~20 s por zona (o pedir a dev que baje `BG_CFG.zoneLength`) | El cielo **transiciona suave** entre zonas (day→dusk→…→aurora) sin corte ni parpadeo; los tintes de nubes acompañan | ⬜ |
+| BG-06 | **Menús no se ven oscuros (REQ-006)** | Abrir Daily / Info / Shop | El overlay de oscurecimiento es **semitransparente** (se ve el fondo detrás), NO casi negro. Si se ven casi negros → el `setAlpha` de los `Rectangle` Shape falla en WebView (cambia el diagnóstico de la sky y hay que migrar esos overlays a Image tinteada) | ⬜ |
+| BG-07 | **Vignette sutil** | Mirar las esquinas de la pantalla en gameplay | Oscurecimiento leve en bordes, sin tapar contenido. Si las esquinas están totalmente negras → mismo issue de alpha que BG-06 | ⬜ |
+
+> ⚠️ **Reportar a BG-005 / BUG-008:** pegar la línea `bg-audit` + un screenshot del
+> device. Con eso la sesión Background Image Design cierra el diagnóstico y aplica el
+> fix final (JPEG de las skyboxes si es decode-failure; o pipeline WebGL si renderiza
+> en blanco). El audit + self-heal son temporales — se quitan al resolver BUG-008.
+
 ## Registro de bugs encontrados
 
 | GP/NX | Severidad | Descripción | Pasos para reproducir | Evidencia |
