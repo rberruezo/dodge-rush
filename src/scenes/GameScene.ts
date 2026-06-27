@@ -57,6 +57,10 @@ export class GameScene extends Phaser.Scene {
   // Next allowed time for the rising-tension "danger" pulse (throttled).
   private dangerNextMs = 0;
 
+  // GME-GD-005: one-shot "first wow" — amplified feedback for the player's very
+  // first near-miss on run #1, to make the close-call the emotional hook.
+  private firstWowShown = false;
+
   private startScrollY = 0;
 
   constructor() {
@@ -80,6 +84,7 @@ export class GameScene extends Phaser.Scene {
     this.comboCelebCheer = false;
     this.maxCombo = 0;
     this.dangerNextMs = 0;
+    this.firstWowShown = false;
 
     this.bg = new Background(this, this.startScrollY).setDepth(0);
 
@@ -262,8 +267,17 @@ export class GameScene extends Phaser.Scene {
         const nm = SCORE_CFG.nearMissBonus * mult;
         points += nm;
         Sound.nearMiss();
-        this.fx.popup(px, py - 34, `CLOSE! +${Math.round(nm)}`, '#9be7ff', 24);
-        this.fx.burst(px, this.player.y, 0x9be7ff, 6);
+        if (Profile.totalRuns === 0 && !this.firstWowShown) {
+          // GME-GD-005: amplify the first-ever near-miss on the player's first run.
+          this.firstWowShown = true;
+          this.fx.popup(this.player.x, py - 70, '¡CASI!', '#ffe14a', 48);
+          this.fx.burst(this.player.x, this.player.y, 0xbfe9ff, 16); // wind streaks
+          this.cameras.main.flash(200, 200, 240, 255); // wind whoosh flash
+          this.cameras.main.shake(340, 0.015); // bigger than a normal pass
+        } else {
+          this.fx.popup(px, py - 34, `CLOSE! +${Math.round(nm)}`, '#9be7ff', 24);
+          this.fx.burst(px, this.player.y, 0x9be7ff, 6);
+        }
       }
     }
 

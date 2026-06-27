@@ -18,7 +18,7 @@ La estrategia de lanzamiento tiene tres fases bien diferenciadas: pre-lanzamient
 
 Antes de tener jugadores reales, preparar el store listing completo:
 
-- [ ] Título: "Fallcade" (o el nombre final definido en `aso-naming.md`)
+- [ ] Título: "Dodge Rush" (nombre oficial — DEC-001)
 - [ ] Ícono finalizado
 - [ ] 5 screenshots en inglés
 - [ ] Preview video de 15-30 segundos

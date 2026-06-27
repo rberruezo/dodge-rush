@@ -2,6 +2,8 @@
 
 > **Propósito:** evaluar los nombres candidatos, recomendar uno, y definir la estrategia de App Store Optimization (ASO) para el lanzamiento. El nombre y el ícono son las decisiones de mayor impacto en conversión de descarga — merecen la misma atención que el gameplay.
 
+> ✅ **DECISIÓN FINAL: el nombre oficial es "Dodge Rush" (DEC-001, resuelto por el PO).** El análisis comparativo de abajo recomendaba originalmente "Fallcade"; queda como registro histórico de la evaluación, pero la decisión adoptada es **Dodge Rush** (consistente con código, assets, repo y memoria del proyecto). Las secciones de estrategia ASO ya usan "Dodge Rush".
+
 ---
 
 ## Restricciones técnicas del store
@@ -98,20 +100,13 @@ Criterios: **Memorabilidad · Claridad de mecánica · Singularidad · Energía/
 
 ## Recomendación de nombre
 
-### Primera opción: **Fallcade**
+### Nombre oficial: **Dodge Rush** *(DEC-001 — decisión del PO)*
 
-Es un portmanteau inventado, lo que significa:
-- Alta probabilidad de disponibilidad como trademark
-- Sin competencia directa en búsqueda de stores
-- El nombre puede posicionarse en keywords sin interferencia
-- Fácil de pronunciar en cualquier idioma
-- Tiene energía de arcade sin ser genérico
+El Product Owner adoptó **"Dodge Rush"** como nombre oficial. Razones: es literal y buscable ("dodge" describe la mecánica de esquive), ya es consistente con todo el código, assets, `package.json`, store y memoria del proyecto, y evita el costo asimétrico de renombrar el repo entero. Es la base de toda la estrategia ASO de este documento.
 
-### Segunda opción: **Threadfall** *(verificar trademark antes de usar)*
+### Análisis previo (registro histórico)
 
-Si Fallcade no está disponible o no convence, Threadfall es la alternativa más fuerte. Verificar: trademark de "Threadfall" en categoría games/entertainment en USPTO y EUIPO.
-
-### Descartar definitivamente: Glitch Drop, Fallflow
+El análisis comparativo de arriba favorecía a **Fallcade** (portmanteau Fall+Arcade) por su singularidad de marca, con **Threadfall** como segunda opción *(verificar trademark en USPTO/EUIPO)*. Esa recomendación quedó superada por la decisión del PO; se conserva como contexto de la evaluación. Descartados definitivamente: Glitch Drop, Fallflow.
 
 ---
 
@@ -120,7 +115,7 @@ Si Fallcade no está disponible o no convence, Threadfall es la alternativa más
 ### App Store
 
 ```
-Título (30 chars):     "Fallcade"
+Título (30 chars):     "Dodge Rush"
 Subtítulo (30 chars):  "Dodge · Fall · Survive"
 Keyword field (100c):  dodge,fall,arcade,gap,avoid,obstacle,casual,reflex,pilot,escape,rush,infinite
 ```
@@ -132,7 +127,7 @@ El keyword field nunca repite palabras del título ni subtítulo (el algoritmo d
 ### Play Store
 
 ```
-Título (50 chars):     "Fallcade — Dodge & Survive the Endless Fall"
+Título (50 chars):     "Dodge Rush — Dodge & Survive the Endless Fall"
 Short description:     "Tap left or right. Dodge every gap. How far can you fall?"
 ```
 

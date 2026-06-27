@@ -34,7 +34,7 @@ Este es exactamente el modelo de Crossy Road: todos los personajes son versiones
 
 El estilo actual de los personajes — flat 2D con shading de pocas capas, colores sólidos con delineado — es el correcto para este juego. No cambiar de estilo.
 
-**Por qué este estilo funciona para Fallcade:**
+**Por qué este estilo funciona para Dodge Rush:**
 1. **Legible a cualquier resolución.** Funciona en un iPhone 8 con pantalla pequeña y en un iPad Pro. No hay detalle fino que se pierda.
 2. **Escalable para nuevas skins.** Agregar un personaje nuevo no requiere modelado 3D ni animación de rotoscopia.
 3. **Rápido de cargar.** Sprites 2D con pocas capas tienen footprint mínimo.

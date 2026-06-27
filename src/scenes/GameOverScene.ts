@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
 import { Profile } from '../systems/ProfileManager';
 import { Rewarded } from '../systems/Rewarded';
-import { Spin, SPIN_CONSOLATION_COINS } from '../systems/SpinManager';
+import { Spin } from '../systems/SpinManager';
 import { Sound } from '../systems/SoundManager';
 
 interface GameOverData {
