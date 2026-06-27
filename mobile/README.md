@@ -41,26 +41,53 @@ npx expo install         # aligns native module versions to the Expo SDK
 # 3) App icons: add assets/icon.png, adaptive-icon.png, splash.png (see assets/README.md)
 ```
 
-## Build → run loop (local device/emulator)
+## Build → APK (one-liner para testing en device)
+
+**Siempre usá este comando completo desde la raíz del repo.** Saltearte cualquier paso es la causa #1 de tener una versión vieja en el device.
 
 ```bash
-cd dodge-rush && npm run build                 # rebuild the game when web code changes
-cd mobile && npm run sync:web                  # copy dist -> mobile/web AND android assets
-cd android && ./gradlew assembleRelease        # standalone APK (JS + Hermes bundled)
-#   …or `npm run android` to (re)prebuild + run a debug client via Metro
+# Desde dodge-rush/ (raíz del proyecto)
+source ~/.nvm/nvm.sh && nvm use 22.9.0 && \
+  npm run build && \
+  cd mobile && npm run sync:web && \
+  export ANDROID_HOME=~/Library/Android/sdk && \
+  cd android && ./gradlew assembleRelease && \
+  cp app/build/outputs/apk/release/app-release.apk ~/Desktop/dodge-rush.apk && \
+  echo "✓ APK listo en ~/Desktop/dodge-rush.apk"
 ```
 
-> ⚠️ **Gotcha (learned the hard way):** the web build is copied into native
-> assets by the `withWebAssets` plugin only during `expo prebuild`. A plain
-> `gradlew assembleRelease` does NOT re-run prebuild, so on its own it would
-> package a **stale** web bundle. `npm run sync:web` therefore copies the build
-> into `android/app/src/main/assets/web` directly (when the native project
-> exists), so an `assembleRelease` after `sync:web` always ships the current
-> game. Only a fresh `expo prebuild` is needed when native config changes.
+### Por qué cada paso importa
 
-> ⚠️ **Debug APKs don't run standalone:** RN debug builds expect the Metro dev
-> server. For a self-contained, offline, sideloadable APK use **release**
-> (`assembleRelease`) — it bundles the JS.
+| Paso | Qué hace | Qué pasa si lo salteás |
+|------|----------|------------------------|
+| `npm run build` | Compila TypeScript + Vite → `dist/` | El APK trae el juego viejo |
+| `npm run sync:web` | Copia `dist/` → `mobile/web/` y `android/assets/web/` | Idem — Gradle no sabe que cambió |
+| `./gradlew assembleRelease` | Empaqueta todo en el APK | — |
+| `cp ... ~/Desktop` | Deja el APK accesible | Tener que buscarlo en `build/outputs/...` |
+
+> ⚠️ **Gotcha (learned the hard way):** la web build se copia a los assets nativos
+> **únicamente** a través de `sync:web` o de `expo prebuild`. Un `gradlew assembleRelease`
+> solo **NO** re-sincroniza el juego — empaqueta lo que haya en `android/assets/web/`
+> en ese momento. Si no corriste `sync:web` primero, el device va a tener una versión vieja.
+
+> ⚠️ **Debug APKs no corren standalone:** los debug builds esperan el servidor Metro.
+> Para un APK sideloadable y offline usá siempre **release** (`assembleRelease`).
+
+## Cómo verificar qué versión tiene el device
+
+La versión está impresa en la esquina inferior derecha del menú principal (`v1.0.0 build N`).
+Si no coincide con lo que está en `package.json` → `version`, el device tiene una versión vieja.
+
+```bash
+# Ver versión actual del código fuente
+grep '"version"' package.json              # semver humano
+grep 'BUILD_NUMBER' src/config/Constants.ts  # build number mostrado en el juego
+
+# Confirmar que dist/ es reciente (fecha del index.html)
+ls -lh dist/index.html
+```
+
+## Build → run loop (local device/emulator)
 
 ## Store build (Google Play)
 
