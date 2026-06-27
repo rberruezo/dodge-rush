@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 import { Text } from '../config/TextStyles';
+import { FEATURES } from '../config/FeatureFlags';
 
 /**
  * In-game HUD: score (top-centre), live best, combo, lives (top-left) and a
@@ -49,6 +50,7 @@ export class HUD {
    * holds, and floats out over ~1.5s. Self-destroys; safe to call repeatedly.
    */
   showZoneBanner(name: string): void {
+    if (!FEATURES.COMBO_LABELS_ENABLED) return; // disabled in MVP v1.0
     const banner = this.scene.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, name, Text.title(34, COLORS.gold))
       .setOrigin(0.5)
