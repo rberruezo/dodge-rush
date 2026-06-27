@@ -1,4 +1,4 @@
-# Fallcade — Game Design Document
+# Dodge Rush — Game Design Document
 
 > **Versión:** 1.0 — Junio 2026
 > **Estado:** Documento de referencia activo. Cualquier decisión de diseño o implementación que contradiga este documento necesita justificación explícita y actualización del doc correspondiente.
@@ -7,7 +7,7 @@
 
 ## Qué es este juego
 
-**Fallcade** es un arcade casual de esquive para mobile (iOS + Android), orientado a kids y familias. El jugador controla un piloto propelado que cae infinitamente. Los obstáculos suben desde abajo con un gap en cada uno. El jugador toca izquierda o derecha para alinearse con el gap. El objetivo es sobrevivir el mayor tiempo posible y mejorar el récord personal.
+**Dodge Rush** es un arcade casual de esquive para mobile (iOS + Android), orientado a kids y familias. El jugador controla un piloto propelado que cae infinitamente. Los obstáculos suben desde abajo con un gap en cada uno. El jugador toca izquierda o derecha para alinearse con el gap. El objetivo es sobrevivir el mayor tiempo posible y mejorar el récord personal.
 
 **Género:** Arcade casual / endless dodge
 **Plataformas:** iOS, Android (port React Native / Expo desde base web Phaser)
@@ -52,7 +52,7 @@ Estas reglas aplican a toda decisión de feature, arte, sonido y monetización. 
 | Documento | Contenido | Estado |
 |---|---|---|
 | [monetization.md](monetization.md) | Mapa completo de monetización, reglas de los rewarded ads, frecuencia, proveedores recomendados (AdMob / Unity Ads), compliance COPPA y GDPR-K, IAP Starter Pack, lista de lo que definitivamente no existe | ✓ Completo |
-| [aso-naming.md](aso-naming.md) | Evaluación de nombres candidatos, recomendación final (Fallcade / Threadfall), estrategia ASO para App Store y Play Store, ícono, screenshots, preview video, localización | ✓ Completo |
+| [aso-naming.md](aso-naming.md) | Evaluación de nombres candidatos, nombre oficial **Dodge Rush** (DEC-001), estrategia ASO para Play Store, ícono, screenshots, preview video, localización | ✓ Completo |
 | [launch-strategy.md](launch-strategy.md) | Plan de pre-lanzamiento, soft launch (mercados, métricas, iteración), criterios para ir global, primer evento post-lanzamiento, budget estimado | ✓ Completo |
 
 ### Arte y sonido
