@@ -50,8 +50,6 @@ export class GameScene extends Phaser.Scene {
   private livesMax: number = LIVES_CFG.count;
   private invincibleUntilMs = 0;
   private comboCelebUntilMs = 0;
-  private comboCelebFrame: number = CHAR_FRAMES.starHead;
-  private comboCelebCheer = false;
   private startingHigh = 0;
   private beatBest = false;
   private maxCombo = 0;
@@ -83,7 +81,6 @@ export class GameScene extends Phaser.Scene {
     this.lives = this.livesMax;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
-    this.comboCelebCheer = false;
     this.maxCombo = 0;
     this.dangerNextMs = 0;
     this.firstWowShown = false;
@@ -206,9 +203,9 @@ export class GameScene extends Phaser.Scene {
     if (lifeInvincible) {
       this.player.setPose({ kind: 'dizzy' });
     } else if (now < this.comboCelebUntilMs) {
-      this.player.setPose(
-        this.comboCelebCheer ? { kind: 'cheer' } : { kind: 'celebrate', frame: this.comboCelebFrame }
-      );
+      // Smooth, front-facing arms-up cheer for every combo tier (avoids the
+      // jarring static side-pose that mirror-flipped with steering).
+      this.player.setPose({ kind: 'cheer' });
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
@@ -298,8 +295,6 @@ export class GameScene extends Phaser.Scene {
       Sound.combo(mult);
       const cx = GAME_WIDTH / 2;
       this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
-      this.comboCelebCheer = state.frame === null;
-      if (state.frame !== null) this.comboCelebFrame = state.frame;
 
       // For sprite-frame tiers (x2–x20) show the score mult; for all higher tiers
       // show the raw combo count so the player sees the round milestone number.
