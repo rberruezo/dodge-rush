@@ -38,8 +38,8 @@ export class DifficultyManager {
 
   /** Switch + persist the difficulty mode. */
   static setMode(id: DifficultyModeId): void {
-    if (!FEATURES.RELAX_MODE_ENABLED) {
-      console.warn('[DifficultyManager] Mode switching disabled in MVP v1.0');
+    if (!FEATURES.RELAX_MODE_ENABLED && id !== 'classic') {
+      console.warn('[DifficultyManager] Non-classic mode switching disabled in MVP v1.0');
       return;
     }
     this.mode_ = DIFFICULTY_MODES[id] ?? DIFFICULTY_MODES[DEFAULT_DIFFICULTY];

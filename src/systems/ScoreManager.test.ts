@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ScoreManager } from './ScoreManager';
 import { DifficultyManager } from './DifficultyManager';
+import { FEATURES } from '../config/FeatureFlags';
 import { SCORE_CFG, STORAGE_KEYS, ZONE_MILESTONES } from '../config/Constants';
 
 describe('ScoreManager', () => {
   // The high score is per mode (GME-012); pin CLASSIC so these tests exercise the
   // legacy HIGH_SCORE key deterministically regardless of DEFAULT_DIFFICULTY.
+  // Force-enable the gated RELAX toggle so the per-mode test can switch modes.
   beforeEach(() => {
+    FEATURES.RELAX_MODE_ENABLED = true;
     localStorage.clear();
     DifficultyManager.setMode('classic');
   });

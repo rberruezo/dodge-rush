@@ -3,6 +3,9 @@
  * Set to false to disable features in UI/gameplay.
  * All code remains intact — these are toggles only.
  * Reverting: flip the booleans back to true.
+ *
+ * Mutable by design so unit tests can force-enable a flag to exercise the
+ * underlying system (e.g. per-mode high scores) that the flag gates in the UI.
  */
 
 export const FEATURES = {
@@ -17,7 +20,7 @@ export const FEATURES = {
   CORE_LOOP_ENABLED: true,        // Gameplay, scoring, combo, lives
   ACHIEVEMENTS_ENABLED: false,    // [Future] Achievement skins, unlocks
   LEADERBOARD_ENABLED: false,     // [Future] Friends/global ranking
-} as const;
+};
 
 // Type-safe helper
 export function isFeatureEnabled(feature: keyof typeof FEATURES): boolean {

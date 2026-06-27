@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DifficultyManager } from './DifficultyManager';
+import { FEATURES } from '../config/FeatureFlags';
 import {
   DIFFICULTY_MODES,
   DEFAULT_DIFFICULTY,
@@ -9,7 +10,10 @@ import {
 } from '../config/Constants';
 
 describe('DifficultyManager — difficulty modes', () => {
+  // These tests exercise mode-switching internals that the MVP UI flag gates;
+  // force-enable it so setMode() is honoured regardless of the shipped flag.
   beforeEach(() => {
+    FEATURES.RELAX_MODE_ENABLED = true;
     localStorage.clear();
     DifficultyManager.setMode('classic');
     localStorage.clear(); // drop the persistence side-effect of setMode
@@ -68,6 +72,9 @@ describe('DifficultyManager — difficulty modes', () => {
 describe('Difficulty balance (GME-001)', () => {
   const TIMELINE: number[] = [];
   for (let t = 0; t <= 300; t += 5) TIMELINE.push(t);
+
+  // Force-enable the gated mode toggle so both ramps can be sampled.
+  beforeEach(() => { FEATURES.RELAX_MODE_ENABLED = true; });
 
   const sampleAll = (mode: 'classic' | 'relax') => {
     DifficultyManager.setMode(mode);
