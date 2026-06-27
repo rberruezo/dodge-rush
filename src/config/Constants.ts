@@ -113,7 +113,8 @@ export const STORAGE_KEYS = {
   OWNED_SKINS: 'dodgerush.skins',
   SELECTED_SKIN: 'dodgerush.skin',
   DIFFICULTY: 'dodgerush.difficulty', // selected difficulty mode id
-  DAILY: 'dodgerush.daily' // daily-reward streak + daily-mission state (JSON)
+  DAILY: 'dodgerush.daily', // daily-reward streak + daily-mission state (JSON)
+  TOTAL_RUNS: 'dodgerush.totalruns'
 } as const;
 
 export const COLORS = {
@@ -279,18 +280,36 @@ export interface ComboTier {
 }
 
 export const COMBO_TIERS: ComboTier[] = [
-  { at: 500, mult: 200, fx: 'epic' },
-  { at: 400, mult: 160, fx: 'epic' },
-  { at: 300, mult: 120, fx: 'epic' },
-  { at: 200, mult: 90, fx: 'epic' },
-  { at: 100, mult: 60, fx: 'epic' },
-  { at: 50, mult: 35, fx: 'huge' },
+  // Static milestones up to x1000. Above 1000 ComboManager generates tiers dynamically.
+  // Every 100 from 100–1000: full cheer + screen flash.
+  { at: 1000, mult: 350, fx: 'epic' },
+  { at:  900, mult: 320, fx: 'epic' },
+  { at:  800, mult: 290, fx: 'epic' },
+  { at:  700, mult: 260, fx: 'epic' },
+  { at:  600, mult: 230, fx: 'epic' },
+  { at:  500, mult: 200, fx: 'epic' },
+  { at:  400, mult: 160, fx: 'epic' },
+  { at:  300, mult: 120, fx: 'epic' },
+  { at:  200, mult:  90, fx: 'epic' },
+  { at:  100, mult:  60, fx: 'epic' },
+  // Every 10 from 30–90: big cheer.
+  { at: 90, mult: 56, fx: 'huge' },
+  { at: 80, mult: 52, fx: 'huge' },
+  { at: 70, mult: 48, fx: 'huge' },
+  { at: 60, mult: 44, fx: 'huge' },
+  { at: 50, mult: 40, fx: 'huge' },
+  { at: 40, mult: 34, fx: 'huge' },
+  { at: 30, mult: 28, fx: 'huge' },
+  // Sprite-frame milestones (numbered badge flashes on the character).
   { at: 20, mult: 20, frame: 35 },
   { at: 12, mult: 10, frame: 34 },
-  { at: 7, mult: 5, frame: 33 },
-  { at: 4, mult: 3, frame: 32 },
-  { at: 2, mult: 2, frame: 31 }
+  { at:  7, mult:  5, frame: 33 },
+  { at:  4, mult:  3, frame: 32 },
+  { at:  2, mult:  2, frame: 31 },
 ];
+
+/** Highest `at` value in COMBO_TIERS — ComboManager generates tiers dynamically above this. */
+export const COMBO_STATIC_MAX = 1_000;
 
 export const COMBO_CFG = {
   celebrateMs: 850, // how long the combo flash lasts before returning to flight
@@ -298,10 +317,9 @@ export const COMBO_CFG = {
   speedBonusMax: 0.26 // cap on the combo speed bonus
 } as const;
 
-/**
- * Smash power — DISABLED. Config kept here for reference only; do not wire up.
- *
- * The double-tap-to-destroy mechanic was removed after design review. Reasons:
+/*
+ * Smash power — REMOVED (GME-008). There is intentionally no power/double-tap
+ * config here. The double-tap-to-destroy mechanic was cut after design review:
  *   1. Breaks the single-input purity of the core loop (tap L / tap R, nothing else).
  *   2. Creates a natural pay-to-win vector if charges are ever monetised.
  *   3. Double-tap is ambiguous on a tap-to-move input scheme → accidental fires.
@@ -309,13 +327,7 @@ export const COMBO_CFG = {
  *      I used a charge?).
  * See docs/core-loop.md → "Decisión de diseño: por qué NO hay mecánica de destruir
  * obstáculos" for the full rationale and the checklist to evaluate any future revival.
- *
- * If you are reading this and want to bring it back: read that section first.
  */
-export const POWER_CFG = {
-  doubleTapMs: 300,
-  cooldownMs: 3000
-} as const;
 
 /** Lives & post-hit invincibility. */
 export const LIVES_CFG = {
@@ -408,7 +420,7 @@ export const DAILY_CFG = {
  * Daily mission system — three missions per day (easy / medium / hard).
  *
  * MissionKind drives which RunStats field is read. 'smash' is intentionally
- * absent: the smash power was removed (see POWER_CFG above and docs/core-loop.md).
+ * absent: the smash power was removed (GME-008 — see docs/core-loop.md).
  *
  * Difficulty tiers control reward size and, in DailyManager, how targets are
  * scaled to the player's personal best so missions are never trivial for experts

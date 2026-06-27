@@ -45,21 +45,14 @@ export const SKINS: SkinDef[] = [
 
   // Common — unique character sheets, most accessible.
   { id: 'cat',     name: 'CAT',      tier: 'common',    sheet: 'character_cat',   tint: null, trail: 0xffa24a, cost: 400  },
-  { id: 'hound',   name: 'OLD HOUND',tier: 'common',    sheet: 'character_hound', tint: null, trail: 0xd2a06e, cost: 460  },
-  { id: 'dragon',  name: 'DRAGON',   tier: 'common',    sheet: 'character_dragon',tint: null, trail: 0x8be07a, cost: 520  },
 
   // Rare — distinct personalities, mid-range cost.
-  { id: 'unicorn', name: 'UNICORN',  tier: 'rare',      sheet: 'character_unicorn',tint: null,trail: 0x8fe6d2, cost: 600  },
+  { id: 'unicorn', name: 'UNICORN',  tier: 'rare',      sheet: 'character_unicorn',tint: null,trail: 0x8fe6d2, cost: 500  },
   { id: 'witch',   name: 'WITCH',    tier: 'rare',      sheet: 'character_witch', tint: null, trail: 0xc24dd6, cost: 680  },
   { id: 'phoenix', name: 'PHOENIX',  tier: 'rare',      sheet: 'character_phoenix',tint: null,trail: 0xff6a3d, cost: 750  },
   { id: 'wizard',  name: 'WIZARD',   tier: 'rare',      sheet: 'character_wizard',tint: null, trail: 0xffe08a, cost: 820  },
 
-  // Epic — premium variants, high cost.
-  { id: 'frost',   name: 'FROST',    tier: 'epic',      sheet: 'character_frost', tint: null, trail: 0x9fe0ff, cost: 900  },
-  { id: 'ghost',   name: 'GHOST',    tier: 'epic',      sheet: 'character_ghost', tint: null, trail: 0xcdd6ff, cost: 1000 },
-
-  // Legendary — status symbols, the top of the collection.
-  { id: 'king',    name: 'GOLD KING',tier: 'legendary', sheet: 'character_king',  tint: null, trail: 0xffd24a, cost: 1200 },
+  // Legendary — status symbol, the pinnacle of the collection.
   { id: 'nemesis', name: 'NEMESIS',  tier: 'legendary', sheet: 'character_evil',  tint: null, trail: 0xb24dff, cost: 1400 },
 ];
 

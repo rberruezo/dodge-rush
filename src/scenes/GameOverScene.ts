@@ -6,7 +6,6 @@ import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
 import { Profile } from '../systems/ProfileManager';
-import { Rewarded } from '../systems/Rewarded';
 import { Sound } from '../systems/SoundManager';
 
 interface GameOverData {
@@ -18,13 +17,9 @@ interface GameOverData {
   missionDone?: boolean;
 }
 
-/** Results screen: score, best, coins earned, opt-in double-coins, Retry / Menu. */
+/** Results screen: score, best, coins earned, Retry / Menu. */
 export class GameOverScene extends Phaser.Scene {
   private bg!: Background;
-  private coinsEarned = 0;
-  private coinsDoubled = false;
-  private coinRow?: Phaser.GameObjects.Container;
-  private doubleBtn?: Button;
 
   constructor() {
     super('GameOver');
@@ -35,8 +30,7 @@ export class GameOverScene extends Phaser.Scene {
     const score = data?.score ?? 0;
     const best = data?.best ?? 0;
     const isNewBest = data?.isNewBest ?? false;
-    this.coinsEarned = data?.coins ?? 0;
-    this.coinsDoubled = false;
+    const coins = data?.coins ?? 0;
 
     this.bg = new Background(this).setDepth(0);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x1a1030, 0.55).setOrigin(0, 0);
@@ -75,60 +69,26 @@ export class GameOverScene extends Phaser.Scene {
       Sound.newBest();
     }
 
-    // Coins earned this run + new total (rebuilt if the player doubles them).
-    this.renderCoinRow(cx, 566);
-    if (this.coinsEarned > 0) this.time.delayedCall(250, () => Sound.coin());
-
-    // Opt-in double-coins via rewarded ad (only when there's something to double).
-    if (this.coinsEarned > 0) {
-      this.doubleBtn = new Button(this, cx, 632, '▶ DOUBLE COINS', () => this.doubleCoins(), {
-        width: 408,
-        height: 64,
-        fontSize: 24,
-        fill: 0xffa726,
-        textColor: '#3a2400'
-      });
-    }
+    // Coins earned this run + new total.
+    coinCounter(this, cx, 590, `+${coins}   TOTAL ${Profile.coins}`, { size: 26 });
+    if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
 
     if (data?.missionDone) {
       this.add
-        .text(cx, 706, '🎯 Daily mission done — claim it in DAILY!', Text.body(24, '#7bf0a8'))
+        .text(cx, 656, '🎯 Daily mission done — claim it in DAILY!', Text.body(24, '#7bf0a8'))
         .setOrigin(0.5);
     }
 
-    new Button(this, cx, 788, 'RETRY', () => this.scene.start('Game'), {
+    new Button(this, cx, 760, 'RETRY', () => this.scene.start('Game'), {
       width: 320,
       height: 82,
       fontSize: 32
     });
-    new Button(this, cx, 882, 'MENU', () => this.scene.start('MainMenu'), {
+    new Button(this, cx, 858, 'MENU', () => this.scene.start('MainMenu'), {
       width: 320,
       height: 60,
       fontSize: 24,
       fill: 0x44345e
-    });
-  }
-
-  private renderCoinRow(cx: number, y: number): void {
-    this.coinRow?.destroy();
-    const earned = this.coinsDoubled ? this.coinsEarned * 2 : this.coinsEarned;
-    const suffix = this.coinsDoubled ? '  (x2!)' : '';
-    this.coinRow = coinCounter(this, cx, y, `+${earned}   TOTAL ${Profile.coins}${suffix}`, { size: 26 });
-  }
-
-  private doubleCoins(): void {
-    if (this.coinsDoubled || this.coinsEarned <= 0) return;
-    this.doubleBtn?.setLabel('LOADING…');
-    Rewarded.show('double_coins').then((earned) => {
-      if (!earned) {
-        this.doubleBtn?.setLabel('▶ DOUBLE COINS');
-        return;
-      }
-      this.coinsDoubled = true;
-      Profile.addCoins(this.coinsEarned); // grant the second helping
-      Sound.coin();
-      this.renderCoinRow(GAME_WIDTH / 2, 566);
-      this.doubleBtn?.setLabel('✓ DOUBLED');
     });
   }
 

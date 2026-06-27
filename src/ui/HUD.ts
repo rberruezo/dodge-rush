@@ -3,9 +3,8 @@ import { COLORS, GAME_WIDTH } from '../config/Constants';
 import { Text } from '../config/TextStyles';
 
 /**
- * In-game HUD: score (top-centre), live best, combo, lives, a smash-power
- * cooldown meter (top-left) and a pause button (top-right). Above all gameplay
- * layers.
+ * In-game HUD: score (top-centre), live best, combo, lives (top-left) and a
+ * pause button (top-right). Above all gameplay layers.
  */
 export class HUD {
   private scene: Phaser.Scene;
@@ -13,8 +12,6 @@ export class HUD {
   private bestText: Phaser.GameObjects.Text;
   private comboText: Phaser.GameObjects.Text;
   private livesText: Phaser.GameObjects.Text;
-  private powerIcon: Phaser.GameObjects.Text;
-  private powerFill: Phaser.GameObjects.Rectangle;
   private pauseBtn: Phaser.GameObjects.Container;
   private bestScore: number;
   private recordSet = false;
@@ -44,14 +41,6 @@ export class HUD {
       .setOrigin(0, 0.5)
       .setDepth(100);
 
-    // Smash-power cooldown meter (top-left, under the lives).
-    this.powerIcon = scene.add.text(24, 92, '💥', Text.body(26, COLORS.gold)).setOrigin(0, 0.5).setDepth(100);
-    scene.add.rectangle(52, 92, 66, 9, 0x000000, 0.5).setOrigin(0, 0.5).setDepth(100);
-    this.powerFill = scene.add
-      .rectangle(52, 92, 66, 9, 0xffd54a, 1)
-      .setOrigin(0, 0.5)
-      .setDepth(100);
-
     this.pauseBtn = this.createPauseButton(onPause);
   }
 
@@ -60,14 +49,6 @@ export class HUD {
     let s = '';
     for (let i = 0; i < max; i++) s += i < lives ? '♥' : '♡';
     this.livesText.setText(s);
-  }
-
-  /** Update the power meter: full + bright gold when ready, filling while charging. */
-  setPower(ready: boolean, charge: number): void {
-    this.powerFill.scaleX = ready ? 1 : Phaser.Math.Clamp(charge, 0, 1);
-    this.powerFill.setFillStyle(ready ? 0xffd54a : 0xff4f9a, 1);
-    this.powerIcon.setColor(ready ? COLORS.gold : '#7a7a92');
-    this.powerIcon.setAlpha(ready ? 1 : 0.7);
   }
 
   private createPauseButton(onPause: () => void): Phaser.GameObjects.Container {
@@ -125,13 +106,13 @@ export class HUD {
   }
 
   setVisible(v: boolean): void {
-    [this.scoreText, this.bestText, this.comboText, this.livesText, this.powerIcon, this.powerFill, this.pauseBtn].forEach(
+    [this.scoreText, this.bestText, this.comboText, this.livesText, this.pauseBtn].forEach(
       (o) => o.setVisible(v)
     );
   }
 
   destroy(): void {
-    [this.scoreText, this.bestText, this.comboText, this.livesText, this.powerIcon, this.powerFill, this.pauseBtn].forEach(
+    [this.scoreText, this.bestText, this.comboText, this.livesText, this.pauseBtn].forEach(
       (o) => o.destroy()
     );
   }

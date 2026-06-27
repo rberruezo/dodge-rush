@@ -27,7 +27,6 @@ export class InfoScene extends Phaser.Scene {
       ['', 'Higher combo = more points AND faster.'],
       ['CLOSE PASS', 'Thread near the edge for a bonus.'],
       ['GOLDEN GATE', 'Big bonus + x2 score boost (5s).'],
-      ['SMASH', 'Double-tap to break the next obstacle.'],
       ['LOSE A LIFE', 'Your combo & speed reset. 3 lives.'],
       ['COINS', 'Earn coins by score -> unlock skins.']
     ];

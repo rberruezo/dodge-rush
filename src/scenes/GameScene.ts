@@ -6,7 +6,6 @@ import {
   SCORE_CFG,
   LIVES_CFG,
   COMBO_CFG,
-  POWER_CFG,
   CHAR_FRAMES
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
@@ -45,21 +44,15 @@ export class GameScene extends Phaser.Scene {
   private dirHoldMs = 0;
   private boostUntilMs = -1;
   private passCount = 0;
-  private smashCount = 0;
   private lives: number = LIVES_CFG.count;
   private livesMax: number = LIVES_CFG.count;
   private invincibleUntilMs = 0;
-  private continueUsed = false;
   private comboCelebUntilMs = 0;
   private comboCelebFrame: number = CHAR_FRAMES.starHead;
   private comboCelebCheer = false;
   private startingHigh = 0;
   private beatBest = false;
   private maxCombo = 0;
-
-  // Smash power (double-tap): breaks the next approaching obstacle. Cooldown only.
-  private breakCdUntilMs = 0;
-  private trailColor = 0x46e6ff;
 
   // Next allowed time for the rising-tension "danger" pulse (throttled).
   private dangerNextMs = 0;
@@ -80,15 +73,12 @@ export class GameScene extends Phaser.Scene {
     this.dirHoldMs = 0;
     this.boostUntilMs = -1;
     this.passCount = 0;
-    this.smashCount = 0;
-    this.continueUsed = false;
     this.livesMax = DifficultyManager.mode.lives;
     this.lives = this.livesMax;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
     this.comboCelebCheer = false;
     this.maxCombo = 0;
-    this.breakCdUntilMs = 0;
     this.dangerNextMs = 0;
 
     this.bg = new Background(this, this.startScrollY).setDepth(0);
@@ -96,10 +86,9 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
 
-    // Apply the selected skin (sprite sheet + recolour + trail colour).
+    // Apply the selected skin (sprite sheet + recolour).
     const skin = getSkin(Profile.selected);
     this.player.applySkin(skin.sheet, skin.tint);
-    this.trailColor = skin.trail;
 
     this.score = new ScoreManager();
     this.score.reset();
@@ -113,12 +102,29 @@ export class GameScene extends Phaser.Scene {
     this.fx = new EffectsLayer(this);
     this.fx.setCharacterSheet(getSkin(Profile.selected).sheet); // popups use equipped skin
     this.controls = new InputController(this);
-    this.controls.onFirstInput = () => Sound.unlock();
-    this.controls.onBreak = () => this.tryBreak();
+
+    // First-run onboarding: show a tap-hint overlay only on run #0.
+    if (Profile.totalRuns === 0) {
+      const hint = this.add
+        .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.72, '◀  TAP       TAP  ▶', {
+          fontFamily: 'monospace',
+          fontSize: '28px',
+          color: '#ffffff'
+        })
+        .setOrigin(0.5)
+        .setAlpha(0.85)
+        .setDepth(50);
+      this.tweens.add({ targets: hint, alpha: { from: 0.85, to: 0.35 }, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.controls.onFirstInput = () => {
+        Sound.unlock();
+        this.tweens.add({ targets: hint, alpha: 0, duration: 300, onComplete: () => hint.destroy() });
+      };
+    } else {
+      this.controls.onFirstInput = () => Sound.unlock();
+    }
 
     this.hud = new HUD(this, this.score.high, () => this.pauseGame());
     this.hud.setLives(this.lives, this.livesMax);
-    this.hud.setPower(true, 1);
 
     Sound.playMusic(MUSIC.GAME);
 
@@ -144,38 +150,6 @@ export class GameScene extends Phaser.Scene {
     Sound.pause();
     this.scene.launch('Pause');
     this.scene.pause();
-  }
-
-  /**
-   * Smash power (double-tap): shatter the next approaching obstacle and pass
-   * through it as a clean pass (keeps the combo going). Cooldown-gated; does
-   * nothing (and doesn't burn the cooldown) when there's no obstacle to break.
-   */
-  private tryBreak(): void {
-    if (!this.running) return;
-    const now = this.score.elapsedMs;
-    if (now < this.breakCdUntilMs) return; // recharging
-
-    const broken = this.obstacles.breakNext();
-    if (!broken) return; // nothing ahead to break -> save the charge
-
-    this.breakCdUntilMs = now + POWER_CFG.cooldownMs;
-    this.smashCount += 1;
-
-    // Reward it like a clean pass so the combo (and its speed bonus) carry on.
-    const state = this.combo.increment();
-    const points = SCORE_CFG.pointsPerPass * state.multiplier;
-    this.score.addBonus(points);
-    this.maxCombo = Math.max(this.maxCombo, this.combo.combo);
-
-    // Smash feedback.
-    Sound.smash();
-    this.cameras.main.flash(120, 255, 240, 180);
-    this.fx.burst(broken.gapX, broken.y, broken.def.fill, 18);
-    this.fx.goldBurst(broken.gapX, broken.y, 10);
-    this.fx.burst(this.player.x, this.player.y, this.trailColor, 8);
-    const label = state.multiplier > 1 ? `SMASH!  x${state.multiplier}` : 'SMASH!';
-    this.fx.popup(broken.gapX, broken.y, label, '#ffd54a', 32);
   }
 
   update(_time: number, delta: number): void {
@@ -247,10 +221,6 @@ export class GameScene extends Phaser.Scene {
       if (hit) this.loseLife();
     }
 
-    // Smash-power cooldown meter.
-    const cdLeft = this.breakCdUntilMs - now;
-    this.hud.setPower(cdLeft <= 0, 1 - cdLeft / POWER_CFG.cooldownMs);
-
     this.hud.update(this.score.current, this.combo.combo, this.combo.multiplier, boostActive);
 
     // Live record chase — the big "one more try" hook.
@@ -313,18 +283,22 @@ export class GameScene extends Phaser.Scene {
       this.comboCelebCheer = state.frame === null;
       if (state.frame !== null) this.comboCelebFrame = state.frame;
 
+      // For sprite-frame tiers (x2–x20) show the score mult; for all higher tiers
+      // show the raw combo count so the player sees the round milestone number.
+      const comboLabel = `COMBO x${state.frame !== null ? mult : state.count}!`;
+
       if (state.fx === 'epic') {
-        this.fx.popup(cx, py - 100, `COMBO x${mult}!`, '#ffd54a', 52);
+        this.fx.popup(cx, py - 100, comboLabel, '#ffd54a', 52);
         this.fx.iconPopup(cx, py - 150, CHAR_FRAMES.crown, 1.3);
         this.fx.burst(this.player.x, this.player.y, 0xffd54a, 26);
         this.cameras.main.flash(220, 255, 230, 150);
         this.cameras.main.shake(180, 0.008);
       } else if (state.fx === 'huge') {
-        this.fx.popup(cx, py - 95, `COMBO x${mult}!`, '#ffd54a', 46);
+        this.fx.popup(cx, py - 95, comboLabel, '#ffd54a', 46);
         this.fx.iconPopup(cx, py - 148, CHAR_FRAMES.trophy, 1.2);
         this.fx.burst(this.player.x, this.player.y, 0xffd54a, 18);
       } else {
-        this.fx.popup(cx, py - 90, `COMBO x${mult}!`, '#ffd54a', 40);
+        this.fx.popup(cx, py - 90, comboLabel, '#ffd54a', 40);
         if (mult >= 10) this.fx.iconPopup(cx, py - 140, CHAR_FRAMES.starHead, 1.0);
       }
     }
@@ -345,46 +319,11 @@ export class GameScene extends Phaser.Scene {
     this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sadHead, 0.9);
 
     if (this.lives <= 0) {
-      // Offer a one-time, opt-in "continue" (rewarded ad) before ending the run.
-      if (!this.continueUsed) this.offerContinue();
-      else this.finishGameOver();
+      this.finishGameOver(); // out of lives -> straight to results
       return;
     }
     // Survive: brief invincibility (player blinks + dizzy) then carry on.
     this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs;
-  }
-
-  /** Pause the run and let the player watch a rewarded ad to keep going once. */
-  private offerContinue(): void {
-    this.running = false;
-    this.controls.setEnabled(false);
-    this.player.setPose({ kind: 'dizzy' });
-    this.player.setAlpha(1);
-    this.cameras.main.shake(220, 0.012);
-    this.scene.launch('Continue', { score: this.score.current });
-    this.scene.pause();
-  }
-
-  /**
-   * Resume after a granted continue: refill some lives, clear the field for a
-   * fair restart, and grant generous invincibility. Called by ContinueScene.
-   */
-  continueRun(): void {
-    this.continueUsed = true;
-    this.lives = Math.max(1, Math.ceil(this.livesMax / 2));
-    this.combo.reset();
-    this.hud.setLives(this.lives, this.livesMax);
-
-    // Sweep the field and respawn a clean stream so the revive isn't an instant
-    // re-death into the wall that killed the player.
-    this.obstacles.reset(DifficultyManager.sample(this.score.elapsedSeconds));
-    this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs * 1.6;
-
-    Sound.start();
-    this.fx.popup(GAME_WIDTH / 2, GAME_HEIGHT * 0.3, 'CONTINUE!', '#7bf0a8', 44);
-    this.player.setAlpha(1);
-    this.running = true;
-    this.controls.setEnabled(true);
   }
 
   /** Finalize the run: commit score, bank coins, feed daily, go to results. */
@@ -400,6 +339,8 @@ export class GameScene extends Phaser.Scene {
     // Coins from this run (by score + a combo bonus), banked to the profile.
     const coins = Math.floor(finalScore / 100) + Math.floor(this.maxCombo / 10);
     if (coins > 0) Profile.addCoins(coins);
+
+    Profile.recordRun();
 
     // Feed the daily mission (best-in-run progress) and flag a fresh completion.
     Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore });

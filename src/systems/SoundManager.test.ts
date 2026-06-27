@@ -184,7 +184,6 @@ describe('SoundManager — SFX synthesis', () => {
 
     // Exercise the rest of the SFX surface for crashes.
     expect(() => {
-      Sound.smash();
       Sound.coin();
       Sound.combo(10);
       Sound.nearMiss();
@@ -208,7 +207,6 @@ describe('SoundManager — SFX synthesis', () => {
     Sound.move();
     Sound.pass();
     Sound.hit();
-    Sound.smash();
     expect(oscCount).toBe(0);
     expect(bufSrcCount).toBe(0);
   });

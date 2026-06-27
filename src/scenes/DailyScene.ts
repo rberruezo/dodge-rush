@@ -41,9 +41,9 @@ export class DailyScene extends Phaser.Scene {
     this.layer.push(coinCounter(this, cx, 108, `${Profile.coins}`, { size: 26 }));
 
     this.renderStreak(cx, 150);
-    this.renderMission(cx, 520);
+    this.renderMission(cx, 490);
 
-    new Button(this, cx, 892, 'BACK', () => this.scene.start('MainMenu'), {
+    new Button(this, cx, 918, 'BACK', () => this.scene.start('MainMenu'), {
       width: 240,
       height: 64,
       fontSize: 24,
@@ -159,36 +159,34 @@ export class DailyScene extends Phaser.Scene {
     labelTxt.setWordWrapWidth(cardW - 20);
     this.layer.push(labelTxt);
 
-    // Progress bar.
-    const barY  = cardY + cardH / 2 - 20;
-    const frac  = Phaser.Math.Clamp(m.progress / m.target, 0, 1);
-    const barBg = this.add
-      .rectangle(cx, barY, barW, 18, 0x000000, 0.5)
-      .setStrokeStyle(1, 0x564a78);
-    const barFill = this.add
-      .rectangle(cx - barW / 2 + 2, barY, (barW - 4) * frac, 14, m.completed ? 0x2f9e57 : fillColor)
-      .setOrigin(0, 0.5);
-    const barTxt = this.add
-      .text(cx, barY, `${m.progress} / ${m.target}`, Text.body(18, COLORS.white))
-      .setOrigin(0.5);
-    this.layer.push(barBg, barFill, barTxt);
+    // Bottom row: progress bar while in progress; CLAIM button when done; ✓ when claimed.
+    const barY = cardY + cardH / 2 - 22;
 
-    // Claim / done state.
     if (m.claimed) {
-      const done = this.add
-        .text(cx + cardW / 2 - 12, cardY, '✓', Text.body(28, '#7bf0a8'))
-        .setOrigin(1, 0.5);
-      this.layer.push(done);
+      // Full green bar + checkmark.
+      const barBg   = this.add.rectangle(cx, barY, barW, 18, 0x000000, 0.5).setStrokeStyle(1, 0x564a78);
+      const barFill = this.add.rectangle(cx - barW / 2 + 2, barY, barW - 4, 14, 0x2f9e57).setOrigin(0, 0.5);
+      const barTxt  = this.add.text(cx, barY, `${m.target} / ${m.target}`, Text.body(18, COLORS.white)).setOrigin(0.5);
+      const done    = this.add.text(cx + cardW / 2 - 12, cardY - 4, '✓', Text.body(28, '#7bf0a8')).setOrigin(1, 0.5);
+      this.layer.push(barBg, barFill, barTxt, done);
     } else if (m.completed) {
+      // Claim button replaces the bar so there's no overlap with the label above.
       const claimLabel = m.hardRewardsSpin ? 'CLAIM SPIN' : `CLAIM  +${m.reward}`;
-      const btn = new Button(this, cx, cardY, claimLabel, () => {
+      const btn = new Button(this, cx, barY, claimLabel, () => {
         const r = Daily.claimMission(m.difficulty);
         if (r !== null) {
           Sound.newBest();
           this.render();
         }
-      }, { width: 200, height: 44, fontSize: 20, fill: 0x2f9e57 });
+      }, { width: 220, height: 40, fontSize: 20, fill: 0x2f9e57 });
       this.layer.push(btn);
+    } else {
+      // Normal progress bar.
+      const frac    = Phaser.Math.Clamp(m.progress / m.target, 0, 1);
+      const barBg   = this.add.rectangle(cx, barY, barW, 18, 0x000000, 0.5).setStrokeStyle(1, 0x564a78);
+      const barFill = this.add.rectangle(cx - barW / 2 + 2, barY, (barW - 4) * frac, 14, fillColor).setOrigin(0, 0.5);
+      const barTxt  = this.add.text(cx, barY, `${m.progress} / ${m.target}`, Text.body(18, COLORS.white)).setOrigin(0.5);
+      this.layer.push(barBg, barFill, barTxt);
     }
   }
 }

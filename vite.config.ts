@@ -12,7 +12,7 @@ export default defineConfig({
   },
   server: {
     host: true, // expose on LAN so you can test on a real phone
-    port: 5173
+    port: Number(process.env.PORT) || 5173
   },
   build: {
     target: 'es2020',

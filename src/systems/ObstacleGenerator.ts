@@ -64,25 +64,6 @@ export class ObstacleGenerator {
     return passed;
   }
 
-  /**
-   * Smash-power: shatter the next approaching (un-passed) barrier — the one
-   * closest to the player from below. Removes it from the stream and returns it
-   * (still carrying its last gapX / y) so the scene can score it + play FX, or
-   * null if there's nothing left to break.
-   */
-  breakNext(): Barrier | null {
-    let target: Barrier | null = null;
-    for (const b of this.active) {
-      if (b.scored) continue; // already passed -> not "next"
-      if (!target || b.y < target.y) target = b;
-    }
-    if (target) {
-      target.scored = true; // so it's never double-counted as a pass
-      this.release(target);
-    }
-    return target;
-  }
-
   private lowestY(): number {
     let maxY = -Infinity;
     for (const b of this.active) maxY = Math.max(maxY, b.y);

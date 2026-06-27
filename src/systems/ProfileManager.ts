@@ -10,6 +10,7 @@ class ProfileManagerImpl {
   private coins_ = 0;
   private owned = new Set<string>(['classic']);
   private selected_ = 'classic';
+  private totalRuns_ = 0;
 
   constructor() {
     try {
@@ -21,6 +22,8 @@ class ProfileManagerImpl {
       this.owned = new Set(['classic', ...owned]);
       const sel = localStorage.getItem(STORAGE_KEYS.SELECTED_SKIN);
       if (sel && this.owned.has(sel)) this.selected_ = sel;
+      const storedRuns = parseInt(localStorage.getItem(STORAGE_KEYS.TOTAL_RUNS) ?? '0', 10);
+      this.totalRuns_ = Number.isFinite(storedRuns) && storedRuns > 0 ? storedRuns : 0;
     } catch (e) {
       Diagnostics.warn('storage', 'profile read failed — using defaults', e);
     }
@@ -32,6 +35,15 @@ class ProfileManagerImpl {
 
   get selected(): string {
     return this.selected_;
+  }
+
+  get totalRuns(): number {
+    return this.totalRuns_;
+  }
+
+  recordRun(): void {
+    this.totalRuns_ += 1;
+    this.save(STORAGE_KEYS.TOTAL_RUNS, String(this.totalRuns_));
   }
 
   isOwned(id: string): boolean {

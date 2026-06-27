@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, POWER_CFG } from '../config/Constants';
+import { GAME_WIDTH } from '../config/Constants';
 
 /**
  * Translates raw touch / mouse / keyboard input into a single horizontal
@@ -20,11 +20,6 @@ export class InputController {
   /** Fired the first time any input is received (used to unlock audio). */
   onFirstInput?: () => void;
   private firstInputFired = false;
-
-  /** Fired on a double-tap of one side (smash-power trigger). */
-  onBreak?: (dir: -1 | 1) => void;
-  private lastTapSide: -1 | 1 | 0 = 0;
-  private lastTapTime = 0;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -56,17 +51,6 @@ export class InputController {
     this.fireFirstInput();
     if (!this.enabled) return;
     const side: -1 | 1 = pointer.x < GAME_WIDTH / 2 ? -1 : 1;
-
-    // Double-tap the same side -> trigger the smash power.
-    const t = pointer.downTime;
-    if (side === this.lastTapSide && t - this.lastTapTime <= POWER_CFG.doubleTapMs) {
-      this.onBreak?.(side);
-      this.lastTapSide = 0; // consume, so a triple-tap isn't two activations
-    } else {
-      this.lastTapSide = side;
-      this.lastTapTime = t;
-    }
-
     this.pointerSides.set(pointer.id, side);
   }
 

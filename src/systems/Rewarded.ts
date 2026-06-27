@@ -2,8 +2,12 @@
  * Rewarded-ad seam.
  *
  * This is the single integration point for opt-in rewarded video. Today it is a
- * STUB that simulates a successful ad watch, so the player-friendly hooks
- * (revive, double-coins) are fully wired and testable without an ad network.
+ * STUB that simulates a successful ad watch, so the reward hook is fully wired
+ * and testable without an ad network.
+ *
+ * Per DEC-006 the only sanctioned rewarded placement is the post-run skin
+ * roulette (`'spin'`); the old `continue` (revive) and `double_coins` hooks were
+ * removed (GME-010 / GME-014). The roulette itself is wired separately (GME-012).
  *
  * Phase 4 (monetization) replaces `show()` with a real provider. For the kids /
  * families target this MUST be a Google Play Families–certified SDK serving
@@ -12,7 +16,7 @@
  * shipping. The rest of the game never needs to change: it only awaits a boolean
  * "was the reward earned?".
  */
-export type RewardPlacement = 'continue' | 'double_coins';
+export type RewardPlacement = 'spin';
 
 class RewardedService {
   /** Simulated until a real network is wired in Phase 4. */

@@ -8,6 +8,12 @@
       "port": 5188
     },
     {
+      "name": "dodge-rush-gd",
+      "runtimeExecutable": "/Users/rama/.nvm/versions/node/v20.20.1/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5220"],
+      "port": 5220
+    },
+    {
       "name": "dodge-rush-dist",
       "runtimeExecutable": "/usr/bin/python3",
       "runtimeArgs": ["-m", "http.server", "5191", "--directory", "dist"],

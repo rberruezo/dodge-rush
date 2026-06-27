@@ -340,17 +340,6 @@ class SoundManagerImpl {
     window.setTimeout(() => this.tone(784, 0.12, 'square', 0.4), 90);
   }
 
-  smash(): void {
-    // Metal shatter, 8-bit style: a clangy metallic "ting" (two detuned high
-    // squares — their inharmonic beating reads as "metal") cracks first, then a
-    // gritty high-passed noise burst (the flying shards) over a short
-    // descending sawtooth body (the impact).
-    this.tone(1600, 0.06, 'square', 0.24); // metallic clang...
-    this.tone(2133, 0.06, 'square', 0.18); // ...detuned partial = metal
-    this.noise(0.22, 0.4, 'highpass', 1500, 4500); // gritty shattering debris
-    this.tone(640, 0.18, 'sawtooth', 0.3, 150); // descending impact body
-  }
-
   coin(): void {
     this.tone(1046, 0.07, 'square', 0.3);
     window.setTimeout(() => this.tone(1568, 0.1, 'square', 0.3), 70);
