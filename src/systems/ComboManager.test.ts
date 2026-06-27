@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ComboManager } from './ComboManager';
-import { COMBO_CFG } from '../config/Constants';
+import { COMBO_CFG, COMBO_TIERS, COMBO_STATIC_MAX } from '../config/Constants';
 
 describe('ComboManager', () => {
   it('starts at combo 0 with multiplier x1', () => {
@@ -23,21 +23,24 @@ describe('ComboManager', () => {
     expect(second.tierUp).toBe(true);
   });
 
-  it('climbs through the tier table to the x200 cap', () => {
-    const expectAtCount = (n: number, mult: number) => {
+  it('multiplier matches every entry in COMBO_TIERS exactly at its threshold', () => {
+    // Derives expectations from the live tier table so the test never drifts
+    // when the balance designer updates COMBO_TIERS.
+    for (const tier of COMBO_TIERS) {
       const cm = new ComboManager();
-      for (let i = 0; i < n; i++) cm.increment();
-      expect(cm.multiplier).toBe(mult);
-    };
-    expectAtCount(4, 3);
-    expectAtCount(7, 5);
-    expectAtCount(12, 10);
-    expectAtCount(20, 20);
-    expectAtCount(50, 35);
-    expectAtCount(100, 60);
-    expectAtCount(500, 200);
-    // Past the top tier it should hold at the cap, never exceed it.
-    expectAtCount(900, 200);
+      for (let i = 0; i < tier.at; i++) cm.increment();
+      expect(cm.multiplier, `at combo ${tier.at}`).toBe(tier.mult);
+    }
+  });
+
+  it('multiplier is monotonically non-decreasing across the whole static table', () => {
+    const cm = new ComboManager();
+    let prev = 1;
+    for (let i = 0; i < COMBO_STATIC_MAX; i++) {
+      cm.increment();
+      expect(cm.multiplier).toBeGreaterThanOrEqual(prev);
+      prev = cm.multiplier;
+    }
   });
 
   it('reset() returns to combo 0 / x1', () => {
@@ -52,7 +55,8 @@ describe('ComboManager', () => {
 
   it('caps the combo speed bonus at speedBonusMax', () => {
     const c = new ComboManager();
-    for (let i = 0; i < 500; i++) c.increment(); // x200 -> huge raw bonus
+    // Drive to a high tier (well past the lowest tier that would hit the cap).
+    for (let i = 0; i < 500; i++) c.increment();
     expect(c.speedBonus).toBe(COMBO_CFG.speedBonusMax);
     expect(c.speedBonus).toBeLessThanOrEqual(COMBO_CFG.speedBonusMax);
   });

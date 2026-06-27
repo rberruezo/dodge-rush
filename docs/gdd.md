@@ -104,21 +104,16 @@ src/
 
 ## El catálogo de pilotos (estado actual)
 
-12 pilotos activos. Los palette swaps removidos del shop son recompensas de achievement.
+7 pilotos en shop + 5 palette swaps como achievements. FROST, GHOST, KING, DRAGON y OLD HOUND removidos del shop en 2026-06-26 por no cumplir con la estética del juego (ver decisión de arte).
 
 | ID | Nombre | Tier | Obtención | Trail |
 |---|---|---|---|---|
 | `classic` | CLASSIC | Free | Siempre disponible | `#46e6ff` |
 | `cat` | CAT | Common | Shop (400c) / Ruleta | `#ffa24a` |
-| `hound` | OLD HOUND | Common | Shop (460c) / Ruleta | `#d2a06e` |
-| `dragon` | DRAGON | Common | Shop (520c) / Ruleta | `#8be07a` |
-| `unicorn` | UNICORN | Rare | Shop (600c) / Ruleta | `#8fe6d2` |
+| `unicorn` | UNICORN | Rare | Shop (500c) / Ruleta | `#8fe6d2` |
 | `witch` | WITCH | Rare | Shop (680c) / Ruleta | `#c24dd6` |
 | `phoenix` | PHOENIX | Rare | Shop (750c) / Ruleta | `#ff6a3d` |
 | `wizard` | WIZARD | Rare | Shop (820c) / Ruleta | `#ffe08a` |
-| `frost` | FROST | Epic | Shop (900c) / Ruleta | `#9fe0ff` |
-| `ghost` | GHOST | Epic | Shop (1000c) / Ruleta | `#cdd6ff` |
-| `king` | GOLD KING | Legendary | Shop (1200c) / Ruleta | `#ffd24a` |
 | `nemesis` | NEMESIS | Legendary | Shop (1400c) / Ruleta | `#b24dff` |
 
 **Palette swaps (recompensas de achievement, no en shop):**

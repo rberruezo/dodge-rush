@@ -7,6 +7,7 @@ import { coinCounter } from '../ui/CoinCounter';
 import { Daily } from '../systems/DailyManager';
 import { Profile } from '../systems/ProfileManager';
 import { Sound } from '../systems/SoundManager';
+import { Spin } from '../systems/SpinManager';
 
 /**
  * Daily hub modal: a login-streak coin reward plus today's rotating mission.
@@ -175,6 +176,7 @@ export class DailyScene extends Phaser.Scene {
       const btn = new Button(this, cx, barY, claimLabel, () => {
         const r = Daily.claimMission(m.difficulty);
         if (r !== null) {
+          if (r.spin) Spin.addBonus();
           Sound.newBest();
           this.render();
         }

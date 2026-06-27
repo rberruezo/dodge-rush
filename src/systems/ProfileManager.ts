@@ -66,6 +66,13 @@ class ProfileManagerImpl {
     return true;
   }
 
+  /** Grant a skin without payment (spin reward, achievement unlock). */
+  unlock(id: string): void {
+    if (this.owned.has(id)) return;
+    this.owned.add(id);
+    this.save(STORAGE_KEYS.OWNED_SKINS, JSON.stringify([...this.owned]));
+  }
+
   select(id: string): void {
     if (!this.owned.has(id)) return;
     this.selected_ = id;

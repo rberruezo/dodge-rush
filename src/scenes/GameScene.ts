@@ -160,12 +160,12 @@ export class GameScene extends Phaser.Scene {
     this.score.update(dt);
     const snapshot = DifficultyManager.sample(this.score.elapsedSeconds);
 
-    // Combo speeds the game up (on top of the time ramp); resets with the combo.
-    // Both the bonus and its cap scale with the difficulty mode (RELAX stays calm).
+    // Speed scales with time only (DifficultyManager ramp). Combo no longer
+    // affects speed — it only multiplies score. This keeps difficulty predictable
+    // for kids/casual players (GME-GD-004).
     const mode = DifficultyManager.mode;
-    const comboBonus = this.combo.speedBonus * mode.comboSpeedScale;
     const maxSpeed = LIVES_CFG.maxComboSpeed * mode.speedScale;
-    const speed = Math.min(maxSpeed, snapshot.speed + comboBonus);
+    const speed = Math.min(maxSpeed, snapshot.speed);
     this.bg.update(dt, speed);
 
     // Rising-tension cue: a subtle low pulse once the game nears top speed.
