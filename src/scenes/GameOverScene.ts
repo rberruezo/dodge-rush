@@ -11,6 +11,7 @@ import { Rewarded } from '../systems/Rewarded';
 import { Spin } from '../systems/SpinManager';
 import { Achievements } from '../systems/AchievementManager';
 import { Sound } from '../systems/SoundManager';
+import { FEATURES } from '../config/FeatureFlags';
 
 interface GameOverData {
   score: number;
@@ -76,44 +77,53 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     const isClassic = DifficultyManager.mode.id === 'classic';
-    const coinLabel = isClassic && coins > 0
-      ? `+${coins}  ×1.5  TOTAL ${Profile.coins}`
-      : `+${coins}   TOTAL ${Profile.coins}`;
-    coinCounter(this, cx, 556, coinLabel, { size: 26 });
-    if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
-
-    // Achievement unlock(s) earned by this run — drained once, shown as a top toast.
-    const earned = Achievements.takePending();
-    if (earned.length) {
-      const names = earned.map((a) => a.name).join(' + ');
-      const toast = this.add
-        .text(cx, 162, `🏆 ${names} unlocked!`, Text.button(22, COLORS.gold))
-        .setOrigin(0.5)
-        .setDepth(200)
-        .setAlpha(0);
-      this.tweens.add({ targets: toast, alpha: 1, duration: 320, hold: 1900, yoyo: true, onComplete: () => toast.destroy() });
-      this.time.delayedCall(400, () => Sound.newBest());
+    if (FEATURES.MONETIZATION_ENABLED) {
+      const coinLabel = isClassic && coins > 0
+        ? `+${coins}  ×1.5  TOTAL ${Profile.coins}`
+        : `+${coins}   TOTAL ${Profile.coins}`;
+      coinCounter(this, cx, 556, coinLabel, { size: 26 });
+      if (coins > 0) this.time.delayedCall(250, () => Sound.coin());
     }
 
-    if (data?.missionDone) {
+    // Achievement unlock(s) earned by this run — drained once, shown as a top toast.
+    if (FEATURES.ACHIEVEMENTS_ENABLED) {
+      const earned = Achievements.takePending();
+      if (earned.length) {
+        const names = earned.map((a) => a.name).join(' + ');
+        const toast = this.add
+          .text(cx, 162, `🏆 ${names} unlocked!`, Text.button(22, COLORS.gold))
+          .setOrigin(0.5)
+          .setDepth(200)
+          .setAlpha(0);
+        this.tweens.add({ targets: toast, alpha: 1, duration: 320, hold: 1900, yoyo: true, onComplete: () => toast.destroy() });
+        this.time.delayedCall(400, () => Sound.newBest());
+      }
+    }
+
+    if (FEATURES.DAILY_ENABLED && data?.missionDone) {
       this.add
         .text(cx, 604, '🎯 Daily mission done — claim it in DAILY!', Text.body(22, '#7bf0a8'))
         .setOrigin(0.5);
     }
 
     // Spin slot: first run gets a free guaranteed pilot; otherwise opt-in via ad.
-    if (isFirstRun) {
-      this.renderSpinSlot(cx, 650, true);
-    } else if (Spin.canSpin()) {
-      this.renderSpinSlot(cx, 650, false);
+    if (FEATURES.MONETIZATION_ENABLED) {
+      if (isFirstRun) {
+        this.renderSpinSlot(cx, 650, true);
+      } else if (Spin.canSpin()) {
+        this.renderSpinSlot(cx, 650, false);
+      }
     }
 
-    new Button(this, cx, 790, 'RETRY', () => this.scene.start('Game'), {
+    // In MVP v1.0 (no monetization/daily), collapse the layout up.
+    const retryY = FEATURES.MONETIZATION_ENABLED ? 790 : 620;
+    const menuY = FEATURES.MONETIZATION_ENABLED ? 886 : 716;
+    new Button(this, cx, retryY, 'RETRY', () => this.scene.start('Game'), {
       width: 320,
       height: 82,
       fontSize: 32
     });
-    new Button(this, cx, 886, 'MENU', () => this.scene.start('MainMenu'), {
+    new Button(this, cx, menuY, 'MENU', () => this.scene.start('MainMenu'), {
       width: 320,
       height: 60,
       fontSize: 24,
