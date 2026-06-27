@@ -22,6 +22,7 @@ import {
   GW,
   GH,
 } from './helpers';
+import { FEATURES } from '../src/config/FeatureFlags';
 
 test.describe('E2E-PER — Persistence across reload', () => {
   // ----- Mute toggle ----------------------------------------------------
@@ -53,6 +54,9 @@ test.describe('E2E-PER — Persistence across reload', () => {
   // ----- Difficulty toggle ----------------------------------------------
 
   test('E2E-PER-02: difficulty toggle persists after page reload', async ({ page }) => {
+    // MVP v1.0 hides the difficulty toggle (RELAX disabled); the toggle UI only
+    // exists when RELAX_MODE_ENABLED. Re-enabled in v1.1.
+    test.skip(!FEATURES.RELAX_MODE_ENABLED, 'RELAX disabled in MVP v1.0 — difficulty toggle is hidden');
     // Boot without any difficulty set → defaults to "classic".
     await gotoWithState(page);
     await waitForScene(page, 'MainMenu');

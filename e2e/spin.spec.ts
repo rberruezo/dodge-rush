@@ -28,6 +28,7 @@ import {
   diagnosticErrors,
   LS,
 } from './helpers';
+import { FEATURES } from '../src/config/FeatureFlags';
 
 // In GameOverScene the spin slot is rendered at (GAME_WIDTH/2, 650) = (270, 650).
 const SPIN_BTN_X = 270;
@@ -42,6 +43,8 @@ test.describe('E2E-SPN — Spin roulette', () => {
   // ----- Free spin on first run -----------------------------------------
 
   test('E2E-SPN-01: first-run GameOver shows free spin button (no ad required)', async ({ page }) => {
+    // The spin slot is part of monetization, disabled in MVP v1.0.
+    test.skip(!FEATURES.MONETIZATION_ENABLED, 'MONETIZATION disabled in MVP v1.0 — spin slot is off');
     // totalRuns=1 means the player just finished run #1 → isFirstRun = true.
     await gotoWithState(page, {
       [LS.TOTAL_RUNS]: '1',
@@ -107,6 +110,8 @@ test.describe('E2E-SPN — Spin roulette', () => {
   // ----- Consolation coins when all skins are owned ---------------------
 
   test('E2E-SPN-03: spin grants consolation coins when all skins are owned', async ({ page }) => {
+    // The spin slot is part of monetization, disabled in MVP v1.0.
+    test.skip(!FEATURES.MONETIZATION_ENABLED, 'MONETIZATION disabled in MVP v1.0 — spin slot is off');
     // Seed all purchasable skins as owned so the draw always hits the coins path.
     const allSkinIds = ['classic', 'cat', 'hound', 'dragon', 'unicorn', 'witch', 'phoenix', 'wizard', 'nemesis'];
     const startCoins = 100;

@@ -22,6 +22,7 @@ import {
   diagnosticErrors,
   LS,
 } from './helpers';
+import { FEATURES } from '../src/config/FeatureFlags';
 
 /** Returns a YYYY-MM-DD string offset by `deltaDays` from today. */
 function dayOffset(deltaDays: number): string {
@@ -55,6 +56,10 @@ test.describe('E2E-DAI — Daily hub', () => {
   // ----- Auto-open from MainMenu ----------------------------------------
 
   test('E2E-DAI-01: Daily hub auto-opens from MainMenu when streak is claimable', async ({ page }) => {
+    // MVP v1.0: DAILY is disabled, so the hub must NOT auto-open even when a
+    // reward is seeded as claimable. When the feature is re-enabled (v1.1) the
+    // hub auto-opens as the retention hook.
+    test.skip(!FEATURES.DAILY_ENABLED, 'DAILY disabled in MVP v1.0 — auto-open is off');
     await gotoWithState(page, {
       [LS.DAILY]: claimableDailyState(),
     });
