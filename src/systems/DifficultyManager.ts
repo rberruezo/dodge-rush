@@ -10,6 +10,7 @@ import {
 } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, ALL_OBSTACLE_TYPES } from '../config/ObstacleTypes';
 import { Diagnostics } from './Diagnostics';
+import { FEATURES } from '../config/FeatureFlags';
 
 export interface DifficultySnapshot {
   level: number; // integer step (every 30s)
@@ -37,6 +38,10 @@ export class DifficultyManager {
 
   /** Switch + persist the difficulty mode. */
   static setMode(id: DifficultyModeId): void {
+    if (!FEATURES.RELAX_MODE_ENABLED) {
+      console.warn('[DifficultyManager] Mode switching disabled in MVP v1.0');
+      return;
+    }
     this.mode_ = DIFFICULTY_MODES[id] ?? DIFFICULTY_MODES[DEFAULT_DIFFICULTY];
     try {
       localStorage.setItem(STORAGE_KEYS.DIFFICULTY, this.mode_.id);
