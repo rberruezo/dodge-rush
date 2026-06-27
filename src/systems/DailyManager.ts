@@ -7,6 +7,7 @@ import {
   STORAGE_KEYS
 } from '../config/Constants';
 import { Profile } from './ProfileManager';
+import { FEATURES } from '../config/FeatureFlags';
 
 /** Per-run stats the mission tracker reads. */
 export interface RunStats {
@@ -210,6 +211,7 @@ class DailyManagerImpl {
    * the previous best) so the challenge stays meaningful.
    */
   reportRun(stats: RunStats): void {
+    if (!FEATURES.DAILY_ENABLED) return; // disabled in MVP v1.0
     this.ensureMissions();
     const ms = this.state.missions!;
     let dirty = false;

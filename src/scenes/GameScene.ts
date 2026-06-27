@@ -24,6 +24,7 @@ import { Achievements } from '../systems/AchievementManager';
 import { HUD } from '../ui/HUD';
 import { EffectsLayer } from '../ui/EffectsLayer';
 import { Sound, MUSIC } from '../systems/SoundManager';
+import { FEATURES } from '../config/FeatureFlags';
 
 /**
  * The playable scene. Orchestrates difficulty, the obstacle stream, the combo
@@ -366,7 +367,7 @@ export class GameScene extends Phaser.Scene {
 
     // Feed the daily mission (best-in-run progress) and flag a fresh completion.
     Daily.reportRun({ passes: this.passCount, combo: this.maxCombo, score: finalScore });
-    const missionDone = Daily.hasUnclaimed();
+    const missionDone = FEATURES.DAILY_ENABLED && Daily.hasUnclaimed();
 
     this.cameras.main.shake(300, 0.016);
     this.time.delayedCall(420, () => {
