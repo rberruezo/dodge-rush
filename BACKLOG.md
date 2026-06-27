@@ -96,6 +96,7 @@ No es MVP: iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantall
 | ID | Ticket | Prioridad | Status | Responsables |
 |---|---|---|---|---|
 | `DIS-001` | **Revisar y decidir sobre simplificación del core loop** — RESUELTO. Decisión: versión simplificada completa. Ver DEC-006 y tickets GME-009/010/011. | ~~P0 URGENTE~~ | ✅ DONE | Product Owner |
+| `DIS-002` | **MVP Minimal vs Feature-Rich (2026-06-27).** Propuesta de Game Designer: apagar 5 features para V1.0 (shop, monedas, misiones, combo-labels, relax-mode) → mantener SOLO core loop (tap, dodge, combo, best). Razón: D1R en kids — reduce cognitive load, aumenta focus en replayability. Todas las features quedan en código, se reactivan en V1.1 con feature flags. Ver análisis en `docs/mvp-minimal-proposal.md`. **Decisión requerida ANTES de dev.**  | **P0 URGENTE** | PENDING | Product Owner |
 
 ---
 
