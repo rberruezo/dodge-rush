@@ -219,6 +219,22 @@ Esto permite **apagar features sin borrar código** — clean revert a producci�
 
 Apaga 5 features complicas, mantiene el loop que genera "one more try". El juego sigue siendo atractivo (combos, velocidad, dificultad ramp), pero el niño de 6 años no se confunde con "¿qué es una moneda?".
 
+---
+
+## Implementation Status (2026-06-27)
+
+Implemented by Claude LLM Agent. All steps complete. Reverting: flip 5 booleans in `src/config/FeatureFlags.ts`.
+
+| Step | Item | Status | Commit |
+|---|---|---|---|
+| 0 | Create `src/config/FeatureFlags.ts` | ✅ DONE | `feat: add feature flags system for MVP v1.0 simplification` |
+| 1 | Hide SHOP + DAILY buttons in `MainMenuScene` | ✅ DONE | `feat(UI): hide SHOP and DAILY buttons when feature flags disabled` |
+| 2 | Remove monetization UI from `GameOverScene` | ✅ DONE | `feat(UI): remove monetization UI from GameOverScene` |
+| 3 | Disable zone banners in `HUD` (COMBO_LABELS_ENABLED) | ✅ DONE | `feat(UI): disable combo zone banners in HUD` |
+| 4 | Guard `setMode()` in `DifficultyManager` | ✅ DONE | `feat(config): disable RELAX mode in MVP v1.0` |
+| 5 | Guard `reportRun()` in `DailyManager` + `missionDone` in `GameScene` | ✅ DONE | `feat(systems): disable daily missions when flag is off` |
+| 6 | `tsc --noEmit` clean, `vite build` clean (47 modules) | ✅ DONE | — |
+
 **Timeline:**
 - V1.0 (MVP): Lanzamiento simplificado — focus en D1R y retención pura
 - V1.1 (2-3 semanas post-launch): Reactive shop + skins aleatorios basado en feedback real
