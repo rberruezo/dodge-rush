@@ -19,6 +19,7 @@ import { Profile } from '../systems/ProfileManager';
 import { DifficultyManager } from '../systems/DifficultyManager';
 import { Daily } from '../systems/DailyManager';
 import { Sound, MUSIC } from '../systems/SoundManager';
+import { FEATURES } from '../config/FeatureFlags';
 
 /**
  * Title screen: hovering hero (wearing the equipped skin), best score & coins,
@@ -73,7 +74,9 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const best = this.add.text(cx, 452, `BEST ${high}`, Text.label(26)).setOrigin(0.5);
-    const coins = coinCounter(this, cx, 492, `${Profile.coins}`, { size: 26 });
+    const coins = FEATURES.MONETIZATION_ENABLED
+      ? coinCounter(this, cx, 492, `${Profile.coins}`, { size: 26 })
+      : this.add.text(0, 0, '').setVisible(false); // hidden in MVP v1.0
 
     const playBtn = new Button(this, cx, 588, 'PLAY', () => this.launch(), {
       width: 320,
@@ -86,6 +89,10 @@ export class MainMenuScene extends Phaser.Scene {
       fontSize: 24,
       fill: 0x6a4bd0
     });
+    if (!FEATURES.SHOP_ENABLED) {
+      shopBtn.setVisible(false);
+      shopBtn.disableInteractive();
+    }
     const howBtn = new Button(this, 380, 690, 'HOW?', () => this.scene.start('Info'), {
       width: 200,
       height: 72,
@@ -122,9 +129,15 @@ export class MainMenuScene extends Phaser.Scene {
       DifficultyManager.setMode(next);
       this.diffText.setText(this.diffLabel());
     });
+    if (!FEATURES.RELAX_MODE_ENABLED) {
+      this.diffText.setVisible(false);
+      this.diffText.disableInteractive();
+    }
 
     const daily = this.createDailyButton();
+    if (!FEATURES.DAILY_ENABLED) daily.setVisible(false);
     const achievements = this.createAchievementsButton();
+    if (!FEATURES.ACHIEVEMENTS_ENABLED) achievements.setVisible(false);
 
     // Build/version stamp (bottom-right, discreet) so QA knows what they're testing.
     const version = this.add
@@ -136,7 +149,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // First time at the menu this session, surface the Daily hub if there's
     // something to claim — the core "come back tomorrow" retention hook.
-    if (!MainMenuScene.dailyAutoShown && Daily.hasUnclaimed()) {
+    if (FEATURES.DAILY_ENABLED && !MainMenuScene.dailyAutoShown && Daily.hasUnclaimed()) {
       MainMenuScene.dailyAutoShown = true;
       this.time.delayedCall(420, () => {
         if (!this.launching) this.scene.start('Daily');
