@@ -1,8 +1,11 @@
 import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
+import { DifficultyManager } from './DifficultyManager';
 import { Diagnostics } from './Diagnostics';
 
 /**
  * Owns the run score (survival time + pass bonuses) and the persisted high score.
+ * The high score is kept PER difficulty mode (GME-012 / DEC-007 option B): CLASSIC
+ * and RELAX have independent records, so a relaxed run never tops a classic best.
  * Pure data/logic — no rendering — so it is trivial to unit test or reuse.
  */
 export class ScoreManager {
@@ -57,10 +60,17 @@ export class ScoreManager {
     return false;
   }
 
+  /** localStorage key for the active mode's record (CLASSIC keeps the legacy key). */
+  private static highScoreKey(): string {
+    return DifficultyManager.mode.id === 'relax'
+      ? STORAGE_KEYS.HIGH_SCORE_RELAX
+      : STORAGE_KEYS.HIGH_SCORE;
+  }
+
   private static load(): number {
     try {
       // Reject NaN / negative high scores (tampered or corrupt storage).
-      const v = parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) ?? '0', 10);
+      const v = parseInt(localStorage.getItem(ScoreManager.highScoreKey()) ?? '0', 10);
       return Number.isFinite(v) && v > 0 ? v : 0;
     } catch (e) {
       Diagnostics.warn('storage', 'high-score read failed', e);
@@ -70,7 +80,7 @@ export class ScoreManager {
 
   private static save(value: number): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, String(value));
+      localStorage.setItem(ScoreManager.highScoreKey(), String(value));
     } catch (e) {
       Diagnostics.warn('storage', 'high-score save failed', e); // private mode, quota, etc.
     }

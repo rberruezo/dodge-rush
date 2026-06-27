@@ -5,6 +5,7 @@ import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
+import { DifficultyManager } from '../systems/DifficultyManager';
 import { Profile } from '../systems/ProfileManager';
 import { Rewarded } from '../systems/Rewarded';
 import { Spin } from '../systems/SpinManager';
@@ -58,7 +59,7 @@ export class GameOverScene extends Phaser.Scene {
 
     this.add.text(cx, 348, 'SCORE', Text.body(26, '#ffd9ec')).setOrigin(0.5);
     this.add.text(cx, 394, String(score), Text.score(56)).setOrigin(0.5);
-    this.add.text(cx, 458, `BEST  ${best}`, Text.label(26)).setOrigin(0.5);
+    this.add.text(cx, 458, `BEST · ${DifficultyManager.mode.label}  ${best}`, Text.label(26)).setOrigin(0.5);
 
     if (isNewBest) {
       const badge = this.add.text(cx, 496, '★ NEW BEST! ★', Text.button(22, COLORS.accent)).setOrigin(0.5);

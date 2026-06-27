@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ScoreManager } from './ScoreManager';
+import { DifficultyManager } from './DifficultyManager';
 import { SCORE_CFG, STORAGE_KEYS } from '../config/Constants';
 
 describe('ScoreManager', () => {
@@ -54,5 +55,27 @@ describe('ScoreManager', () => {
     localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, '-500');
     const s = new ScoreManager();
     expect(s.high).toBe(0);
+  });
+
+  it('keeps separate high scores per difficulty mode (GME-012)', () => {
+    localStorage.clear();
+
+    // CLASSIC best writes the legacy key.
+    DifficultyManager.setMode('classic');
+    const classic = new ScoreManager();
+    classic.update(3000);
+    expect(classic.commit()).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)).toBe('30');
+
+    // RELAX has an independent record under its own key.
+    DifficultyManager.setMode('relax');
+    const relax = new ScoreManager();
+    expect(relax.high).toBe(0); // not affected by the classic run
+    relax.update(1000);
+    expect(relax.commit()).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE_RELAX)).toBe('10');
+    expect(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)).toBe('30'); // classic untouched
+
+    DifficultyManager.setMode('classic'); // restore default for any later tests
   });
 });

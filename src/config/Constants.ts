@@ -107,7 +107,8 @@ export const ANIM_KEYS = {
 } as const;
 
 export const STORAGE_KEYS = {
-  HIGH_SCORE: 'dodgerush.highscore',
+  HIGH_SCORE: 'dodgerush.highscore', // CLASSIC mode best (legacy key — existing data = classic)
+  HIGH_SCORE_RELAX: 'dodgerush.highscore.relax', // RELAX mode best (GME-012 — per-mode records)
   MUTED: 'dodgerush.muted',
   COINS: 'dodgerush.coins',
   OWNED_SKINS: 'dodgerush.skins',
