@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import { CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { ANIM_KEYS, CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';
 import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
+import { AnimationManager } from '../systems/AnimationManager';
 import { DifficultyManager } from '../systems/DifficultyManager';
 import { Profile } from '../systems/ProfileManager';
 import { Rewarded } from '../systems/Rewarded';
@@ -49,38 +50,46 @@ export class GameOverScene extends Phaser.Scene {
       .sprite(cx, 232, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
       .setScale(1.1);
     if (skin.tint !== null) hero.setTint(skin.tint);
-    this.tweens.add({
-      targets: hero,
-      y: isNewBest ? 220 : 244,
-      angle: isNewBest ? 0 : -4,
-      duration: isNewBest ? 700 : 1200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.inOut'
-    });
+    if (isNewBest) {
+      // Lively, smooth celebration: play the sheet's arms-up cheer animation
+      // (falls back to the static crown frame if a partial sheet lacks it) with
+      // a gentle idle bob. Previously this was a *static* crown frame sliding up
+      // and down — the stiff, "weird" festejo the player reported.
+      const cheerKey = AnimationManager.key(skin.sheet, ANIM_KEYS.CHEER);
+      if (this.anims.exists(cheerKey)) hero.play(cheerKey);
+      this.tweens.add({
+        targets: hero,
+        y: 224,
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut'
+      });
+    } else {
+      this.tweens.add({
+        targets: hero,
+        y: 244,
+        angle: -4,
+        duration: 1200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut'
+      });
+    }
 
     this.add.text(cx, 348, 'SCORE', Text.body(26, '#ffd9ec')).setOrigin(0.5);
     this.add.text(cx, 394, String(score), Text.score(56)).setOrigin(0.5);
     this.add.text(cx, 458, `BEST  ${best}`, Text.label(26)).setOrigin(0.5);
 
     if (isNewBest) {
-      // Single celebratory entrance: pop in, two gentle pulses, then settle.
-      // (Previously looped forever via repeat:-1 — the run-on celebration the
-      // player reported. Now it plays once and stops, synced to the result.)
+      // Single, clean celebratory pop-in — one gesture, then it rests. The hero's
+      // cheer animation carries the ongoing celebration, so the badge no longer
+      // pulses on a loop (the run-on, jittery festejo the player reported).
       const badge = this.add
         .text(cx, 496, '★ NEW BEST! ★', Text.button(22, COLORS.accent))
         .setOrigin(0.5)
         .setScale(0);
-      this.tweens.add({ targets: badge, scale: 1, duration: 360, ease: 'Back.out' });
-      this.tweens.add({
-        targets: badge,
-        scale: { from: 1, to: 1.12 },
-        duration: 300,
-        delay: 360,
-        yoyo: true,
-        repeat: 1, // two pulses, then rest
-        ease: 'Sine.inOut'
-      });
+      this.tweens.add({ targets: badge, scale: 1, duration: 420, ease: 'Back.out' });
       Sound.newBest();
     }
 

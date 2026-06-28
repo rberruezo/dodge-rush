@@ -45,8 +45,7 @@ export class Background {
   private scene: Phaser.Scene;
   private scrollY = 0;
 
-  private skyA: Phaser.GameObjects.Image; // current zone (opaque)
-  private skyB: Phaser.GameObjects.Image; // next zone (fades in)
+  private skies: Phaser.GameObjects.Image[] = []; // one per zone, alpha-crossfaded (no setTexture swap)
   private layers: Layer[] = [];
   private grade!: Phaser.GameObjects.Image;
   private vignette?: Phaser.GameObjects.Image;
@@ -54,7 +53,7 @@ export class Background {
   private zoneI = -1; // last applied zone index (forces a refresh on first frame)
   private structTint = -1; // cached tints so we only re-apply on change
   private cloudTint = -1;
-  private baseColor = -1; // cached camera-clear colour (device-proof sky floor)
+  private baseColor = -1; // cached CSS sky-floor colour (device-proof, GL-independent)
 
   constructor(scene: Phaser.Scene, startScrollY = 0) {
     this.scene = scene;
@@ -63,9 +62,12 @@ export class Background {
     const mkFull = (key: string) =>
       scene.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
 
-    // 1. Sky pair (textures set in syncZone()).
-    this.skyA = mkFull(BG_ZONES[0].sky);
-    this.skyB = mkFull(BG_ZONES[0].sky).setAlpha(0);
+    // 1. One full-screen sky per zone, each with its texture fixed at creation
+    // and alpha-crossfaded in syncZone(). We deliberately avoid swapping a
+    // single image's texture with setTexture(): that swap left the sky blank on
+    // some Android WebView GL drivers (BG-005), while images whose texture is
+    // set once (like the cloud layers) always render. Visibility = alpha only.
+    this.skies = BG_ZONES.map((z) => mkFull(z.sky).setAlpha(0));
 
     // 2/4/5. Parallax + light + near-cloud layers, plus the grade wash injected
     // at the configured point. Build in draw order; depth offsets lock that order.
@@ -162,14 +164,14 @@ export class Background {
     const cf = BG_CFG.crossfadeFrac;
     const t = frac <= 1 - cf ? 0 : (frac - (1 - cf)) / cf;
 
-    // Sky textures only change when we cross into a new zone band.
-    if (force || ci !== this.zoneI) {
-      this.zoneI = ci;
-      this.skyA.setTexture(cur.sky).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-      this.skyB.setTexture(nxt.sky).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
-    }
-    this.skyA.setAlpha(1);
-    this.skyB.setAlpha(t);
+    // Cross-fade by alpha between the current zone's sky and the next one; every
+    // other zone sky stays hidden. No texture swapping (see constructor).
+    if (force || ci !== this.zoneI) this.zoneI = ci;
+    const curI = mod(ci, n);
+    const nxtI = mod(ci + 1, n);
+    for (let k = 0; k < this.skies.length; k++) this.skies[k].setAlpha(0);
+    this.skies[curI].setAlpha(1);
+    if (nxtI !== curI) this.skies[nxtI].setAlpha(t);
 
     // Interpolated tints (cheap; re-applied to sprites only when they change).
     const struct = lerpColor(cur.struct, nxt.struct, t);
@@ -190,16 +192,17 @@ export class Background {
     const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
     this.grade.setTint(gradeColor).setAlpha(gradeA);
 
-    // Device-proof base: paint the camera's clear with the zone's sky colour.
-    // Unlike a textured quad (the bg_sky_* PNGs, which went invisible on some
-    // Android WebView GL drivers — BG-005/BUG-008), the clear is a glClear and
-    // cannot fail to render. The opaque PNG sky still draws on top of it on
-    // healthy devices/web; where it doesn't, the player sees a smooth, correct
-    // day/night colour instead of an empty void.
+    // Device-proof base: paint the zone's sky colour as a CSS background on the
+    // #game element behind the transparent WebGL canvas. The browser compositor
+    // — not the GL driver — draws it, so where the textured sky quad failed to
+    // render on some Android WebView GL drivers (BG-005/BUG-008) the player still
+    // sees a smooth, correct day/night colour instead of an empty void. The PNG
+    // sky draws on top of it on healthy devices/web.
     const base = lerpColor(cur.base, nxt.base, t);
     if (base !== this.baseColor) {
       this.baseColor = base;
-      this.scene.cameras.main.setBackgroundColor(base);
+      const parent = this.scene.game.canvas?.parentElement;
+      if (parent) parent.style.backgroundColor = '#' + base.toString(16).padStart(6, '0');
     }
   }
 
@@ -213,8 +216,7 @@ export class Background {
    * top of the background.
    */
   setDepth(depth: number): this {
-    this.skyA.setDepth(depth);
-    this.skyB.setDepth(depth);
+    for (const sky of this.skies) sky.setDepth(depth);
     this.grade.setDepth(depth);
     for (const layer of this.layers) layer.sprites.forEach((s) => s.setDepth(depth));
     this.vignette?.setDepth(depth);
@@ -222,8 +224,7 @@ export class Background {
   }
 
   destroy(): void {
-    this.skyA.destroy();
-    this.skyB.destroy();
+    for (const sky of this.skies) sky.destroy();
     this.grade.destroy();
     this.vignette?.destroy();
     for (const layer of this.layers) layer.sprites.forEach((s) => s.destroy());
