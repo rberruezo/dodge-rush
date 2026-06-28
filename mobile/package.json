@@ -1,6 +1,6 @@
 {
   "name": "dodge-rush-mobile",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "description": "Android (Expo) wrapper that ships the Dodge Rush web build offline inside a WebView.",
   "main": "node_modules/expo/AppEntry.js",

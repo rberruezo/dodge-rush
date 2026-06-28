@@ -17,7 +17,7 @@ export const TARGET_FPS = 60;
  * hand with every QA/release build — keep it in sync with `versionCode` in
  * `mobile/app.json`. See mobile/README.md → "Version bump protocol".
  */
-export const BUILD_NUMBER = 5;
+export const BUILD_NUMBER = 6;
 
 /** Texture / animation lookup keys (avoid magic strings around the codebase). */
 export const ASSET_KEYS = {
