@@ -196,20 +196,23 @@ export class GameScene extends Phaser.Scene {
     this.player.steer(dt, dir);
     this.player.aliveTick(dt);
 
-    // Visual pose priority: dizzy > combo-celebration > boost > steering > hover.
+    // Visual pose priority: dizzy > boost > steering > combo-celebration > hover.
+    // Steering deliberately beats the combo cheer: while the player is actively
+    // dodging, the character keeps flying instead of flickering into the
+    // front-facing cheer every time a combo tier fires (the "goes crazy" look at
+    // high speed). The cheer only plays when coasting, and the combo popup/SFX
+    // still celebrate the tier regardless.
     const boostActive = now < this.boostUntilMs;
     const lifeInvincible = now < this.invincibleUntilMs;
     const immune = lifeInvincible;
     if (lifeInvincible) {
       this.player.setPose({ kind: 'dizzy' });
-    } else if (now < this.comboCelebUntilMs) {
-      // Smooth, front-facing arms-up cheer for every combo tier (avoids the
-      // jarring static side-pose that mirror-flipped with steering).
-      this.player.setPose({ kind: 'cheer' });
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
       this.player.setPose({ kind: this.dirHoldMs > PLAYER_CFG.effortHoldMs ? 'moveHard' : 'move' });
+    } else if (now < this.comboCelebUntilMs) {
+      this.player.setPose({ kind: 'cheer' });
     } else {
       this.player.setPose({ kind: 'hover' });
     }

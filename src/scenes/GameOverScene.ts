@@ -51,16 +51,27 @@ export class GameOverScene extends Phaser.Scene {
       .setScale(1.1);
     if (skin.tint !== null) hero.setTint(skin.tint);
     if (isNewBest) {
-      // Lively, smooth celebration: play the sheet's arms-up cheer animation
-      // (falls back to the static crown frame if a partial sheet lacks it) with
-      // a gentle idle bob. Previously this was a *static* crown frame sliding up
-      // and down — the stiff, "weird" festejo the player reported.
+      // Lively, fluid celebration: the sheet's arms-up cheer animation paired
+      // with a smooth hop and a gentle vertical stretch at the top, so the hero
+      // bounces with joy instead of rigidly sliding up and down (the stiff,
+      // "weird" festejo the player reported). Falls back to the static crown
+      // frame if a partial sheet lacks the cheer animation.
       const cheerKey = AnimationManager.key(skin.sheet, ANIM_KEYS.CHEER);
       if (this.anims.exists(cheerKey)) hero.play(cheerKey);
       this.tweens.add({
         targets: hero,
-        y: 224,
-        duration: 900,
+        y: 214,
+        duration: 640,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut'
+      });
+      // Squash/stretch breath synced to the hop — taller at the peak, relaxed at
+      // the bottom — the bit of "juice" that makes the bounce read as alive.
+      this.tweens.add({
+        targets: hero,
+        scaleY: 1.2,
+        duration: 640,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.inOut'

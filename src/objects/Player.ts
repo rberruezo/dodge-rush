@@ -31,6 +31,7 @@ export class Player extends Phaser.GameObjects.Sprite {
   private bobT = 0;
   private poseKey = '';
   private faceDir: 1 | -1 = 1; // last horizontal facing (+1 right, -1 left)
+  private faceHoldMs = 0; // how long the current non-facing direction has been held
   private natFacesRight = true; // natural facing of the current pose
   private sheetKey: string = ASSET_KEYS.CHARACTER; // skin sprite sheet
 
@@ -64,10 +65,22 @@ export class Player extends Phaser.GameObjects.Sprite {
   steer(dt: number, dir: -1 | 0 | 1): void {
     if (dir !== 0) {
       this.x += dir * PLAYER_CFG.moveSpeed * dt;
-      this.faceDir = dir; // remembered, so rest keeps facing this way
+      // Debounce the cosmetic facing flip: the sprite only mirrors to a new
+      // direction once it has been held briefly. Rapid left/right dodge taps
+      // therefore keep a steady facing instead of strobing the character.
+      if (dir === this.faceDir) {
+        this.faceHoldMs = 0;
+      } else {
+        this.faceHoldMs += dt;
+        if (this.faceHoldMs >= PLAYER_CFG.faceFlipDelayMs) {
+          this.faceDir = dir; // remembered, so rest keeps facing this way
+          this.faceHoldMs = 0;
+        }
+      }
       this.targetTilt = dir * PLAYER_CFG.tiltDegrees;
     } else {
       this.targetTilt = 0;
+      this.faceHoldMs = 0;
     }
     const margin = this.displayWidth * 0.28;
     this.x = Phaser.Math.Clamp(this.x, margin, GAME_WIDTH - margin);

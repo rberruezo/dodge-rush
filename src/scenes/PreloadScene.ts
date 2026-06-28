@@ -145,7 +145,17 @@ export class PreloadScene extends Phaser.Scene {
         return `${key.replace('bg_', '')}=${real ? `${w}x${h}` : 'FB'}`;
       })
       .join(' ');
-    Diagnostics.warn('bg-audit', report);
+    // Prefix the WebGL context state: `alpha=true` means the driver honours a
+    // transparent canvas (so the CSS sky shows through); `alpha=false` means it
+    // does not (the in-canvas generated gradient is what the player sees). This
+    // turns one logcat line into decisive evidence for BG-005.
+    const gl = (this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer).gl as
+      | WebGLRenderingContext
+      | undefined;
+    const glInfo = gl
+      ? `gl=WEBGL alpha=${gl.getContextAttributes()?.alpha} transparent=${this.game.config.transparent}`
+      : 'gl=CANVAS';
+    Diagnostics.warn('bg-audit', `${glInfo} | ${report}`);
 
     if (broken.length) {
       Diagnostics.warn('bg-audit', `healing broken bg textures: ${broken.join(',')}`);

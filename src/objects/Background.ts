@@ -4,6 +4,7 @@ import {
   BG_LAYERS,
   BG_CFG,
   BgLayer,
+  BgZone,
   GAME_WIDTH,
   GAME_HEIGHT
 } from '../config/Constants';
@@ -53,7 +54,7 @@ export class Background {
   private zoneI = -1; // last applied zone index (forces a refresh on first frame)
   private structTint = -1; // cached tints so we only re-apply on change
   private cloudTint = -1;
-  private baseColor = -1; // cached CSS sky-floor colour (device-proof, GL-independent)
+  private skyCss = ''; // cached CSS sky gradient (device-proof, GL-independent)
 
   constructor(scene: Phaser.Scene, startScrollY = 0) {
     this.scene = scene;
@@ -62,12 +63,15 @@ export class Background {
     const mkFull = (key: string) =>
       scene.add.image(0, 0, key).setOrigin(0, 0).setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
 
-    // 1. One full-screen sky per zone, each with its texture fixed at creation
-    // and alpha-crossfaded in syncZone(). We deliberately avoid swapping a
-    // single image's texture with setTexture(): that swap left the sky blank on
-    // some Android WebView GL drivers (BG-005), while images whose texture is
-    // set once (like the cloud layers) always render. Visibility = alpha only.
-    this.skies = BG_ZONES.map((z) => mkFull(z.sky).setAlpha(0));
+    // 1. One full-screen sky per zone, alpha-crossfaded in syncZone(). The sky is
+    // a tiny runtime-generated vertical gradient (a 16×960 canvas texture), NOT
+    // the heavy bg_sky_*.png. On some Android WebView GL drivers the large
+    // (81–200 KB) sky PNGs decoded but never uploaded/rendered while every
+    // lighter texture — including the same-sized vignette — did (BG-005). A
+    // generated gradient has no heavy file to decode, so it renders identically
+    // on web and device. Visibility = alpha only (no setTexture swap, which also
+    // failed on those drivers).
+    this.skies = BG_ZONES.map((z) => mkFull(this.makeSkyGradient(z)).setAlpha(0));
 
     // 2/4/5. Parallax + light + near-cloud layers, plus the grade wash injected
     // at the configured point. Build in draw order; depth offsets lock that order.
@@ -99,6 +103,31 @@ export class Background {
   }
 
   // ---- construction helpers -------------------------------------------------
+
+  /**
+   * Build (once) a tiny vertical-gradient sky texture for a zone and return its
+   * key. We draw a native linear gradient into a 16×960 canvas — crisp,
+   * band-free, and a few KB — instead of loading the heavy bg_sky_*.png, which
+   * decoded but never rendered on some Android WebView GL drivers (BG-005). The
+   * 16px width stretches uniformly to the full game width (the gradient is
+   * vertical, so horizontal sampling is constant).
+   */
+  private makeSkyGradient(zone: BgZone): string {
+    const key = `bg_skygrad_${zone.id}`;
+    if (this.scene.textures.exists(key)) return key;
+    const canvas = this.scene.textures.createCanvas(key, 16, GAME_HEIGHT);
+    if (!canvas) return zone.sky; // fall back to the PNG if canvas textures are unavailable
+    const ctx = canvas.getContext();
+    const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
+    const grad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+    grad.addColorStop(0, hex(zone.skyTop));
+    grad.addColorStop(0.45, hex(zone.skyMid));
+    grad.addColorStop(1, hex(zone.skyBot));
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 16, GAME_HEIGHT);
+    canvas.refresh();
+    return key;
+  }
 
   /**
    * Atmospheric wash. Rendered as a tinted full-screen Image (not a Phaser
@@ -192,18 +221,33 @@ export class Background {
     const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
     this.grade.setTint(gradeColor).setAlpha(gradeA);
 
-    // Device-proof base: paint the zone's sky colour as a CSS background on the
-    // #game element behind the transparent WebGL canvas. The browser compositor
-    // — not the GL driver — draws it, so where the textured sky quad failed to
-    // render on some Android WebView GL drivers (BG-005/BUG-008) the player still
-    // sees a smooth, correct day/night colour instead of an empty void. The PNG
-    // sky draws on top of it on healthy devices/web.
-    const base = lerpColor(cur.base, nxt.base, t);
-    if (base !== this.baseColor) {
-      this.baseColor = base;
-      const parent = this.scene.game.canvas?.parentElement;
-      if (parent) parent.style.backgroundColor = '#' + base.toString(16).padStart(6, '0');
-    }
+    // Device-proof sky floor: also paint the day/night gradient as a CSS
+    // background on the #game element (and the canvas) behind the WebGL canvas.
+    // The browser compositor — not the GL driver — draws it, so it fills the
+    // letterbox bars and, on drivers that honour canvas transparency, backs the
+    // in-canvas gradient with a pixel-identical sky. Harmless where the in-canvas
+    // gradient already covers the play area.
+    const top = lerpColor(cur.skyTop, nxt.skyTop, t);
+    const mid = lerpColor(cur.skyMid, nxt.skyMid, t);
+    const bot = lerpColor(cur.skyBot, nxt.skyBot, t);
+    this.applySkyCss(top, mid, bot);
+  }
+
+  /**
+   * Paint the interpolated day/night gradient as a CSS background on the canvas
+   * and its #game parent (letterbox bars + a safety net for GL drivers that
+   * honour canvas transparency). Cached so the DOM is only touched on change.
+   */
+  private applySkyCss(top: number, mid: number, bot: number): void {
+    const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
+    const css = `linear-gradient(to bottom, ${hex(top)} 0%, ${hex(mid)} 45%, ${hex(bot)} 100%)`;
+    if (css === this.skyCss) return;
+    this.skyCss = css;
+    const canvas = this.scene.game.canvas as HTMLCanvasElement | undefined;
+    if (!canvas) return;
+    canvas.style.background = css;
+    const parent = canvas.parentElement as HTMLElement | null;
+    if (parent) parent.style.background = css;
   }
 
   // ---- lifecycle ------------------------------------------------------------
