@@ -54,7 +54,8 @@ export class Background {
   private zoneI = -1; // last applied zone index (forces a refresh on first frame)
   private structTint = -1; // cached tints so we only re-apply on change
   private cloudTint = -1;
-  private skyCss = ''; // cached CSS sky gradient (device-proof, GL-independent)
+  private baseColor = -1; // cached opaque camera-clear colour (in-GL device-proof floor)
+  private skyCss = ''; // cached CSS sky gradient (web letterbox bars only)
 
   constructor(scene: Phaser.Scene, startScrollY = 0) {
     this.scene = scene;
@@ -221,12 +222,20 @@ export class Background {
     const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
     this.grade.setTint(gradeColor).setAlpha(gradeA);
 
-    // Device-proof sky floor: also paint the day/night gradient as a CSS
-    // background on the #game element (and the canvas) behind the WebGL canvas.
-    // The browser compositor — not the GL driver — draws it, so it fills the
-    // letterbox bars and, on drivers that honour canvas transparency, backs the
-    // in-canvas gradient with a pixel-identical sky. Harmless where the in-canvas
-    // gradient already covers the play area.
+    // Device-proof sky floor (in-GL): paint the zone's opaque `base` colour as
+    // the camera clear. Phaser draws it as a flat quad over the camera viewport
+    // before the display list, so the GL pipeline itself renders it — never the
+    // browser compositor. If the in-canvas sky gradient ever fails to upload
+    // (BG-005, some Android WebView drivers), the play area falls back to a solid
+    // sky tone instead of black; where the gradient renders, this stays hidden.
+    const base = lerpColor(cur.base, nxt.base, t);
+    this.applyBaseClear(base);
+
+    // Web extra: also paint the day/night gradient as a CSS background on the
+    // #game element (and canvas). The browser compositor draws it, filling the
+    // FIT letterbox bars on web. On the WebView's hardware GL surface the canvas
+    // is composited opaque, so this is web-only — the in-GL base above is what
+    // backs the play area on device.
     const top = lerpColor(cur.skyTop, nxt.skyTop, t);
     const mid = lerpColor(cur.skyMid, nxt.skyMid, t);
     const bot = lerpColor(cur.skyBot, nxt.skyBot, t);
@@ -234,9 +243,23 @@ export class Background {
   }
 
   /**
+   * Paint the zone's opaque `base` colour as the main camera's clear. Phaser
+   * draws this as a flat quad over the camera viewport before the scene's
+   * display list, so it's an in-GL floor that never depends on canvas
+   * transparency or the browser compositor — the device-proof backing for the
+   * sky (BG-005). Cached so we only touch the camera when the colour changes.
+   */
+  private applyBaseClear(color: number): void {
+    if (color === this.baseColor) return;
+    this.baseColor = color;
+    this.scene.cameras.main.setBackgroundColor(color);
+  }
+
+  /**
    * Paint the interpolated day/night gradient as a CSS background on the canvas
-   * and its #game parent (letterbox bars + a safety net for GL drivers that
-   * honour canvas transparency). Cached so the DOM is only touched on change.
+   * and its #game parent (FIT letterbox bars on web). The WebView composites the
+   * hardware GL canvas opaque, so on device this never shows — applyBaseClear is
+   * the device floor. Cached so the DOM is only touched on change.
    */
   private applySkyCss(top: number, mid: number, bot: number): void {
     const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');

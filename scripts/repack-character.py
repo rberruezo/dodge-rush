@@ -1,24 +1,36 @@
 #!/usr/bin/env python3
 """
-Repack an uploaded character sheet into the game's clean 6x8 / 120px grid.
+Repack the uploaded character sheet into the game's clean 6x8 / 120px grid.
 
-The uploaded art (art-src/character/source-6x8.png) is 6 columns x 8 rows on a
-painted grey *checkerboard* background (NOT real alpha), off an exact pixel grid,
-with stray text labels under some cells. This script:
-  1. Treats it as a uniform 6x8 grid (cell size derived from the image size).
-  2. Flood-fills the checkerboard background from each cell's edges -> alpha 0.
-  3. Keeps only the central character blob (drops the text labels, which sit in
-     the lower band and never touch the cell centre).
-  4. Normalises every sprite to a consistent height and centres it.
-  5. Re-packs to 6x8 of 120px cells (720x960) with a tight palette + hard alpha.
+The uploaded art (art-src/character/source-6x8.png, 896x1200) is 6 columns x 8
+rows on a painted grey *checkerboard* background (NOT real alpha), with stray
+text labels under the bottom two rows. The sprites are thin in places (legs,
+propeller, jet flames), so any erode / median / hard-alpha step shreds them.
+This pipeline is deliberately FAITHFUL — it removes the background and nothing
+else:
+
+  1. Treats the sheet as an exact, uniform 6x8 grid (cells 149.33 x 150) and
+     maps the WHOLE cell onto its 120px output cell — the artist already aligned
+     the poses, so we never re-centre or re-scale per frame (that is what made
+     the old build jitter). Nothing is cropped.
+  2. Removes the checkerboard by flood-filling inward from each cell edge, so
+     enclosed mid-grey detail (the jet-pack) survives. Checker squares trapped
+     inside the boost glow (which the flood can't reach) are cleared separately
+     by detecting the real two-tone pattern, while leaving the jet-pack alone.
+  3. Keeps only the character: the largest central blob plus nearby attached
+     bits (propeller, flame, held trophy/crown). The bottom-row text labels and
+     stray far sparkles are dropped.
+  4. Builds clean SOFT alpha via a premultiplied LANCZOS downscale (no erosion,
+     no median filter, no hard alpha cut) — thin legs and edges stay intact and
+     the transparency reads cleanly against the busy game background.
 
 Frame map (index = row*6 + col) — must match Constants.ts:
-  row0 0-5   hover (front)
-  row1 6-11  side flight, calm     (faces LEFT)
-  row2 12-17 side flight, straining (faces LEFT)
-  row3 18-23 boost + sparkles
-  row4 24-29 cheer (arms up)
-  row5 30-35 combo gestures x1..x20
+  row0 0-5   hover (front)            -> not steering (alive float)
+  row1 6-11  side flight, calm        -> moving, low effort     (faces LEFT)
+  row2 12-17 side flight, straining   -> moving held, high effort (faces LEFT)
+  row3 18-23 boost + sparkles         -> golden score boost
+  row4 24-29 cheer (arms up)          -> celebration
+  row5 30-35 combo gestures x1..x20   -> numbered combo flash
   row6 36-41 dizzy, sad-cloud, trophy, crown, star-head, sad head
   row7 42-47 death: bonk -> spin -> fall
 
@@ -26,142 +38,230 @@ Usage: python repack-character.py [SOURCE.png]
 """
 import sys
 from collections import deque
-from PIL import Image, ImageFilter
+
+import numpy as np
+from PIL import Image
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "art-src/character/source-6x8.png"
 OUT = "public/assets/character.png"
 
 COLS, ROWS = 6, 8
-CELL = 120          # output cell (rendered ~1:1 in game)
-WINDOW = 150        # extraction window (~one source cell)
-PRE_SMOOTH = 3
-PALETTE_COLORS = 48
-ALPHA_CUT = 115
-NORM_H = 112        # normalised content height inside WINDOW (keeps margin)
-NORM_W = 134        # width cap for very wide poses
-# Fraction of each source cell to keep (crops the label text band off the
-# bottom). Rows 6-7 carry text labels; rows 0-5 are clean so keep almost all.
-KEEP_DEFAULT = 0.97
-KEEP_LABELLED = 0.79  # rows 6-7 (specials, death) — labels live below this
+CELL = 120             # output cell (rendered ~1:1 in game -> crisp)
+
+# Keep/drop tuning. We keep the character's main blob plus any nearby attached
+# bits (propeller, jet flame, held trophy/crown) and drop the bottom-row text
+# labels and stray far sparkles. Each source cell is mapped faithfully onto its
+# 120px output cell -- the artist already aligned the poses, so we do NOT re-
+# centre or re-scale per frame (that is what used to make the animation jitter).
+MIN_BLOB = 12          # ignore specks smaller than this (px)
+MERGE_GAP = 14         # px: attach detached blobs this close to the body
+LABEL_Y = 0.84         # drop *separate* blobs centred below this fraction of cell
+CHECKER_MAX_AREA = 360  # grey islands up to this size are checker squares, not
+#                         the jet-pack (one big solid blob) -> safe to drop
 
 
-def is_bg(r, g, b):
-    """Grey checkerboard: near-neutral hue at mid value (tones ~78 and ~150)."""
-    return max(r, g, b) - min(r, g, b) <= 22 and 48 <= (r + g + b) / 3 <= 188
+def checker_mask(rgb):
+    """True where a pixel is the grey checkerboard (low saturation, mid value)."""
+    a = rgb.astype(np.int16)
+    sat = a.max(2) - a.min(2)
+    val = a.mean(2)
+    return (sat <= 26) & (val >= 45) & (val <= 200)
 
 
-def extract(im, box):
-    crop = im.crop(box).convert("RGB")
-    w, h = crop.size
-    px = crop.load()
-
-    # Flood-fill the background inward from every edge.
-    ext = [[False] * w for _ in range(h)]
+def flood_bg(checker):
+    """Background = checkerboard pixels connected to the cell edge. Enclosed
+    mid-grey detail (the jet-pack) is NOT reached, so it survives as body."""
+    h, w = checker.shape
+    bg = np.zeros((h, w), bool)
     q = deque()
     for x in range(w):
         for y in (0, h - 1):
-            if is_bg(*px[x, y]) and not ext[y][x]:
-                ext[y][x] = True
+            if checker[y, x] and not bg[y, x]:
+                bg[y, x] = True
                 q.append((x, y))
     for y in range(h):
         for x in (0, w - 1):
-            if is_bg(*px[x, y]) and not ext[y][x]:
-                ext[y][x] = True
+            if checker[y, x] and not bg[y, x]:
+                bg[y, x] = True
                 q.append((x, y))
     while q:
         x, y = q.popleft()
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             nx, ny = x + dx, y + dy
-            if 0 <= nx < w and 0 <= ny < h and not ext[ny][nx] and is_bg(*px[nx, ny]):
-                ext[ny][nx] = True
+            if 0 <= nx < w and 0 <= ny < h and not bg[ny, nx] and checker[ny, nx]:
+                bg[ny, nx] = True
                 q.append((nx, ny))
+    return bg
 
-    # Keep only foreground blobs that reach the cell centre (drops text labels).
-    # The character body sits in the upper-centre of the cell. Requiring blobs to
-    # reach this band (not the lower strip) drops both the residual label text and
-    # any propeller/dust from the next row that bleeds in via grid misalignment.
-    seen = [[False] * w for _ in range(h)]
-    keep = [[False] * w for _ in range(h)]
-    cl, cr = int(0.28 * w), int(0.72 * w)
-    ct, cb = int(0.10 * h), int(0.55 * h)
-    for y0 in range(h):
-        for x0 in range(w):
-            if ext[y0][x0] or seen[y0][x0]:
+
+def trapped_checker(rgb, bg):
+    """Checker squares the edge flood-fill could NOT reach -- e.g. the ones
+    trapped between the sparkles of the boost glow (where the semi-transparent
+    gold tints them tan). Such a square is a small isolated grey/tan island,
+    whereas the solid mid-grey jet-pack is one large blob (~900px+). So we match
+    the muted grey/tan range, then drop only the SMALL islands and keep the big
+    one -- and dark pixels (val<60: the jet-pack core, outlines) are never even
+    considered, so they always survive."""
+    a = rgb.astype(np.int16)
+    sat = a.max(2) - a.min(2)
+    val = a.mean(2)
+    tone = (sat <= 40) & (val >= 60) & (val <= 190)
+    cand = tone & ~bg
+    lab, blobs = components(cand)
+    out = np.zeros(cand.shape, bool)
+    for b in blobs:
+        if b["n"] <= CHECKER_MAX_AREA:  # small grey/tan island == a checker square
+            out[lab == b["id"]] = True
+    return out
+
+
+def components(fg):
+    """Label 4-connected foreground blobs. Returns (labels, list-of-bbox-info)."""
+    h, w = fg.shape
+    lab = np.zeros((h, w), np.int32)
+    blobs = []
+    nid = 0
+    for sy in range(h):
+        for sx in range(w):
+            if not fg[sy, sx] or lab[sy, sx]:
                 continue
-            blob, touches = [], False
-            qq = deque([(x0, y0)])
-            seen[y0][x0] = True
-            while qq:
-                x, y = qq.popleft()
-                blob.append((x, y))
-                if cl <= x <= cr and ct <= y <= cb:
-                    touches = True
+            nid += 1
+            q = deque([(sx, sy)])
+            lab[sy, sx] = nid
+            xs = [sx]
+            ys = [sy]
+            while q:
+                x, y = q.popleft()
                 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                     nx, ny = x + dx, y + dy
-                    if 0 <= nx < w and 0 <= ny < h and not ext[ny][nx] and not seen[ny][nx]:
-                        seen[ny][nx] = True
-                        qq.append((nx, ny))
-            if touches and len(blob) >= 80:
-                for (x, y) in blob:
-                    keep[y][x] = True
+                    if 0 <= nx < w and 0 <= ny < h and fg[ny, nx] and not lab[ny, nx]:
+                        lab[ny, nx] = nid
+                        q.append((nx, ny))
+                        xs.append(nx)
+                        ys.append(ny)
+            blobs.append({
+                "id": nid, "n": len(xs),
+                "x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys),
+                "cx": sum(xs) / len(xs), "cy": sum(ys) / len(ys),
+            })
+    return lab, blobs
 
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    opx = out.load()
-    for y in range(h):
-        for x in range(w):
-            if keep[y][x]:
-                r, g, b = px[x, y]
-                opx[x, y] = (r, g, b, 255)
+
+def bbox_gap(a, b):
+    """Closest gap between two axis-aligned bboxes (0 if they overlap/touch)."""
+    dx = max(0, max(a["x0"] - b["x1"], b["x0"] - a["x1"]))
+    dy = max(0, max(a["y0"] - b["y1"], b["y0"] - a["y1"]))
+    return max(dx, dy)
+
+
+def extract_keep(rgb):
+    """Boolean keep-mask for the character in ONE source cell (HxWx3 uint8)."""
+    checker = checker_mask(rgb)
+    bg = flood_bg(checker)
+    bg |= trapped_checker(rgb, bg)
+    fg = ~bg
+    lab, blobs = components(fg)
+    if not blobs:
+        return np.zeros(fg.shape, bool)
+
+    h, w = fg.shape
+    # Body = largest blob overlapping the central band (where the torso sits).
+    cl, cr = 0.28 * w, 0.72 * w
+    ct, cb = 0.10 * h, 0.66 * h
+    central = [
+        b for b in blobs
+        if b["x1"] >= cl and b["x0"] <= cr and b["y1"] >= ct and b["y0"] <= cb
+    ]
+    body = max(central or blobs, key=lambda b: b["n"])
+
+    # Keep the body + nearby attached bits (propeller / flame / held item).
+    # Drop the bottom-row text labels and stray sparkles: a label is a separate
+    # blob that lies ENTIRELY below the body (its top starts past the body's
+    # feet), so it can never be a flame (overlaps the body) or a held item
+    # (above / beside the body).
+    keep_ids = {body["id"]}
+    for b in blobs:
+        if b["id"] in keep_ids or b["n"] < MIN_BLOB:
+            continue
+        if b["y0"] >= body["y1"] - 3:
+            continue  # entirely below the body -> bottom-row label
+        if b["cy"] >= LABEL_Y * h:
+            continue  # belt-and-braces: anything centred in the bottom band
+        if bbox_gap(b, body) <= MERGE_GAP:
+            keep_ids.add(b["id"])
+
+    return np.isin(lab, list(keep_ids))
+
+
+def cell_rgba(rgb):
+    """Clean RGBA for one cell: binary alpha, RGB zeroed off the keep mask so the
+    later premultiplied downscale can't bleed grey/black into the edges."""
+    keep = extract_keep(rgb)
+    out = np.zeros((*keep.shape, 4), np.uint8)
+    out[..., :3] = np.where(keep[..., None], rgb, 0)
+    out[..., 3] = np.where(keep, 255, 0).astype(np.uint8)
     return out
 
 
-def normalize(cell):
-    """Scale to a consistent on-screen height and centre in the window."""
-    bbox = cell.getbbox()
-    if not bbox:
-        return cell
-    content = cell.crop(bbox)
-    cw, ch = content.size
-    scale = NORM_H / ch
-    if cw * scale > NORM_W:
-        scale = NORM_W / cw
-    nw, nh = max(1, round(cw * scale)), max(1, round(ch * scale))
-    content = content.resize((nw, nh), Image.LANCZOS)
-    out = Image.new("RGBA", (WINDOW, WINDOW), (0, 0, 0, 0))
-    out.alpha_composite(content, ((WINDOW - nw) // 2, (WINDOW - nh) // 2))
-    return out
-
-
-def pixelate(sheet):
-    r, g, b, a = sheet.split()
-    rgb = Image.merge("RGB", (r, g, b)).filter(ImageFilter.MedianFilter(PRE_SMOOTH))
-    smoothed = Image.merge("RGBA", (*rgb.split(), a))
-    small = smoothed.resize((COLS * CELL, ROWS * CELL), Image.LANCZOS)
-    sr, sg, sb, sa = small.split()
-    pal = Image.merge("RGB", (sr, sg, sb)).quantize(
-        colors=PALETTE_COLORS, method=Image.MEDIANCUT, dither=Image.NONE
-    ).convert("RGB")
-    pr, pg, pb = pal.split()
-    hard_a = sa.point(lambda v: 255 if v >= ALPHA_CUT else 0)
-    return Image.merge("RGBA", (pr, pg, pb, hard_a))
+def resize_rgba_premult(arr, size):
+    """Premultiplied-alpha LANCZOS resize -> soft, clean edges with no dark
+    fringe. arr: HxWx4 uint8. size: (w, h). Returns HxWx4 uint8."""
+    a = arr[..., 3].astype(np.float32) / 255.0
+    pm = arr[..., :3].astype(np.float32) * a[..., None]
+    pm_img = Image.fromarray(pm.round().clip(0, 255).astype(np.uint8), "RGB").resize(
+        size, Image.LANCZOS
+    )
+    a_img = Image.fromarray(arr[..., 3], "L").resize(size, Image.LANCZOS)
+    pm_s = np.asarray(pm_img).astype(np.float32)
+    a_s = np.asarray(a_img).astype(np.float32) / 255.0
+    rgb = np.zeros_like(pm_s)
+    nz = a_s > (1.0 / 255.0)
+    rgb[nz] = pm_s[nz] / a_s[nz][..., None]
+    rgb = rgb.clip(0, 255).round().astype(np.uint8)
+    a8 = (a_s * 255.0).round().astype(np.uint8)
+    a8[a_s < 0.02] = 0  # drop the faintest ghost halo
+    return np.dstack([rgb, a8])
 
 
 def main():
     im = Image.open(SRC).convert("RGB")
-    W, H = im.size
+    arr = np.asarray(im)
+    H, W, _ = arr.shape
     cw, ch = W / COLS, H / ROWS
-    big = Image.new("RGBA", (COLS * WINDOW, ROWS * WINDOW), (0, 0, 0, 0))
+
+    # The sprites span a 160px vertical bounding box across all frames (-31 to 129 relative to cell origins).
+    # We will use a 160x160 capture window for ALL cells, shifted up to encompass the propeller jumps,
+    # then scale it exactly 0.75x to fit into the final 120x120 grid reliably, preserving artist alignment.
+    BOX_SIZE = 160
+    X_OFFSET = 75
+    Y_OFFSET = 49
+
+    sheet = Image.new("RGBA", (COLS * CELL, ROWS * CELL), (0, 0, 0, 0))
     for r in range(ROWS):
-        keep_frac = KEEP_LABELLED if r >= 6 else KEEP_DEFAULT
         for c in range(COLS):
-            x0, x1 = round(c * cw), round((c + 1) * cw)
-            y0 = round(r * ch)
-            y1 = round(r * ch + ch * keep_frac)
-            cell = normalize(extract(im, (x0, y0, x1, y1)))
-            big.paste(cell, (c * WINDOW, r * WINDOW))
-    final = pixelate(big)
-    final.save(OUT)
-    print(f"wrote {OUT} {final.size} (6x8, cell {CELL}x{CELL}, {COLS * ROWS} frames)")
+            cx = round(c * cw) + X_OFFSET
+            cy = round(r * ch) + Y_OFFSET
+            
+            # extract with padding if out of bounds. Pad with checkerboard grey (78)
+            # so the edge-flood-fill correctly removes the padding instead of 
+            # treating it as a black foreground solid box.
+            x0, x1 = cx - BOX_SIZE // 2, cx + BOX_SIZE // 2
+            y0, y1 = cy - BOX_SIZE // 2, cy + BOX_SIZE // 2
+            
+            cell = np.full((BOX_SIZE, BOX_SIZE, 3), 78, dtype=arr.dtype)
+            src_x0, src_y0 = max(0, x0), max(0, y0)
+            src_x1, src_y1 = min(W, x1), min(H, y1)
+            dst_x0, dst_y0 = src_x0 - x0, src_y0 - y0
+            dst_x1, dst_y1 = dst_x0 + (src_x1 - src_x0), dst_y0 + (src_y1 - src_y0)
+            
+            cell[dst_y0:dst_y1, dst_x0:dst_x1] = arr[src_y0:src_y1, src_x0:src_x1]
+
+            rgba = cell_rgba(cell)
+            small = resize_rgba_premult(rgba, (CELL, CELL))
+            sheet.paste(Image.fromarray(small, "RGBA"), (c * CELL, r * CELL))
+
+    sheet.save(OUT)
+    print(f"wrote {OUT} {sheet.size} (6x8, cell {CELL}x{CELL}, {COLS * ROWS} frames)")
 
 
 if __name__ == "__main__":

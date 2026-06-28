@@ -9,6 +9,7 @@
     "prebuild": "expo prebuild --platform android --clean",
     "android": "expo run:android",
     "start": "expo start --dev-client",
+    "logcat": "PATH=\"${ANDROID_HOME:-$HOME/Library/Android/sdk}/platform-tools:$PATH\" adb logcat ReactNativeJS:V chromium:V '*:S' | grep --line-buffered -v -iE 'not renderable|gles2_cmd_decoder|too many (gl )?errors|RENDER WARNING'",
     "doctor": "npx expo-doctor",
     "ios": "expo run:ios"
   },

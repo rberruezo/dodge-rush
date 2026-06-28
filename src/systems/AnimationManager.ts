@@ -14,6 +14,13 @@ export class AnimationManager {
     return `${sheet}:${base}`;
   }
 
+  /** Inclusive integer range [a..b]. */
+  static range(a: number, b: number): number[] {
+    const out: number[] = [];
+    for (let i = a; i <= b; i++) out.push(i);
+    return out;
+  }
+
   static create(scene: Phaser.Scene): void {
     for (const sheet of SKIN_SHEETS) {
       if (!scene.textures.exists(sheet)) continue;
@@ -22,14 +29,17 @@ export class AnimationManager {
       Object.entries(CHARACTER_ANIMS).forEach(([base, def]) => {
         const key = AnimationManager.key(sheet, base);
         if (scene.anims.exists(key)) return;
-        // Skip anims whose first frame is past this sheet's range (e.g. the
-        // base-only death row 42-47 on the 6x7 skin sheets) so we never build a
-        // clip pointing at a frame the sheet doesn't have.
-        if (def.start > frameCount - 1) return;
-        const end = Math.min(def.end, Math.max(def.start, frameCount - 1));
+        // Resolve the wanted frames from either a curated list or a range, then
+        // drop any this sheet doesn't have (e.g. the base-only death row 42-47 on
+        // the 6x7 skin sheets) so we never point a clip at a missing frame.
+        const wanted = def.frames
+          ? [...def.frames]
+          : AnimationManager.range(def.start ?? 0, def.end ?? 0);
+        const frames = wanted.filter((f) => f <= frameCount - 1);
+        if (frames.length === 0) return;
         scene.anims.create({
           key,
-          frames: scene.anims.generateFrameNumbers(sheet, { start: def.start, end }),
+          frames: scene.anims.generateFrameNumbers(sheet, { frames }),
           frameRate: def.frameRate,
           repeat: def.repeat
         });

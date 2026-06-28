@@ -192,15 +192,31 @@ export const CHAR_FRAMES = {
   sadHead: 41
 } as const;
 
-export const CHARACTER_ANIMS = {
+/**
+ * One character animation. Supply EITHER a contiguous `start`/`end` range, OR an
+ * explicit `frames` list for a curated (possibly non-contiguous / ping-pong)
+ * loop — the latter lets us cherry-pick same-silhouette poses so a clip never
+ * strobes through mismatched art.
+ */
+export interface CharAnimDef {
+  start?: number;
+  end?: number;
+  frames?: readonly number[];
+  frameRate: number;
+  repeat: number;
+}
+
+export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
   [ANIM_KEYS.HOVER]: { start: 0, end: 5, frameRate: 7, repeat: -1 },
   [ANIM_KEYS.MOVE]: { start: 6, end: 11, frameRate: 12, repeat: -1 },
-  [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 16, repeat: -1 },
-  [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 16, repeat: -1 },
-  [ANIM_KEYS.CHEER]: { start: 24, end: 29, frameRate: 10, repeat: -1 },
-  // Row 7 (base sheet only): plays once on game-over during the 420ms pre-results
-  // beat, settling on the head-down fall. Skins lack this row (see AnimationManager).
-  [ANIM_KEYS.DEATH]: { start: 42, end: 47, frameRate: 14, repeat: 0 }
+  [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 14, repeat: -1 },
+  // Golden boost: a calmer rate so the sparkly glow shimmers instead of flickering.
+  [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 12, repeat: -1 },
+  // Celebration: we use frames 24 and 25 which feature the character
+  // hovering (moving propeller) but with arms up and happy expressions.
+  [ANIM_KEYS.CHEER]: { frames: [24, 25], frameRate: 8, repeat: -1 },
+  // Row 7 (base sheet only): uses the single 'bonk' frame (42) for death.
+  [ANIM_KEYS.DEATH]: { frames: [42], frameRate: 12, repeat: 0 }
 } as const;
 
 /**
@@ -257,8 +273,7 @@ export const PLAYER_CFG = {
   hitboxScaleY: 0.36,
   tiltDegrees: 9, // gentle bank into the direction of travel
   effortHoldMs: 360, // holding a direction longer than this -> straining animation
-  faceFlipDelayMs: 130, // a new direction must be held this long before the sprite
-  // mirrors to face it — stops rapid dodge taps from strobing the character
+  faceFlipDelayMs: 0, // flip immediately when changing direction
   bobAmp: 4, // subtle vertical "alive" bob (visual only, not collision)
   bobSpeed: 0.005
 } as const;

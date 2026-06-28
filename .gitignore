@@ -4,5 +4,9 @@ dist-ssr
 *.local
 .DS_Store
 .venv-tools
+
+# Python bytecode cache (build scripts)
+__pycache__/
+*.pyc
 .vscode/*
 !.vscode/extensions.json

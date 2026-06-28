@@ -19,11 +19,13 @@ export const createGameConfig = (parent: string): Phaser.Types.Core.GameConfig =
   type: Phaser.AUTO,
   parent,
   backgroundColor: COLORS.bgTop,
-  // Transparent WebGL clear so the day/night sky colour, painted as a CSS
-  // background on the #game element (see Background.syncZone), shows through any
-  // gap. On some Android WebView GL drivers the full-screen sky quad failed to
-  // render (BG-005); the CSS floor is composited by the browser, never the GL
-  // driver, so the correct sky colour is always visible behind the art.
+  // Kept transparent so the #game CSS sky gradient fills the FIT letterbox bars
+  // on web. The play area's device-proof floor is NOT that CSS: the Android
+  // WebView composites the hardware GL canvas opaque, so canvas-backed CSS never
+  // shows on device (BG-005). Instead, Background.applyBaseClear paints each
+  // zone's opaque `base` colour as the camera clear — an in-GL quad the GL
+  // pipeline always draws — so the sky stays correct on device even if a sky
+  // texture fails to upload.
   transparent: true,
   pixelArt: true,
   roundPixels: true,

@@ -110,13 +110,17 @@ describe('Animation contract (must hold for every skin sheet)', () => {
 
   it('keeps every animation frame range inside its grid and forward-ordered', () => {
     for (const [base, def] of Object.entries(CHARACTER_ANIMS)) {
-      expect(def.start, `${base}.start`).toBeGreaterThanOrEqual(0);
-      expect(def.end, `${base} range`).toBeGreaterThanOrEqual(def.start);
+      // An anim is either a contiguous start/end range or an explicit frame list.
+      const list = def.frames ? [...def.frames] : null;
+      const lo = list ? Math.min(...list) : (def.start as number);
+      const hi = list ? Math.max(...list) : (def.end as number);
+      expect(lo, `${base} lo`).toBeGreaterThanOrEqual(0);
+      expect(hi, `${base} range`).toBeGreaterThanOrEqual(lo);
       expect(def.frameRate, `${base}.frameRate`).toBeGreaterThan(0);
       // The death row is base-only (6x8); the five shared anims must fit the
       // 6x7 grid that every skin sheet provides.
       const limit = base === ANIM_KEYS.DEATH ? FRAME_COUNT_BASE : FRAME_COUNT_SKIN;
-      expect(def.end, `${base}.end`).toBeLessThan(limit);
+      expect(hi, `${base}.end`).toBeLessThan(limit);
     }
   });
 
