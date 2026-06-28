@@ -9,7 +9,7 @@ export interface Hitbox {
   halfH: number;
 }
 
-export type PoseKind = 'hover' | 'move' | 'moveHard' | 'boost' | 'celebrate' | 'cheer' | 'dizzy';
+export type PoseKind = 'hover' | 'move' | 'moveHard' | 'boost' | 'celebrate' | 'cheer' | 'dizzy' | 'death';
 
 export interface Pose {
   kind: PoseKind;
@@ -105,6 +105,18 @@ export class Player extends Phaser.GameObjects.Sprite {
           this.stop();
           this.setFrame(CHAR_FRAMES.dizzy);
           break;
+        case 'death': {
+          // Base sheet plays the knockout row; skins (6x7) have no such anim and
+          // settle on the dizzy frame instead.
+          const deathKey = `${this.sheetKey}:${ANIM_KEYS.DEATH}`;
+          if (this.scene.anims.exists(deathKey)) {
+            this.play(deathKey, true);
+          } else {
+            this.stop();
+            this.setFrame(CHAR_FRAMES.dizzy);
+          }
+          break;
+        }
         case 'celebrate':
           this.stop();
           this.setFrame(pose.frame ?? CHAR_FRAMES.starHead);

@@ -22,6 +22,10 @@ export class AnimationManager {
       Object.entries(CHARACTER_ANIMS).forEach(([base, def]) => {
         const key = AnimationManager.key(sheet, base);
         if (scene.anims.exists(key)) return;
+        // Skip anims whose first frame is past this sheet's range (e.g. the
+        // base-only death row 42-47 on the 6x7 skin sheets) so we never build a
+        // clip pointing at a frame the sheet doesn't have.
+        if (def.start > frameCount - 1) return;
         const end = Math.min(def.end, Math.max(def.start, frameCount - 1));
         scene.anims.create({
           key,

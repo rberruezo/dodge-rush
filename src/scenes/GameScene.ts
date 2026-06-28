@@ -357,7 +357,8 @@ export class GameScene extends Phaser.Scene {
   finishGameOver(): void {
     this.running = false;
     this.controls.setEnabled(false);
-    this.player.setPose({ kind: 'dizzy' });
+    // Play the knockout animation through the 420ms beat before results appear.
+    this.player.setPose({ kind: 'death' });
     this.player.setAlpha(1);
 
     const finalScore = this.score.current;

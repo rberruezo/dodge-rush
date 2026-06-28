@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { poseFacesRight, shouldFlipX, POSE_FACES_RIGHT } from './PlayerFacing';
 
-const ALL_POSES = ['hover', 'move', 'moveHard', 'boost', 'celebrate', 'cheer', 'dizzy'];
+const ALL_POSES = ['hover', 'move', 'moveHard', 'boost', 'celebrate', 'cheer', 'dizzy', 'death'];
 
 describe('PlayerFacing — natural pose facing', () => {
   it('side-flight poses face LEFT, idle/celebration poses face RIGHT', () => {
@@ -12,6 +12,7 @@ describe('PlayerFacing — natural pose facing', () => {
     expect(poseFacesRight('cheer')).toBe(true);
     expect(poseFacesRight('celebrate')).toBe(true);
     expect(poseFacesRight('dizzy')).toBe(true);
+    expect(poseFacesRight('death')).toBe(true);
   });
 
   it('defaults unknown poses to facing LEFT', () => {

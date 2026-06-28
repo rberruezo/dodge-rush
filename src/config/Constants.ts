@@ -114,7 +114,8 @@ export const ANIM_KEYS = {
   MOVE: 'player-move', // steering, low effort
   MOVE_HARD: 'player-move-hard', // steering held, straining
   BOOST: 'player-boost', // golden score boost
-  CHEER: 'player-cheer' // celebration
+  CHEER: 'player-cheer', // celebration
+  DEATH: 'player-death' // run-over knockout (base sheet only — row 7)
 } as const;
 
 export const STORAGE_KEYS = {
@@ -145,7 +146,7 @@ export const COLORS = {
 /**
  * Character sprite-sheet slicing.
  *
- * Re-packed by `scripts/build-character.py` into a clean 6x7 grid at
+ * Re-packed by `scripts/repack-character.py` into a clean 6x8 grid at
  * `public/assets/character.png` (120px cells — rendered ~1:1 so it stays crisp
  * against the detailed background). Frame map (index = row*6 + col):
  *   row 0 (0-5)   hover (front)            -> not steering (alive float)
@@ -155,7 +156,9 @@ export const COLORS = {
  *   row 4 (24-29) cheer (arms up)          -> celebration
  *   row 5 (30-35) combo x1,x2,x3,x5,x10,x20-> brief combo celebration flash
  *   row 6 (36-41) dizzy, sad-cloud, trophy, crown, star head, sad head
+ *   row 7 (42-47) knockout: bonk, shout, eyes-shut, roll, roll, head-down fall -> death anim
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player.
+ * Skins remain 6x7 (no row 7); the death anim is base-only and falls back to dizzy.
  */
 export const CHARACTER_FRAME = {
   width: 120,
@@ -194,7 +197,10 @@ export const CHARACTER_ANIMS = {
   [ANIM_KEYS.MOVE]: { start: 6, end: 11, frameRate: 12, repeat: -1 },
   [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 16, repeat: -1 },
   [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 16, repeat: -1 },
-  [ANIM_KEYS.CHEER]: { start: 24, end: 29, frameRate: 10, repeat: -1 }
+  [ANIM_KEYS.CHEER]: { start: 24, end: 29, frameRate: 10, repeat: -1 },
+  // Row 7 (base sheet only): plays once on game-over during the 420ms pre-results
+  // beat, settling on the head-down fall. Skins lack this row (see AnimationManager).
+  [ANIM_KEYS.DEATH]: { start: 42, end: 47, frameRate: 14, repeat: 0 }
 } as const;
 
 /**

@@ -12,7 +12,8 @@ export const POSE_FACES_RIGHT: Record<string, boolean> = {
   dizzy: true,
   boost: true,
   cheer: true,
-  celebrate: true
+  celebrate: true,
+  death: true
 };
 
 /** Natural facing of a pose's art. Unknown poses default to facing LEFT. */

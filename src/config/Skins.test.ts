@@ -12,8 +12,10 @@ const preloadSrc = Object.values(
 )[0] as string;
 
 const COLS = 6;
-const ROWS = 7;
-const FRAME_COUNT = COLS * ROWS; // documented 6 cols x 7 rows grid (indices 0..41)
+const ROWS_SKIN = 7; // skins ship the 6x7 grid (indices 0..41 — no death row)
+const ROWS_BASE = 8; // the base 'character' sheet adds row 7 (death) -> 6x8 (0..47)
+const FRAME_COUNT_SKIN = COLS * ROWS_SKIN; // 42 — the shared grid every sheet provides
+const FRAME_COUNT_BASE = COLS * ROWS_BASE; // 48 — base sheet including the death row
 
 /** Read a PNG's pixel dimensions straight from its IHDR header (no decode). */
 function pngSize(sheet: string): { w: number; h: number } {
@@ -106,32 +108,37 @@ describe('Animation contract (must hold for every skin sheet)', () => {
     }
   });
 
-  it('keeps every animation frame range inside the 6x7 grid and forward-ordered', () => {
+  it('keeps every animation frame range inside its grid and forward-ordered', () => {
     for (const [base, def] of Object.entries(CHARACTER_ANIMS)) {
       expect(def.start, `${base}.start`).toBeGreaterThanOrEqual(0);
-      expect(def.end, `${base}.end`).toBeLessThan(FRAME_COUNT);
       expect(def.end, `${base} range`).toBeGreaterThanOrEqual(def.start);
       expect(def.frameRate, `${base}.frameRate`).toBeGreaterThan(0);
+      // The death row is base-only (6x8); the five shared anims must fit the
+      // 6x7 grid that every skin sheet provides.
+      const limit = base === ANIM_KEYS.DEATH ? FRAME_COUNT_BASE : FRAME_COUNT_SKIN;
+      expect(def.end, `${base}.end`).toBeLessThan(limit);
     }
   });
 
   it('keeps every single-frame pose inside the grid', () => {
     for (const [name, idx] of Object.entries(CHAR_FRAMES)) {
       expect(idx, name).toBeGreaterThanOrEqual(0);
-      expect(idx, name).toBeLessThan(FRAME_COUNT);
+      expect(idx, name).toBeLessThan(FRAME_COUNT_SKIN);
     }
   });
 });
 
-// SKN-002: every skin sheet must physically contain all 6x7 = 42 pose frames,
-// i.e. be exactly (COLS*frameW) x (ROWS*frameH). A wrong-sized sheet would make
-// poses (boost/celebrate/dizzy/trophy/crown...) slice blank or misaligned cells.
+// SKN-002: every sheet must physically contain all its pose frames, i.e. be
+// exactly (COLS*frameW) x (rows*frameH). The base 'character' sheet is 6x8
+// (adds the death row); skins stay 6x7. A wrong-sized sheet would slice blank
+// or misaligned cells (boost/celebrate/dizzy/trophy/crown...).
 describe('Skins — sprite-sheet dimensions (SKN-002)', () => {
   const expectedW = COLS * CHARACTER_FRAME.width;
-  const expectedH = ROWS * CHARACTER_FRAME.height;
 
   for (const sheet of SKIN_SHEETS) {
-    it(`${sheet}.png is a ${COLS}x${ROWS} grid (${expectedW}x${expectedH})`, () => {
+    const rows = sheet === 'character' ? ROWS_BASE : ROWS_SKIN;
+    const expectedH = rows * CHARACTER_FRAME.height;
+    it(`${sheet}.png is a ${COLS}x${rows} grid (${expectedW}x${expectedH})`, () => {
       const { w, h } = pngSize(sheet);
       expect(w, `${sheet} width`).toBe(expectedW);
       expect(h, `${sheet} height`).toBe(expectedH);
