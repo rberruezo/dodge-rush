@@ -1,6 +1,6 @@
 {
   "name": "dodge-rush",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Dodge Rush — a retro cute pixel-art infinite faller built with Phaser 3 + TypeScript + Vite.",
   "type": "module",
   "engines": {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Dodge Rush",
     "slug": "dodge-rush",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#1a1030",
@@ -16,7 +16,7 @@
     "assetBundlePatterns": ["**/*"],
     "android": {
       "package": "com.valtech.dodgerush",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1030"
