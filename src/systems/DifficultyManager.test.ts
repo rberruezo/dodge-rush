@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DifficultyManager } from './DifficultyManager';
 import { FEATURES } from '../config/FeatureFlags';
 import {
@@ -128,5 +128,26 @@ describe('Difficulty balance (GME-001)', () => {
       expect(late.speed, `${mode} speed plateau`).toBeCloseTo(later.speed, 6);
       expect(late.level, `${mode} level cap`).toBe(DIFFICULTY_MODES[mode].maxStep);
     }
+  });
+});
+
+// MVP v1.0: Classic is the ONLY playable mode. With RELAX_MODE_ENABLED off, the
+// manager must run Classic even if a stale 'relax' choice is persisted.
+describe('DifficultyManager — Classic forced when Relax disabled (MVP v1.0)', () => {
+  it('ignores a persisted relax mode on load and runs Classic (one-hit)', async () => {
+    localStorage.setItem(STORAGE_KEYS.DIFFICULTY, 'relax');
+    vi.resetModules();
+    const { FEATURES: FF } = await import('../config/FeatureFlags');
+    expect(FF.RELAX_MODE_ENABLED).toBe(false); // shipped MVP flag state
+    const { DifficultyManager: DM } = await import('./DifficultyManager');
+    expect(DM.mode.id).toBe('classic');
+    expect(DM.mode.lives).toBe(DIFFICULTY_MODES.classic.lives); // 1 = arcade purity
+  });
+
+  it('refuses to switch to relax while the flag is off', async () => {
+    vi.resetModules();
+    const { DifficultyManager: DM } = await import('./DifficultyManager');
+    DM.setMode('relax');
+    expect(DM.mode.id).toBe('classic'); // guard holds
   });
 });

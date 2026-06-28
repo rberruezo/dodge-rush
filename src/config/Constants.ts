@@ -17,7 +17,7 @@ export const TARGET_FPS = 60;
  * hand with every QA/release build — keep it in sync with `versionCode` in
  * `mobile/app.json`. See mobile/README.md → "Version bump protocol".
  */
-export const BUILD_NUMBER = 2;
+export const BUILD_NUMBER = 3;
 
 /** Texture / animation lookup keys (avoid magic strings around the codebase). */
 export const ASSET_KEYS = {
@@ -49,6 +49,7 @@ export interface BgZone {
   id: string;
   name: string;
   sky: string; // skybox texture key (loaded from bg_sky_<id>.png)
+  base: number; // opaque base sky colour painted as the camera clear (device-proof floor)
   struct: number; // tint for distant silhouettes (far clouds / vehicles)
   cloudTint: number; // tint for the bright near clouds (foreground)
   grade: number; // atmospheric wash colour drawn over the silhouettes
@@ -57,12 +58,12 @@ export interface BgZone {
 
 /** Zone cycle + palette, ported from art-src/skycity/palettes.json. */
 export const BG_ZONES: readonly BgZone[] = [
-  { id: 'day',      name: 'Día Nublado',        sky: 'bg_sky_day',      struct: 0x2b3f7a, cloudTint: 0xbfe8ff, grade: 0x9fd0ff, gradeA: 0.1 },
-  { id: 'dusk',     name: 'Atardecer Lavanda',  sky: 'bg_sky_dusk',     struct: 0x3a2a66, cloudTint: 0xd9a0d6, grade: 0xcaa0e6, gradeA: 0.14 },
-  { id: 'sunset',   name: 'Ocaso Naranja',      sky: 'bg_sky_sunset',   struct: 0x5a2a52, cloudTint: 0xffd060, grade: 0xff9a5a, gradeA: 0.18 },
-  { id: 'twilight', name: 'Crepúsculo Magenta', sky: 'bg_sky_twilight', struct: 0x3a1450, cloudTint: 0xb03a9a, grade: 0xc45ad6, gradeA: 0.16 },
-  { id: 'night',    name: 'Noche Profunda',     sky: 'bg_sky_night',    struct: 0x1a1f55, cloudTint: 0x2b3fb0, grade: 0x3a52c4, gradeA: 0.12 },
-  { id: 'aurora',   name: 'Aurora Boreal',      sky: 'bg_sky_aurora',   struct: 0x1c2a66, cloudTint: 0x6fb0e0, grade: 0x5fd0e0, gradeA: 0.12 }
+  { id: 'day',      name: 'Día Nublado',        sky: 'bg_sky_day',      base: 0x7fb8e8, struct: 0x2b3f7a, cloudTint: 0xbfe8ff, grade: 0x9fd0ff, gradeA: 0.1 },
+  { id: 'dusk',     name: 'Atardecer Lavanda',  sky: 'bg_sky_dusk',     base: 0x6b5a93, struct: 0x3a2a66, cloudTint: 0xd9a0d6, grade: 0xcaa0e6, gradeA: 0.14 },
+  { id: 'sunset',   name: 'Ocaso Naranja',      sky: 'bg_sky_sunset',   base: 0xc8703f, struct: 0x5a2a52, cloudTint: 0xffd060, grade: 0xff9a5a, gradeA: 0.18 },
+  { id: 'twilight', name: 'Crepúsculo Magenta', sky: 'bg_sky_twilight', base: 0x6a2d72, struct: 0x3a1450, cloudTint: 0xb03a9a, grade: 0xc45ad6, gradeA: 0.16 },
+  { id: 'night',    name: 'Noche Profunda',     sky: 'bg_sky_night',    base: 0x141a4a, struct: 0x1a1f55, cloudTint: 0x2b3fb0, grade: 0x3a52c4, gradeA: 0.12 },
+  { id: 'aurora',   name: 'Aurora Boreal',      sky: 'bg_sky_aurora',   base: 0x163a5a, struct: 0x1c2a66, cloudTint: 0x6fb0e0, grade: 0x5fd0e0, gradeA: 0.12 }
 ] as const;
 
 /** One vertically-looping parallax layer drawn over the sky. */

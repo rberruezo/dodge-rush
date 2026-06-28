@@ -6,8 +6,7 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT,
   PLAYER_CFG,
-  BUILD_NUMBER,
-  DifficultyModeId
+  BUILD_NUMBER
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
@@ -16,7 +15,6 @@ import { Button } from '../ui/Button';
 import { coinCounter } from '../ui/CoinCounter';
 import { ScoreManager } from '../systems/ScoreManager';
 import { Profile } from '../systems/ProfileManager';
-import { DifficultyManager } from '../systems/DifficultyManager';
 import { Daily } from '../systems/DailyManager';
 import { Sound, MUSIC } from '../systems/SoundManager';
 import { FEATURES } from '../config/FeatureFlags';
@@ -34,7 +32,6 @@ export class MainMenuScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Sprite;
   private heroSheet = 'character';
   private muteText!: Phaser.GameObjects.Text;
-  private diffText!: Phaser.GameObjects.Text;
   private uiGroup: Phaser.GameObjects.GameObject[] = [];
   private launching = false;
 
@@ -116,24 +113,6 @@ export class MainMenuScene extends Phaser.Scene {
       this.muteText.setText(this.muteLabel());
     });
 
-    // Difficulty toggle (bottom-left, mirroring the mute toggle). Tap to cycle
-    // RELAX <-> CLASSIC; the choice persists and gates the whole curve + lives.
-    this.diffText = this.add
-      .text(22, GAME_HEIGHT - 22, this.diffLabel(), Text.body(26, '#bfe9ff'))
-      .setOrigin(0, 1)
-      .setInteractive({ useHandCursor: true });
-    this.diffText.on(Phaser.Input.Events.POINTER_UP, () => {
-      Sound.button();
-      const order: DifficultyModeId[] = ['classic', 'relax'];
-      const next = order[(order.indexOf(DifficultyManager.mode.id) + 1) % order.length];
-      DifficultyManager.setMode(next);
-      this.diffText.setText(this.diffLabel());
-    });
-    if (!FEATURES.RELAX_MODE_ENABLED) {
-      this.diffText.setVisible(false);
-      this.diffText.disableInteractive();
-    }
-
     const daily = this.createDailyButton();
     if (!FEATURES.DAILY_ENABLED) daily.setVisible(false);
     const achievements = this.createAchievementsButton();
@@ -145,7 +124,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(1, 1)
       .setAlpha(0.5);
 
-    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText, this.diffText, daily, achievements, version];
+    this.uiGroup = [t1, t2, best, coins, playBtn, shopBtn, howBtn, tip, this.muteText, daily, achievements, version];
 
     // First time at the menu this session, surface the Daily hub if there's
     // something to claim — the core "come back tomorrow" retention hook.
@@ -199,12 +178,6 @@ export class MainMenuScene extends Phaser.Scene {
     });
     c.add(hit);
     return c;
-  }
-
-  private diffLabel(): string {
-    const m = DifficultyManager.mode;
-    const icon = m.id === 'relax' ? '🌿' : '🔥';
-    return `${icon} ${m.label}`;
   }
 
   update(_time: number, delta: number): void {

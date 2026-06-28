@@ -41,6 +41,7 @@ class SoundManagerImpl {
   private rampTimer: number | null = null; // active crossfade volume ramp
   private restTimer: number | null = null; // menu "rest in silence" timeout
   private restEnded: { el: HTMLAudioElement; fn: () => void } | null = null; // menu end-listener
+  private wasPlayingOnSuspend = false; // app-background: was music actually playing?
 
   private static readonly MUSIC_VOLUME = 0.45;
   // Longer overlap + equal-power curve = a gentler, less mechanical loop seam (BUG-009).
@@ -291,6 +292,60 @@ class SoundManagerImpl {
       this.restEnded.el.removeEventListener('ended', this.restEnded.fn);
       this.restEnded = null;
     }
+  }
+
+  /**
+   * App moved to the background (or became inactive): pause music and suspend
+   * the SFX context so nothing keeps playing behind a backgrounded app. Records
+   * whether music was actually sounding so resume() can restore the prior state
+   * rather than force-starting playback.
+   */
+  suspend(): void {
+    if (this.ctx && this.ctx.state === 'running') {
+      try {
+        void this.ctx.suspend();
+      } catch {
+        /* some engines reject suspend on an already-interrupted context */
+      }
+    }
+    // Stop any in-flight loop crossfade / menu rest so timers can't fire while
+    // backgrounded and resume re-arms cleanly.
+    this.clearRamp();
+    this.clearMenuRest();
+    const track = this.currentKey ? this.tracks.get(this.currentKey) : undefined;
+    const el = track ? track.els[track.active] : undefined;
+    this.wasPlayingOnSuspend = !!el && !el.paused;
+    track?.els.forEach((e) => {
+      if (!e.paused) e.pause();
+    });
+  }
+
+  /**
+   * App returned to the foreground: resume the SFX context, and resume music
+   * only if it was playing when we suspended (and we're not muted) — otherwise
+   * leave it paused, matching the prior state.
+   */
+  resume(): void {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try {
+        void this.ctx.resume();
+      } catch {
+        /* ignore — playback resumes on the next user gesture if needed */
+      }
+    }
+    if (!this.wasPlayingOnSuspend) return;
+    this.wasPlayingOnSuspend = false;
+    const key = this.currentKey;
+    if (!key || this.muted) return;
+    const track = this.tracks.get(key);
+    const el = track ? track.els[track.active] : undefined;
+    if (!el) return;
+    el.volume = this.musicVol();
+    const p: Promise<void> | undefined = el.play();
+    if (p && typeof p.then === 'function') p.catch(() => {});
+    // Re-arm the loop watcher we cleared on suspend.
+    if (key === MUSIC.MENU) this.armRestLoop(key);
+    else this.armLoop(key);
   }
 
   get isMuted(): boolean {

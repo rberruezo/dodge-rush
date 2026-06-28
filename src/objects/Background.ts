@@ -54,6 +54,7 @@ export class Background {
   private zoneI = -1; // last applied zone index (forces a refresh on first frame)
   private structTint = -1; // cached tints so we only re-apply on change
   private cloudTint = -1;
+  private baseColor = -1; // cached camera-clear colour (device-proof sky floor)
 
   constructor(scene: Phaser.Scene, startScrollY = 0) {
     this.scene = scene;
@@ -188,6 +189,18 @@ export class Background {
     const gradeColor = lerpColor(cur.grade, nxt.grade, t);
     const gradeA = Phaser.Math.Linear(cur.gradeA, nxt.gradeA, t);
     this.grade.setTint(gradeColor).setAlpha(gradeA);
+
+    // Device-proof base: paint the camera's clear with the zone's sky colour.
+    // Unlike a textured quad (the bg_sky_* PNGs, which went invisible on some
+    // Android WebView GL drivers — BG-005/BUG-008), the clear is a glClear and
+    // cannot fail to render. The opaque PNG sky still draws on top of it on
+    // healthy devices/web; where it doesn't, the player sees a smooth, correct
+    // day/night colour instead of an empty void.
+    const base = lerpColor(cur.base, nxt.base, t);
+    if (base !== this.baseColor) {
+      this.baseColor = base;
+      this.scene.cameras.main.setBackgroundColor(base);
+    }
   }
 
   // ---- lifecycle ------------------------------------------------------------

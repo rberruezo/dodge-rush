@@ -51,6 +51,9 @@ export class DifficultyManager {
   }
 
   private static loadModeId(): DifficultyModeId {
+    // MVP v1.0: Classic is the only playable mode. Ignore any persisted
+    // non-classic choice so a stale 'relax' value can never resurrect the mode.
+    if (!FEATURES.RELAX_MODE_ENABLED) return 'classic';
     try {
       const id = localStorage.getItem(STORAGE_KEYS.DIFFICULTY) as DifficultyModeId | null;
       if (id && id in DIFFICULTY_MODES) return id;

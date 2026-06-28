@@ -11,6 +11,14 @@ const PARENT_ID = 'game';
 
 const game = new Phaser.Game(createGameConfig(PARENT_ID));
 
+// Bridge for the native Android shell (mobile/App.tsx): it injects calls to
+// these on AppState change so music pauses when the app is backgrounded and
+// resumes (only if it was playing) when it returns to the foreground.
+(window as unknown as { __dodgeAudio?: { suspend(): void; resume(): void } }).__dodgeAudio = {
+  suspend: () => Sound.suspend(),
+  resume: () => Sound.resume()
+};
+
 // Re-fit when the visual viewport changes (rotation, browser chrome resize).
 const refresh = () => game.scale.refresh();
 window.addEventListener('resize', refresh);

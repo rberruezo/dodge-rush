@@ -61,16 +61,24 @@ export class GameOverScene extends Phaser.Scene {
 
     this.add.text(cx, 348, 'SCORE', Text.body(26, '#ffd9ec')).setOrigin(0.5);
     this.add.text(cx, 394, String(score), Text.score(56)).setOrigin(0.5);
-    this.add.text(cx, 458, `BEST · ${DifficultyManager.mode.label}  ${best}`, Text.label(26)).setOrigin(0.5);
+    this.add.text(cx, 458, `BEST  ${best}`, Text.label(26)).setOrigin(0.5);
 
     if (isNewBest) {
-      const badge = this.add.text(cx, 496, '★ NEW BEST! ★', Text.button(22, COLORS.accent)).setOrigin(0.5);
+      // Single celebratory entrance: pop in, two gentle pulses, then settle.
+      // (Previously looped forever via repeat:-1 — the run-on celebration the
+      // player reported. Now it plays once and stops, synced to the result.)
+      const badge = this.add
+        .text(cx, 496, '★ NEW BEST! ★', Text.button(22, COLORS.accent))
+        .setOrigin(0.5)
+        .setScale(0);
+      this.tweens.add({ targets: badge, scale: 1, duration: 360, ease: 'Back.out' });
       this.tweens.add({
         targets: badge,
         scale: { from: 1, to: 1.12 },
-        duration: 500,
+        duration: 300,
+        delay: 360,
         yoyo: true,
-        repeat: -1,
+        repeat: 1, // two pulses, then rest
         ease: 'Sine.inOut'
       });
       Sound.newBest();

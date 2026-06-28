@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from '../config/Constants';
 let oscCount = 0;
 let bufSrcCount = 0;
 let resumeCount = 0;
+let suspendCount = 0;
 let audioInstances: FakeAudio[] = [];
 
 class FakeParam {
@@ -68,6 +69,11 @@ class FakeAudioContext {
     this.state = 'running';
     return Promise.resolve();
   }
+  suspend() {
+    suspendCount++;
+    this.state = 'suspended';
+    return Promise.resolve();
+  }
 }
 let oggSupported = true; // toggled per test to exercise format selection
 
@@ -117,7 +123,7 @@ async function freshSound() {
 }
 
 beforeEach(() => {
-  oscCount = bufSrcCount = resumeCount = 0;
+  oscCount = bufSrcCount = resumeCount = suspendCount = 0;
   audioInstances = [];
   oggSupported = true;
   vi.stubGlobal('window', {
@@ -330,3 +336,66 @@ describe('SoundManager — music control', () => {
     expect(v[0].currentTime).toBe(0);
   });
 });
+
+describe('SoundManager — app background suspend/resume', () => {
+  it('suspend() pauses playing music and suspends the SFX context', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('game', 'assets/bgmusic.mp3');
+    Sound.unlock(); // creates + resumes the SFX context
+    Sound.playMusic('game');
+    await Promise.resolve();
+    await Promise.resolve();
+    const el = voices()[0];
+    expect(el.paused).toBe(false);
+
+    Sound.suspend();
+    expect(el.paused).toBe(true); // music paused
+    expect(suspendCount).toBeGreaterThanOrEqual(1); // SFX context suspended
+  });
+
+  it('resume() restarts music that was playing before suspend', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('game', 'assets/bgmusic.mp3');
+    Sound.unlock();
+    Sound.playMusic('game');
+    await Promise.resolve();
+    await Promise.resolve();
+    const el = voices()[0];
+
+    Sound.suspend();
+    expect(el.paused).toBe(true);
+    const playsBefore = el.playCount;
+
+    Sound.resume();
+    expect(el.paused).toBe(false); // resumed
+    expect(el.playCount).toBe(playsBefore + 1);
+    expect(el.volume).toBeCloseTo(0.45);
+  });
+
+  it('resume() does NOT start music that was not playing before suspend', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('game', 'assets/bgmusic.mp3');
+    Sound.unlock();
+    // never call playMusic -> nothing is sounding
+    Sound.suspend();
+    Sound.resume();
+    const v = voices();
+    expect(v.every((e) => e.paused)).toBe(true); // stays silent
+  });
+
+  it('resume() keeps music paused while muted', async () => {
+    const Sound = await freshSound();
+    Sound.loadMusic('game', 'assets/bgmusic.mp3');
+    Sound.unlock();
+    Sound.playMusic('game');
+    await Promise.resolve();
+    await Promise.resolve();
+    const el = voices()[0];
+
+    Sound.suspend();
+    Sound.toggleMute(); // muted while backgrounded
+    Sound.resume();
+    expect(el.paused).toBe(true); // not forced back on
+  });
+});
+

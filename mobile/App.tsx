@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { AppState, AppStateStatus, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { StatusBar } from 'expo-status-bar';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -63,8 +63,20 @@ export default function App() {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
 
+    // Pause music when the app leaves the foreground (background/inactive) and
+    // resume it on return — handled inside the web build's SoundManager, which
+    // only resumes music that was actually playing before (see __dodgeAudio).
+    const onAppState = (state: AppStateStatus) => {
+      const call = state === 'active' ? 'resume' : 'suspend';
+      webRef.current?.injectJavaScript(
+        `window.__dodgeAudio && window.__dodgeAudio.${call}(); true;`
+      );
+    };
+    const appStateSub = AppState.addEventListener('change', onAppState);
+
     return () => {
       sub.remove();
+      appStateSub.remove();
       deactivateKeepAwake();
     };
   }, []);
