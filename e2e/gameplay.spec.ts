@@ -19,6 +19,8 @@ import {
   diagnosticErrors,
   LS,
 } from './helpers';
+import { FEATURES } from '../src/config/FeatureFlags';
+import { DIFFICULTY_MODES } from '../src/config/Constants';
 
 test.describe('E2E-GAM — GameScene initialisation', () => {
   test.beforeEach(async ({ page }) => {
@@ -40,7 +42,7 @@ test.describe('E2E-GAM — GameScene initialisation', () => {
 
   // ----- Lives count per mode -------------------------------------------
 
-  test('E2E-GAM-02: CLASSIC mode starts with 3 lives', async ({ page }) => {
+  test('E2E-GAM-02: CLASSIC mode starts with its configured lives (one-hit)', async ({ page }) => {
     await gotoWithState(page, { [LS.DIFFICULTY]: 'classic' });
     await waitForScene(page, 'MainMenu');
 
@@ -51,10 +53,18 @@ test.describe('E2E-GAM — GameScene initialisation', () => {
     await page.waitForTimeout(100);
 
     const lives = await getGameLives(page);
-    expect(lives, 'CLASSIC mode must initialise with 3 lives').toBe(3);
+    // CLASSIC is one-hit by design (GME-015 / DEC-007 — arcade purity). Assert
+    // against the config so a future balance tweak updates this in one place.
+    expect(lives, 'CLASSIC must initialise with its configured lives').toBe(
+      DIFFICULTY_MODES.classic.lives
+    );
   });
 
-  test('E2E-GAM-03: RELAX mode starts with 5 lives', async ({ page }) => {
+  test('E2E-GAM-03: RELAX mode starts with its configured lives', async ({ page }) => {
+    // RELAX is disabled in MVP v1.0 — DifficultyManager forces CLASSIC, so this
+    // assertion is only meaningful once the difficulty picker returns in v1.1.
+    test.skip(!FEATURES.RELAX_MODE_ENABLED, 'RELAX disabled in MVP v1.0 — forced to CLASSIC');
+
     await gotoWithState(page, { [LS.DIFFICULTY]: 'relax' });
     await waitForScene(page, 'MainMenu');
 
@@ -64,7 +74,9 @@ test.describe('E2E-GAM — GameScene initialisation', () => {
     await page.waitForTimeout(100);
 
     const lives = await getGameLives(page);
-    expect(lives, 'RELAX mode must initialise with 5 lives').toBe(5);
+    expect(lives, 'RELAX must initialise with its configured lives').toBe(
+      DIFFICULTY_MODES.relax.lives
+    );
   });
 
   // ----- GameOver data shape --------------------------------------------
