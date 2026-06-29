@@ -61,11 +61,13 @@ CHECKER_MAX_AREA = 360  # grey islands up to this size are checker squares, not
 
 
 def checker_mask(rgb):
-    """True where a pixel is the grey checkerboard (low saturation, mid value)."""
+    """True where a pixel is the plain background: the grey checkerboard OR a flat
+    white sheet (both low saturation). Enclosed white highlights survive because
+    flood_bg only removes background connected to the cell edge."""
     a = rgb.astype(np.int16)
     sat = a.max(2) - a.min(2)
     val = a.mean(2)
-    return (sat <= 26) & (val >= 45) & (val <= 200)
+    return (sat <= 26) & (val >= 45)
 
 
 def flood_bg(checker):
