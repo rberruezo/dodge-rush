@@ -49,6 +49,34 @@ export class ScoreManager {
     this.bonus += Math.round(points);
   }
 
+  /**
+   * Risk↔reward bonus (GME-017): a narrower gap pays more. Scales linearly from
+   * 0 at `riskGapWide` up to the full `riskGapBonus` at/below `riskGapNarrow`,
+   * then multiplied by the active combo multiplier. Pure + clamped to ≥ 0, so it
+   * only ever rewards — wide gaps simply pay nothing and Relax is never punished.
+   */
+  static narrowGapBonus(gapWidth: number, multiplier = 1): number {
+    const { riskGapBonus, riskGapWide, riskGapNarrow } = SCORE_CFG;
+    const span = riskGapWide - riskGapNarrow;
+    if (span <= 0) return 0;
+    const t = (riskGapWide - gapWidth) / span;
+    const tightness = t < 0 ? 0 : t > 1 ? 1 : t;
+    return riskGapBonus * tightness * multiplier;
+  }
+
+  /**
+   * Fork bonus (GME-017): extra points for taking the HARD gap of a fork instead
+   * of the safe one. A floor of 60% is always paid for committing, scaling up to
+   * 100% as the two gaps sit `forkSeparationRef` px apart (the farther the gamble,
+   * the bigger the reward), then × the combo multiplier. Pure + clamped to ≥ 0.
+   */
+  static forkBonus(separation: number, multiplier = 1): number {
+    const { forkChoiceBonus, forkSeparationRef } = SCORE_CFG;
+    const s = forkSeparationRef <= 0 ? 1 : separation / forkSeparationRef;
+    const reach = s < 0 ? 0 : s > 1 ? 1 : s;
+    return forkChoiceBonus * (0.6 + 0.4 * reach) * multiplier;
+  }
+
   get elapsedMs(): number {
     return this.elapsedMs_;
   }

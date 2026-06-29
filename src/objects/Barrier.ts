@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
+import { ASSET_KEYS, FORK_CFG, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
 
 /** Fast lookup of a frame's source size by name. */
@@ -30,8 +30,11 @@ interface GapMarker {
 export class Barrier {
   private left: WallSide;
   private right: WallSide;
+  private pillar: WallSide; // central divider, shown only on fork obstacles (GME-017)
   private gapL?: GapMarker;
   private gapR?: GapMarker;
+  private gap2L?: GapMarker; // posts for the fork's hard gap (telegraphed amber)
+  private gap2R?: GapMarker;
 
   // Collision / placement state (read by CollisionSystem & generator).
   y = -9999;
@@ -40,6 +43,11 @@ export class Barrier {
   bandHeight = 88;
   active = false;
   scored = false;
+
+  // Risk↔reward fork (GME-017): when true, gap2* is a second, harder gap.
+  isFork = false;
+  gap2X = GAME_WIDTH / 2;
+  gap2Width = 120;
 
   def: ObstacleTypeDef = OBSTACLE_TYPES[ObstacleType.Straight];
 
@@ -54,9 +62,12 @@ export class Barrier {
   constructor(scene: Phaser.Scene) {
     this.left = Barrier.makeSide(scene);
     this.right = Barrier.makeSide(scene);
+    this.pillar = Barrier.makeSide(scene);
     if (GAP_MARKER_CFG.enabled) {
       this.gapL = Barrier.makeMarker(scene);
       this.gapR = Barrier.makeMarker(scene);
+      this.gap2L = Barrier.makeMarker(scene);
+      this.gap2R = Barrier.makeMarker(scene);
     }
   }
 
@@ -111,6 +122,15 @@ export class Barrier {
     return this.def.golden;
   }
 
+  /** Gap(s) the player can pass through: one, or two for a fork (GME-017). */
+  safeGaps(): { x: number; width: number; hard: boolean }[] {
+    if (!this.isFork) return [{ x: this.gapX, width: this.gapWidth, hard: false }];
+    return [
+      { x: this.gapX, width: this.gapWidth, hard: false },
+      { x: this.gap2X, width: this.gap2Width, hard: true }
+    ];
+  }
+
   /** Activate this barrier with a type, vertical position, gap and motion. */
   spawn(
     def: ObstacleTypeDef,
@@ -119,7 +139,8 @@ export class Barrier {
     gapWidth: number,
     bandHeight: number,
     moveAmp: number,
-    moveOmega: number
+    moveOmega: number,
+    fork?: { center: number; width: number }
   ): void {
     this.def = def;
     this.y = y;
@@ -132,6 +153,11 @@ export class Barrier {
     this.t = 0;
     this.active = true;
     this.scored = false;
+    this.isFork = !!fork;
+    if (fork) {
+      this.gap2X = fork.center;
+      this.gap2Width = fork.width;
+    }
 
     const size = FRAME_SIZE.get(def.frame) ?? { w: 50, h: 30 };
     const tileScale = bandHeight / size.h;
@@ -144,11 +170,20 @@ export class Barrier {
     // Left wall's cap faces right (toward the gap); right wall's cap faces left.
     this.left.cap.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_r`);
     this.right.cap.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_l`);
-    for (const side of [this.left, this.right]) {
+    for (const side of [this.left, this.right, this.pillar]) {
       side.center.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_c`);
       side.center.setTileScale(tileScale, tileScale);
       side.fill.setFillStyle(def.fill, 1);
       side.glow.setFillStyle(glowColor, 1);
+    }
+
+    // Telegraph the fork: tint the hard gap's posts amber so the reward reads
+    // before the player commits (the easy gap keeps the default mint posts).
+    if (this.isFork && this.gap2L && this.gap2R) {
+      for (const m of [this.gap2L, this.gap2R]) {
+        m.core.setFillStyle(FORK_CFG.telegraphColor, 1);
+        m.glow.setFillStyle(FORK_CFG.telegraphColor, 1);
+      }
     }
 
     this.layout();
@@ -168,14 +203,21 @@ export class Barrier {
       this.right.cap.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_l`);
       this.left.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
       this.right.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
+      this.pillar.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
     }
     this.layout();
   }
 
   private layout(): void {
+    if (this.isFork) {
+      this.layoutFork();
+      return;
+    }
+
     const half = this.gapWidth / 2;
     this.placeSide(this.left, 0, this.gapX - half, true);
     this.placeSide(this.right, this.gapX + half, GAME_WIDTH, false);
+    this.hidePillar();
 
     if (this.showGlow) {
       const a = 0.32 + 0.18 * Math.sin(this.t * 0.008);
@@ -185,6 +227,73 @@ export class Barrier {
 
     this.placeMarker(this.gapL, this.gapX - half);
     this.placeMarker(this.gapR, this.gapX + half);
+    this.hideMarker(this.gap2L);
+    this.hideMarker(this.gap2R);
+  }
+
+  /**
+   * Fork layout (GME-017): left wall | gap | central pillar | gap | right wall.
+   * The two gaps are drawn in screen order; the easy gap keeps its mint posts
+   * and the hard gap shows the amber telegraph posts set in spawn().
+   */
+  private layoutFork(): void {
+    const easyL = this.gapX - this.gapWidth / 2;
+    const easyR = this.gapX + this.gapWidth / 2;
+    const hardL = this.gap2X - this.gap2Width / 2;
+    const hardR = this.gap2X + this.gap2Width / 2;
+    // Inner faces of the pillar = the right edge of the left gap and the left
+    // edge of the right gap, whichever gap sits on which side of the screen.
+    const innerL = Math.min(easyR, hardR);
+    const innerR = Math.max(easyL, hardL);
+    const leftEdge = Math.min(easyL, hardL);
+    const rightEdge = Math.max(easyR, hardR);
+
+    this.placeSide(this.left, 0, leftEdge, true);
+    this.placePillar(innerL, innerR);
+    this.placeSide(this.right, rightEdge, GAME_WIDTH, false);
+
+    if (this.showGlow) {
+      const a = 0.32 + 0.18 * Math.sin(this.t * 0.008);
+      this.left.glow.setAlpha(a);
+      this.right.glow.setAlpha(a);
+      this.pillar.glow.setAlpha(a);
+    }
+
+    this.placeMarker(this.gapL, easyL);
+    this.placeMarker(this.gapR, easyR);
+    this.placeMarker(this.gap2L, hardL);
+    this.placeMarker(this.gap2R, hardR);
+  }
+
+  /** Lay out the central pillar spanning [x0, x1] (no end-caps — flat faces). */
+  private placePillar(x0: number, x1: number): void {
+    const w = x1 - x0;
+    const visible = w > 1;
+    this.pillar.fill.setVisible(visible);
+    this.pillar.center.setVisible(visible);
+    this.pillar.glow.setVisible(visible && this.showGlow);
+    this.pillar.cap.setVisible(false);
+    if (!visible) return;
+    const cx = (x0 + x1) / 2;
+    const band = this.bandHeight;
+    this.pillar.fill.setPosition(cx, this.y).setDisplaySize(w, band);
+    this.pillar.glow.setPosition(cx, this.y).setDisplaySize(w, band);
+    this.pillar.center.setSize(w, band).setPosition(cx, this.y);
+  }
+
+  /** Hide the central pillar (single-gap barriers). */
+  private hidePillar(): void {
+    this.pillar.fill.setVisible(false);
+    this.pillar.cap.setVisible(false);
+    this.pillar.center.setVisible(false);
+    this.pillar.glow.setVisible(false);
+  }
+
+  /** Hide a gap-edge post outright (used for the unused hard-gap posts). */
+  private hideMarker(m?: GapMarker): void {
+    if (!m) return;
+    m.core.setVisible(false);
+    m.glow.setVisible(false);
   }
 
   /** Place a gap-edge post at inner edge `x`, on-screen only, with a soft pulse. */
@@ -235,22 +344,23 @@ export class Barrier {
 
   recycle(): void {
     this.active = false;
+    this.isFork = false;
     this.y = -9999;
-    for (const side of [this.left, this.right]) {
+    for (const side of [this.left, this.right, this.pillar]) {
       [side.fill, side.cap, side.center, side.glow].forEach((o) =>
         o.setVisible(false).setPosition(0, -9999)
       );
     }
-    for (const m of [this.gapL, this.gapR]) {
+    for (const m of [this.gapL, this.gapR, this.gap2L, this.gap2R]) {
       if (m) [m.core, m.glow].forEach((o) => o.setVisible(false).setPosition(0, -9999));
     }
   }
 
   destroy(): void {
-    for (const side of [this.left, this.right]) {
+    for (const side of [this.left, this.right, this.pillar]) {
       [side.fill, side.cap, side.center, side.glow].forEach((o) => o.destroy());
     }
-    for (const m of [this.gapL, this.gapR]) {
+    for (const m of [this.gapL, this.gapR, this.gap2L, this.gap2R]) {
       if (m) [m.core, m.glow].forEach((o) => o.destroy());
     }
   }

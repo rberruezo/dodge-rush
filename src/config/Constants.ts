@@ -228,6 +228,25 @@ export const OBSTACLE_CFG = {
   poolSize: 10 // recycled barrier instances
 } as const;
 
+/**
+ * Risk↔reward "fork" obstacle (GME-017). Some barriers present TWO gaps split by
+ * a central pillar: the normal reachable gap is the EASY option (wide, near the
+ * player's path) and a second, narrower gap is carved far to one side as the HARD
+ * option. Taking the hard gap pays a score bonus (see SCORE_CFG.forkChoiceBonus).
+ * The easy gap is always the fair, reachable one, so forks never cause an
+ * unavoidable death and Relax stays accessible.
+ */
+export const FORK_CFG = {
+  spawnChance: 0.38, // chance an *eligible* barrier becomes a fork
+  minLevel: 1, // no forks before the first 30s difficulty step (let newcomers settle)
+  minEasyGap: 160, // the normal gap must be at least this wide to host a fork
+  hardRatio: 0.62, // hard gap width = easy gap width × this
+  minHardGap: 100, // floor for the hard gap so it always stays passable (player ≈ 37px)
+  minPillar: 44, // minimum solid divider between the two gaps (legibility)
+  minOuterWall: 20, // keep a visible wall beyond the hard gap (never flush to the edge)
+  telegraphColor: 0xffb020 // amber tint on the hard gap's posts ("more reward this way")
+} as const;
+
 /** Scrolling / fall-speed curve. */
 export const SCROLL_CFG = {
   startSpeed: 0.2, // initial fall speed (px/ms)
@@ -250,7 +269,21 @@ export const SCORE_CFG = {
   goldenBoostMs: 5000, // duration of the golden score boost
   goldenBoostMult: 2, // score multiplier while the golden boost is active
   nearMissBonus: 15, // extra points (× multiplier) for a tight pass
-  nearMissMargin: 16 // px of clearance at/under which a pass counts as "close"
+  nearMissMargin: 16, // px of clearance at/under which a pass counts as "close"
+  // Risk↔reward (GME-017): a narrower gap pays a SCORE bonus on top of the pass
+  // (speed stays decoupled per GME-GD-004). Scales linearly from 0 at riskGapWide
+  // down to the full riskGapBonus at/below riskGapNarrow, then × the combo
+  // multiplier. Purely additive — Relax's wider gaps simply earn less, never a
+  // penalty — so the mode stays accessible.
+  riskGapBonus: 20, // max extra points (× multiplier) for threading the tightest gap
+  riskGapWide: 230, // gap width (px) at/above which a pass earns no risk bonus
+  riskGapNarrow: 120, // gap width (px) at/below which the full risk bonus is paid
+  riskFeedbackMin: 8, // only flash the "TIGHT!" popup once the risk bonus reaches this
+  // Risk↔reward fork (GME-017): a "fork" obstacle offers an easy (wide/near) and a
+  // hard (narrow/far) gap. Threading the HARD gap pays this extra, scaled by how
+  // far apart the two gaps are (more distance committed = more reward). × combo.
+  forkChoiceBonus: 35, // base extra points (× multiplier) for taking the hard gap
+  forkSeparationRef: 200 // px between the two gaps that yields full distance scaling
 } as const;
 
 /**

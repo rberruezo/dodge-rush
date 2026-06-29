@@ -74,8 +74,8 @@ export class ObstacleGenerator {
     const b = this.pool.pop();
     if (!b) return;
 
-    const { def, center, gapWidth, band, amp, omega } = this.planner.plan(snapshot);
-    b.spawn(def, y, center, gapWidth, band, amp, omega);
+    const { def, center, gapWidth, band, amp, omega, fork } = this.planner.plan(snapshot);
+    b.spawn(def, y, center, gapWidth, band, amp, omega, fork);
     this.active.push(b);
   }
 

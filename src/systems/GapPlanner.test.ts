@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GapPlanner } from './GapPlanner';
 import { DifficultyManager } from './DifficultyManager';
-import { OBSTACLE_CFG, PLAYER_CFG, GAME_WIDTH } from '../config/Constants';
+import { OBSTACLE_CFG, FORK_CFG, PLAYER_CFG, GAME_WIDTH } from '../config/Constants';
 
 /** Deterministic PRNG so each test run produces an identical obstacle stream. */
 function mulberry32(seed: number): () => number {
@@ -71,6 +71,50 @@ describe('GapPlanner — fairness contract (GP-04)', () => {
       const def = p.plan(DifficultyManager.sample(t)).def;
       expect(def).toBeDefined();
       expect(def.gapFactor).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('GapPlanner — risk↔reward fork (GME-017)', () => {
+  it('carves a second, harder gap that stays fair and separated', () => {
+    const planner = new GapPlanner(mulberry32(99));
+    let forks = 0;
+
+    for (let t = 0; t <= 300; t += 0.5) {
+      const g = planner.plan(DifficultyManager.sample(t));
+      if (!g.fork) continue;
+      forks++;
+
+      const easyL = g.center - g.gapWidth / 2;
+      const easyR = g.center + g.gapWidth / 2;
+      const hardL = g.fork.center - g.fork.width / 2;
+      const hardR = g.fork.center + g.fork.width / 2;
+
+      // The hard gap is passable but tighter than the easy one.
+      expect(g.fork.width).toBeGreaterThanOrEqual(PLAYER_WIDTH);
+      expect(g.fork.width).toBeLessThan(g.gapWidth);
+
+      // Both gaps sit fully inside the playfield padding.
+      expect(Math.min(easyL, hardL)).toBeGreaterThanOrEqual(OBSTACLE_CFG.edgePadding - 1e-6);
+      expect(Math.max(easyR, hardR)).toBeLessThanOrEqual(GAME_WIDTH - OBSTACLE_CFG.edgePadding + 1e-6);
+
+      // The two gaps never overlap and keep a min-width solid pillar between them.
+      const pillar = hardL > easyR ? hardL - easyR : easyL - hardR;
+      expect(pillar).toBeGreaterThanOrEqual(FORK_CFG.minPillar - 1e-6);
+
+      // Forks are static so the choice reads clearly.
+      expect(g.amp).toBe(0);
+    }
+
+    // The chosen seed/ramp must actually exercise the fork path.
+    expect(forks).toBeGreaterThan(0);
+  });
+
+  it('only forks when the easy gap is wide enough to host one', () => {
+    const p = new GapPlanner(mulberry32(2025));
+    for (let t = 0; t <= 200; t += 0.5) {
+      const g = p.plan(DifficultyManager.sample(t));
+      if (g.fork) expect(g.gapWidth).toBeGreaterThanOrEqual(FORK_CFG.minEasyGap);
     }
   });
 });

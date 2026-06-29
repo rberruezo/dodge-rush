@@ -1,14 +1,21 @@
-import { OBSTACLE_CFG, PLAYER_CFG, GAME_WIDTH } from '../config/Constants';
+import { OBSTACLE_CFG, FORK_CFG, PLAYER_CFG, GAME_WIDTH } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
 import { DifficultySnapshot, DifficultyManager } from './DifficultyManager';
 
+/** A second, harder gap carved far to one side of the easy gap (GME-017 fork). */
+export interface HardGap {
+  center: number; // hard gap centre x
+  width: number; // hard gap width (narrower than the easy gap)
+}
+
 export interface PlannedGap {
   def: ObstacleTypeDef;
-  center: number; // gap centre x
-  gapWidth: number; // safe-passage width
+  center: number; // easy gap centre x (the normal, reachable gap)
+  gapWidth: number; // easy gap safe-passage width
   band: number; // wall band thickness
   amp: number; // horizontal oscillation amplitude (0 = static)
   omega: number; // oscillation angular speed
+  fork?: HardGap; // optional risk↔reward second gap (GME-017)
 }
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
@@ -70,7 +77,56 @@ export class GapPlanner {
     }
 
     this.lastGapX = center;
+
+    // Risk↔reward fork (GME-017): sometimes carve a second, narrower gap far to
+    // one side. The easy gap above stays the fair, reachable option; the fork is
+    // the optional gamble. Forks are static (amp 0) so the choice reads clearly.
+    const fork = this.maybeFork(def, snapshot, center, gapWidth);
+    if (fork) return { def, center, gapWidth, band, amp: 0, omega: 0, fork };
+
     return { def, center, gapWidth, band, amp, omega };
+  }
+
+  /**
+   * Decide whether this barrier becomes a fork and, if so, place the hard gap.
+   * Returns the hard gap (far side, narrower) or null to keep a single gap.
+   * The easy gap (passed in) is never moved, so the fairness contract holds.
+   */
+  private maybeFork(
+    def: ObstacleTypeDef,
+    snapshot: DifficultySnapshot,
+    easyCenter: number,
+    easyWidth: number
+  ): HardGap | null {
+    // Eligible only for static, non-reward walls, after the newcomer grace period,
+    // and only when the normal gap is wide enough to be the comfortable easy side.
+    if (def.moving || def.golden) return null;
+    if (snapshot.level < FORK_CFG.minLevel) return null;
+    if (easyWidth < FORK_CFG.minEasyGap) return null;
+    if (this.rng() >= FORK_CFG.spawnChance) return null;
+
+    const lo = OBSTACLE_CFG.edgePadding;
+    const hi = GAME_WIDTH - OBSTACLE_CFG.edgePadding;
+    const width = clamp(easyWidth * FORK_CFG.hardRatio, FORK_CFG.minHardGap, easyWidth - 24);
+    const half = width / 2;
+    const easyLeft = easyCenter - easyWidth / 2;
+    const easyRight = easyCenter + easyWidth / 2;
+    const need = width + FORK_CFG.minPillar + FORK_CFG.minOuterWall;
+    const roomRight = hi - easyRight;
+    const roomLeft = easyLeft - lo;
+
+    // Place the hard gap as far as it fits on the roomier side (maximum commitment),
+    // always leaving a visible outer wall and a min-width pillar from the easy gap.
+    if (roomRight >= roomLeft && roomRight >= need) {
+      return { center: hi - half - FORK_CFG.minOuterWall, width };
+    }
+    if (roomLeft >= need) {
+      return { center: lo + half + FORK_CFG.minOuterWall, width };
+    }
+    if (roomRight >= need) {
+      return { center: hi - half - FORK_CFG.minOuterWall, width };
+    }
+    return null;
   }
 
   private pickType(weights: Map<ObstacleType, number>): ObstacleTypeDef {

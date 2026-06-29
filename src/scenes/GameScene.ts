@@ -272,14 +272,37 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Which gap of a barrier the player threaded. A fork has two (easy + hard); a
+   * normal wall has one. Picks the gap the player's centre is inside, else the
+   * nearest — so the reward matches the line the player actually committed to.
+   */
+  private chosenGap(b: Barrier): { x: number; width: number; hard: boolean } {
+    const gaps = b.safeGaps();
+    if (gaps.length === 1) return gaps[0];
+    const px = this.player.x;
+    let best = gaps[0];
+    let bestDist = Infinity;
+    for (const g of gaps) {
+      const inside = px >= g.x - g.width / 2 && px <= g.x + g.width / 2;
+      const dist = inside ? -1 : Math.abs(px - g.x);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = g;
+      }
+    }
+    return best;
+  }
+
   /** Award score + combo + feedback for a cleared obstacle. */
   private handlePass(b: Barrier, boostMult: number): void {
     const state = this.combo.increment();
     const mult = state.multiplier;
 
     let points = SCORE_CFG.pointsPerPass * mult * boostMult;
-    const px = b.gapX;
     const py = this.player.y;
+    const chosen = this.chosenGap(b); // the gap (of 1 or 2) the player took
+    const px = chosen.x;
 
     if (b.isGolden) {
       points += SCORE_CFG.goldenBonus;
@@ -291,17 +314,36 @@ export class GameScene extends Phaser.Scene {
       Sound.pass();
     }
 
-    // Near-miss reward: threading the gap with little clearance pays extra.
+    // Risk↔reward (GME-017): the riskier line pays more SCORE (speed stays
+    // decoupled per GME-GD-004). Additive axes — taking a fork's HARD gap, a
+    // narrow gap, and/or a near-miss graze — never a penalty, so Relax stays
+    // accessible. Every bonus is measured against the CHOSEN gap.
     if (!b.isGolden) {
       const box = this.player.getHitbox();
-      const clearance = Math.min(
-        box.x - box.halfW - (b.gapX - b.gapWidth / 2),
-        b.gapX + b.gapWidth / 2 - (box.x + box.halfW)
-      );
-      if (clearance >= 0 && clearance <= SCORE_CFG.nearMissMargin) {
-        const nm = SCORE_CFG.nearMissBonus * mult;
-        points += nm;
+      const gapLeft = chosen.x - chosen.width / 2;
+      const gapRight = chosen.x + chosen.width / 2;
+      const clearance = Math.min(box.x - box.halfW - gapLeft, gapRight - (box.x + box.halfW));
+      const nearMiss = clearance >= 0 && clearance <= SCORE_CFG.nearMissMargin;
+      const gapBonus = ScoreManager.narrowGapBonus(chosen.width, mult); // tighter gap = more
+      const forkReward = chosen.hard
+        ? ScoreManager.forkBonus(Math.abs(b.gapX - b.gap2X), mult) // gambled on the hard gap
+        : 0;
+      const riskBonus = gapBonus + forkReward + (nearMiss ? SCORE_CFG.nearMissBonus * mult : 0);
+      points += riskBonus;
+
+      if (nearMiss) {
         Sound.nearMiss();
+        this.scareUntilMs = this.score.elapsedMs + 160; // brief pilot startle (DR-15)
+      } else if (chosen.hard) {
+        Sound.nearMiss(); // the gamble earns the same satisfying sting
+      }
+
+      // Feedback priority: the fork gamble headlines, else a graze, else a clean tight gap.
+      if (chosen.hard) {
+        this.fx.popup(px, py - 40, `¡ARRIESGADO! +${Math.round(riskBonus)}`, '#ffb020', 28);
+        this.fx.burst(px, this.player.y, 0xffb020, 12);
+        this.cameras.main.shake(160, 0.006);
+      } else if (nearMiss) {
         if (Profile.totalRuns === 0 && !this.firstWowShown) {
           // GME-GD-005: amplify the first-ever near-miss on the player's first run.
           this.firstWowShown = true;
@@ -310,10 +352,13 @@ export class GameScene extends Phaser.Scene {
           this.cameras.main.flash(200, 200, 240, 255); // wind whoosh flash
           this.cameras.main.shake(340, 0.015); // bigger than a normal pass
         } else {
-          this.fx.popup(px, py - 34, `CLOSE! +${Math.round(nm)}`, '#9be7ff', 24);
+          this.fx.popup(px, py - 34, `CLOSE! +${Math.round(riskBonus)}`, '#9be7ff', 24);
           this.fx.burst(px, this.player.y, 0x9be7ff, 6);
         }
-        this.scareUntilMs = this.score.elapsedMs + 160; // brief pilot startle (DR-15)
+      } else if (gapBonus >= SCORE_CFG.riskFeedbackMin) {
+        // Tight gap cleared cleanly (no graze): a brief, quieter reward beat.
+        this.fx.popup(px, py - 34, `TIGHT! +${Math.round(gapBonus)}`, '#9be7ff', 22);
+        this.fx.burst(px, this.player.y, 0x9be7ff, 4);
       }
     }
 

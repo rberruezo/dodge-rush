@@ -107,4 +107,53 @@ describe('ScoreManager', () => {
 
     DifficultyManager.setMode('classic'); // restore default for any later tests
   });
+
+  describe('narrowGapBonus (GME-017 risk↔reward)', () => {
+    it('pays nothing for a wide/safe gap', () => {
+      expect(ScoreManager.narrowGapBonus(SCORE_CFG.riskGapWide)).toBe(0);
+      expect(ScoreManager.narrowGapBonus(SCORE_CFG.riskGapWide + 50)).toBe(0); // never negative
+    });
+
+    it('pays the full bonus at/below the narrow threshold', () => {
+      expect(ScoreManager.narrowGapBonus(SCORE_CFG.riskGapNarrow)).toBe(SCORE_CFG.riskGapBonus);
+      expect(ScoreManager.narrowGapBonus(SCORE_CFG.riskGapNarrow - 40)).toBe(SCORE_CFG.riskGapBonus); // clamped
+    });
+
+    it('scales linearly between the two thresholds', () => {
+      const mid = (SCORE_CFG.riskGapWide + SCORE_CFG.riskGapNarrow) / 2;
+      expect(ScoreManager.narrowGapBonus(mid)).toBeCloseTo(SCORE_CFG.riskGapBonus / 2, 6);
+    });
+
+    it('multiplies by the combo multiplier', () => {
+      expect(ScoreManager.narrowGapBonus(SCORE_CFG.riskGapNarrow, 4)).toBe(SCORE_CFG.riskGapBonus * 4);
+    });
+  });
+
+  describe('forkBonus (GME-017 hard-gap gamble)', () => {
+    it('always pays the 60% commitment floor, even for adjacent gaps', () => {
+      expect(ScoreManager.forkBonus(0)).toBeCloseTo(SCORE_CFG.forkChoiceBonus * 0.6, 6);
+    });
+
+    it('pays the full bonus once the gaps sit a reference distance apart', () => {
+      expect(ScoreManager.forkBonus(SCORE_CFG.forkSeparationRef)).toBeCloseTo(SCORE_CFG.forkChoiceBonus, 6);
+      // Clamped: an even larger separation never exceeds the full bonus.
+      expect(ScoreManager.forkBonus(SCORE_CFG.forkSeparationRef * 3)).toBeCloseTo(SCORE_CFG.forkChoiceBonus, 6);
+    });
+
+    it('scales between the floor and the full bonus with separation', () => {
+      const half = ScoreManager.forkBonus(SCORE_CFG.forkSeparationRef / 2);
+      expect(half).toBeCloseTo(SCORE_CFG.forkChoiceBonus * 0.8, 6); // 0.6 + 0.4*0.5
+    });
+
+    it('multiplies by the combo multiplier', () => {
+      expect(ScoreManager.forkBonus(SCORE_CFG.forkSeparationRef, 3)).toBeCloseTo(
+        SCORE_CFG.forkChoiceBonus * 3,
+        6
+      );
+    });
+
+    it('never goes negative for a degenerate (negative) separation', () => {
+      expect(ScoreManager.forkBonus(-50)).toBeCloseTo(SCORE_CFG.forkChoiceBonus * 0.6, 6);
+    });
+  });
 });

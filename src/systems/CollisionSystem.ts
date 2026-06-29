@@ -27,11 +27,17 @@ export class CollisionSystem {
       // No vertical overlap -> cannot collide with this barrier.
       if (pBottom <= bTop || pTop >= bBottom) continue;
 
-      const gapLeft = barrier.gapX - barrier.gapWidth / 2;
-      const gapRight = barrier.gapX + barrier.gapWidth / 2;
-
-      // Safe only when the player's full width sits inside the hole.
-      const insideHole = pLeft >= gapLeft && pRight <= gapRight;
+      // Safe when the player's full width sits inside ANY of the barrier's gaps
+      // (a fork has two; a normal wall has one). Otherwise it's a hit.
+      let insideHole = false;
+      for (const gap of barrier.safeGaps()) {
+        const gapLeft = gap.x - gap.width / 2;
+        const gapRight = gap.x + gap.width / 2;
+        if (pLeft >= gapLeft && pRight <= gapRight) {
+          insideHole = true;
+          break;
+        }
+      }
       if (!insideHole) return barrier;
     }
     return null;

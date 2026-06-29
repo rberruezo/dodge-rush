@@ -8,15 +8,28 @@ import type { Barrier } from '../objects/Barrier';
 const makePlayer = (x: number, y: number, halfW = 18, halfH = 22): Player =>
   ({ getHitbox: () => ({ x, y, halfW, halfH }) }) as unknown as Player;
 
-const makeBarrier = (over: Partial<Barrier>): Barrier =>
-  ({
+const makeBarrier = (over: Partial<Barrier>): Barrier => {
+  const b = {
     active: true,
     y: 100,
     bandHeight: 88,
     gapX: 270,
     gapWidth: 200,
+    isFork: false,
+    gap2X: 270,
+    gap2Width: 120,
     ...over
-  }) as unknown as Barrier;
+  } as Record<string, unknown>;
+  // Mirror the real Barrier.safeGaps(): one gap normally, two for a fork.
+  b.safeGaps = () =>
+    b.isFork
+      ? [
+          { x: b.gapX, width: b.gapWidth, hard: false },
+          { x: b.gap2X, width: b.gap2Width, hard: true }
+        ]
+      : [{ x: b.gapX, width: b.gapWidth, hard: false }];
+  return b as unknown as Barrier;
+};
 
 describe('CollisionSystem.check', () => {
   it('returns null when the player is vertically clear of every barrier', () => {
@@ -70,5 +83,20 @@ describe('CollisionSystem.check', () => {
       }
     }
     expect(true).toBe(true);
+  });
+
+  it('FORK: the player is safe in either gap and dies on the central pillar (GME-017)', () => {
+    // easy gap [70,250] at x=160; hard gap [375,485] at x=430; pillar fills 250..375.
+    const fork = makeBarrier({
+      y: 100,
+      isFork: true,
+      gapX: 160,
+      gapWidth: 180,
+      gap2X: 430,
+      gap2Width: 110
+    });
+    expect(CollisionSystem.check(makePlayer(160, 100, 18, 22), [fork])).toBeNull(); // easy gap
+    expect(CollisionSystem.check(makePlayer(430, 100, 18, 22), [fork])).toBeNull(); // hard gap
+    expect(CollisionSystem.check(makePlayer(312, 100, 18, 22), [fork])).toBe(fork); // pillar
   });
 });
