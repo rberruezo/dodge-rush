@@ -147,10 +147,10 @@ export interface ZoneMilestone {
 }
 
 export const ZONE_MILESTONES: ZoneMilestone[] = [
-  { at: 50, name: '¡Las Nubes!' },
-  { at: 150, name: '¡Tormenta!' },
-  { at: 300, name: '¡Estratosfera!' },
-  { at: 500, name: '¡Órbita!' }
+  { at: 50, name: 'The Clouds!' },
+  { at: 150, name: 'The Storm!' },
+  { at: 300, name: 'Stratosphere!' },
+  { at: 500, name: 'Orbit!' }
 ];
 
 /**

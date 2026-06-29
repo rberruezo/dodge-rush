@@ -340,14 +340,14 @@ export class GameScene extends Phaser.Scene {
 
       // Feedback priority: the fork gamble headlines, else a graze, else a clean tight gap.
       if (chosen.hard) {
-        this.fx.popup(px, py - 40, `¡ARRIESGADO! +${Math.round(riskBonus)}`, '#ffb020', 28);
+        this.fx.popup(px, py - 40, `RISKY! +${Math.round(riskBonus)}`, '#ffb020', 28);
         this.fx.burst(px, this.player.y, 0xffb020, 12);
         this.cameras.main.shake(160, 0.006);
       } else if (nearMiss) {
         if (Profile.totalRuns === 0 && !this.firstWowShown) {
           // GME-GD-005: amplify the first-ever near-miss on the player's first run.
           this.firstWowShown = true;
-          this.fx.popup(this.player.x, py - 70, '¡CASI!', '#ffe14a', 48);
+          this.fx.popup(this.player.x, py - 70, 'CLOSE CALL!', '#ffe14a', 48);
           this.fx.burst(this.player.x, this.player.y, 0xbfe9ff, 16); // wind streaks
           this.cameras.main.flash(200, 200, 240, 255); // wind whoosh flash
           this.cameras.main.shake(340, 0.015); // bigger than a normal pass
