@@ -77,6 +77,7 @@ export class Player extends Phaser.GameObjects.Sprite {
         if (this.faceHoldMs >= PLAYER_CFG.faceFlipDelayMs) {
           this.faceDir = dir; // remembered, so rest keeps facing this way
           this.faceHoldMs = 0;
+          this.angle = 0; // cross tilt through neutral on flip so it never leans backwards (DR-07)
         }
       }
       this.targetTilt = dir * PLAYER_CFG.tiltDegrees;

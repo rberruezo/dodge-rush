@@ -224,9 +224,8 @@ export class GameScene extends Phaser.Scene {
     const immune = lifeInvincible;
     if (now < this.scareUntilMs) {
       this.player.setPose({ kind: 'impact' }); // near-miss startle
-    } else if (lifeInvincible) {
-      // First ~180ms after a hit read as a recoil before the dizzy spin (DR-12).
-      this.player.setPose({ kind: now < this.hitAtMs + 180 ? 'impact' : 'dizzy' });
+    } else if (lifeInvincible && now < this.hitAtMs + 180) {
+      this.player.setPose({ kind: 'impact' }); // brief recoil right after a hit (DR-12)
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {

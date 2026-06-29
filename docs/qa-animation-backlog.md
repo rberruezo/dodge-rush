@@ -117,7 +117,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Poner `faceFlipDelayMs` en ~90–120 ms (el código ya está preparado para hacerlo). Cambio de 1 valor.
 
 #### DR-07 — Flip instantáneo vs tilt gradual → desync al cambiar de dirección
-- **Severidad:** Medio · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Medio · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `DONE` (2026-06-28)
 - **Descripción:** Al cambiar de dirección, el `flipX` es instantáneo pero el `angle` interpola hacia el nuevo tilt (`src/objects/Player.ts:87`). Durante unos frames el sprite ya está espejado pero aún inclinado al lado anterior → parece "inclinarse hacia atrás".
 - **Impacto:** Micro-pose incorrecta en cada cambio de dirección; sensación de pop.
 - **Recomendación:** Acompañar el flip con un reseteo rápido del tilt (o cruzar el tilt por 0 antes de espejar). Con DR-06 aplicado ocurre menos seguido.
@@ -161,7 +161,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** No detener la animación: mantener el loop del propeller bajo la cara de dizzy. Como `dizzy` es un único frame autorizado (no hay loop), lo correcto es una **capa de propeller separada** que nunca se detiene, o un mini-loop dizzy. No es un 1-liner por la falta de frames de dizzy.
 
 #### DR-14 — Pérdida total de feedback direccional durante invencibilidad
-- **Severidad:** Medio · **Categoría:** Legibilidad · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Medio · **Categoría:** Legibilidad · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `DONE` (2026-06-28)
 - **Descripción:** Durante 1.5 s la pose se fuerza a `dizzy` (`src/scenes/GameScene.ts:211`) aunque el jugador sí se sigue moviendo (steer corre igual). El cuerpo no refleja la dirección.
 - **Impacto:** Justo tras un golpe (momento de pánico) el jugador pierde la lectura de hacia dónde va.
 - **Recomendación:** Permitir poses de movimiento durante invencibilidad (tintadas/parpadeando); reservar dizzy para los primeros ~300 ms.
@@ -336,5 +336,6 @@ Ordenados por relación impacto/esfuerzo:
 | 2026-06-28 | DR-01, DR-02 | QA Session | Sensación de caída. **Player.ts:** `aliveTick(dt, intensity)` — bob ×(1+0.6) y propeller `timeScale` ×(1+0.5) según velocidad; `playDeath` resetea timeScale. **GameScene.ts:** `fallIntensity` 0..1 por velocidad + estelas de viento sutiles al cruzar 0.6. Validación: `tsc --noEmit` OK. |
 | 2026-06-28 | DR-13, DR-24 | QA Session | **BLOCKED:** sin asset de propeller separado (la hélice está pintada en cada frame), una capa que siga viva requiere arte propio. Se posponen hasta tener el sprite. |
 | 2026-06-28 | DR-12, DR-15 | QA Session | Pose de impacto/susto. **Player.ts:** nueva pose `impact` (frame 43 `shout`, fallback `sadHead` 41 en skins). **GameScene.ts:** recoil ~180ms al sobrevivir un golpe + startle 160ms en near-miss antes de dizzy. **PlayerFacing(.test).ts:** `impact` agregado. Validación: `tsc --noEmit` OK; `PlayerFacing` (6) OK. |
+| 2026-06-28 | DR-07, DR-14 | QA Session | **Player.ts:** al espejar, el tilt cruza por 0 (no se inclina hacia atrás, DR-07). **GameScene.ts:** durante invencibilidad ahora se muestran poses de movimiento/hover tras el recoil de 180ms (ya no dizzy fijo), el blink sigue comunicando inmunidad (DR-14). Validación: `tsc --noEmit` OK. |
 </content>
 </invoke>
