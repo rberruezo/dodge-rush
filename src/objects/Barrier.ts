@@ -179,8 +179,8 @@ export class Barrier {
     for (const side of [this.left, this.right, this.pillar]) {
       side.center.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_c`);
       side.center.setTileScale(tileScale, tileScale);
-      side.center.setAlpha(0.78); // glass-tube centre: sky shows through at ~22%
-      side.fill.setFillStyle(def.fill, 0.55); // semi-transparent backing under centre body
+      side.center.setAlpha(1); // solid sprite body (3D beam) — no see-through
+      side.fill.setFillStyle(def.fill, 1); // opaque on-brand backing under body
       side.glow.setFillStyle(glowColor, 1);
     }
 

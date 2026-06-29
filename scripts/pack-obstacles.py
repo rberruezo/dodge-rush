@@ -77,23 +77,30 @@ def cap_end(cap_img):
 
 
 def body_column(center_img):
-    """brightest near-opaque, saturated column from the center (central 60%)."""
-    s = harden(scale_to_h(center_img, TH))
-    w = s.shape[1]
-    lo, hi = int(w * 0.2), int(w * 0.8)
-    best, bestcol = -1.0, max(lo, 0)
-    for x in range(lo, max(hi, lo + 1)):
-        col = s[:, x, :]
-        op = col[:, 3] > 0
-        if op.mean() < 0.9:
-            continue
-        rgb = col[op, :3].astype(float)
-        v = rgb.max(axis=1).mean()
-        sat = (rgb.max(axis=1) - rgb.min(axis=1)).mean()
-        score = v * 0.7 + sat * 0.6
-        if score > best:
-            best, bestcol = score, x
-    strip = np.repeat(s[:, bestcol:bestcol + 1, :], BODY_W, axis=1)
+    """Build the body strip from the bar's REAL cross-section.
+
+    The *_center pieces are vertical bars; a horizontal row across one shows the
+    bar's rounded 3D profile (dark edge -> bright highlight -> dark edge). We
+    average a band of rows around the vertical middle, crop to the opaque bar
+    span, and resize that 1D profile to the band height. Tiling that 1px column
+    horizontally yields a fully opaque, glossy 3D horizontal beam (no flat fill,
+    no transparency) that is seamless by construction.
+    """
+    s = harden(center_img)
+    h = s.shape[0]
+    y0, y1 = int(h * 0.40), int(h * 0.60)
+    band = s[y0:max(y1, y0 + 1)].astype(float)
+    prof = band.mean(axis=0)  # (w, 4) alpha-weighted cross-section
+    op = prof[:, 3] > 128
+    xs = np.where(op)[0]
+    if len(xs) == 0:  # fallback: brightest opaque column (legacy)
+        t = harden(scale_to_h(center_img, TH))
+        col = t[:, t.shape[1] // 2:t.shape[1] // 2 + 1, :]
+        return harden(np.repeat(col, BODY_W, axis=1))
+    cross = prof[xs.min():xs.max() + 1].astype(np.uint8)  # (span, 4)
+    col_img = Image.fromarray(cross.reshape(1, -1, 4), 'RGBA').resize((1, TH), Image.LANCZOS)
+    col = harden(np.array(col_img))  # (TH, 1, 4) rounded vertical profile
+    strip = np.repeat(col, BODY_W, axis=1)
     return harden(strip)
 
 
