@@ -237,7 +237,7 @@ export const OBSTACLE_CFG = {
  * unavoidable death and Relax stays accessible.
  */
 export const FORK_CFG = {
-  spawnChance: 0.38, // chance an *eligible* barrier becomes a fork
+  spawnChance: 0.45, // chance an *eligible* barrier becomes a fork (kept < 0.5 so forks stay a minority)
   minLevel: 1, // no forks before the first 30s difficulty step (let newcomers settle)
   minEasyGap: 160, // the normal gap must be at least this wide to host a fork
   hardRatio: 0.62, // hard gap width = easy gap width × this
