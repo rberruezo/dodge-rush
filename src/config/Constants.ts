@@ -339,18 +339,26 @@ export const COMBO_CFG = {
 
 /**
  * Feedback animation timings (GME-018). All durations in milliseconds.
- * Adjusted from 720ms to 1000ms to meet mobile UX standard (Apple/Google: 1.0–1.5s).
- * 720ms was 20% below the recommended range, making feedback marginal under GPU stress or in long runs.
+ *
+ * The popup motion (rise + scale) runs over `popupRiseMs`, but opacity now
+ * follows a HOLD-then-FADE curve instead of a single front-loaded fade. The old
+ * `Cubic.out` alpha tween dropped the text to ~30% opacity within the first 30%
+ * of its life, so the words were barely readable even though the object lived
+ * for 720ms. Holding full opacity for `popupHoldMs` and only then fading over
+ * `popupFadeMs` keeps the feedback legible for the bulk of its lifetime and meets
+ * the mobile UX standard (Apple/Google: ~1.0–1.5s of readable feedback).
  */
 export const FEEDBACK_CFG = {
-  // Main feedback popup (text that rises and fades): TIGHT, CLOSE, RISKY, GOLDEN, SCORE, COMBO
-  popupMs: 1000, // was 720ms — GME-018 adjustment to mobile standard
-  
+  // Main feedback popup (text that rises, holds, then fades): TIGHT, CLOSE, RISKY, GOLDEN, SCORE, COMBO
+  popupRiseMs: 1000, // upward drift + scale settle (full visible lifetime)
+  popupHoldMs: 560, // text stays fully opaque this long before it starts to fade
+  popupFadeMs: 440, // fade-out duration after the hold (hold + fade = 1000ms total)
+
   // Icon popups (trophy/crown on combo milestones)
   iconEnterMs: 220, // scale-in duration (Back.out ease)
   iconHoldMs: 600, // how long it stays at full scale before fading
   iconExitMs: 500, // fade + rise out duration (Cubic.in ease)
-  
+
   // Particle bursts (complementary to popups)
   sparkBurstMs: 480, // colored spark lifespan
   goldBurstMs: 700 // golden sparkle lifespan

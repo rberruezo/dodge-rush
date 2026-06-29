@@ -83,7 +83,7 @@ export class EffectsLayer {
     });
   }
 
-  /** Floating "+points" / combo text that rises and fades. */
+  /** Floating "+points" / combo text that rises, holds, then fades. */
   popup(x: number, y: number, text: string, color: string, size = 30): void {
     const label = this.scene.add
       .text(x, y, text, {
@@ -96,13 +96,24 @@ export class EffectsLayer {
       .setDepth(21)
       .setShadow(0, 3, '#00000088', 0, true, true);
 
+    // Motion: drift upward and settle scale over the full lifetime.
     this.scene.tweens.add({
       targets: label,
       y: y - 70,
-      alpha: { from: 1, to: 0 },
       scale: { from: 1.1, to: 0.9 },
-      duration: FEEDBACK_CFG.popupMs,
-      ease: 'Cubic.out',
+      duration: FEEDBACK_CFG.popupRiseMs,
+      ease: 'Cubic.out'
+    });
+
+    // Opacity: HOLD at full opacity, then fade (GME-018). A single front-loaded
+    // fade made the text unreadable within the first third of its life; holding
+    // first keeps the words legible for the bulk of the popup's lifetime.
+    this.scene.tweens.add({
+      targets: label,
+      alpha: { from: 1, to: 0 },
+      delay: FEEDBACK_CFG.popupHoldMs,
+      duration: FEEDBACK_CFG.popupFadeMs,
+      ease: 'Cubic.in',
       onComplete: () => label.destroy()
     });
   }
