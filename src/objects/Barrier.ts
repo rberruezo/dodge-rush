@@ -179,7 +179,8 @@ export class Barrier {
     for (const side of [this.left, this.right, this.pillar]) {
       side.center.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_c`);
       side.center.setTileScale(tileScale, tileScale);
-      side.fill.setFillStyle(def.fill, 1);
+      side.center.setAlpha(0.78); // glass-tube centre: sky shows through at ~22%
+      side.fill.setFillStyle(def.fill, 0.55); // semi-transparent backing under centre body
       side.glow.setFillStyle(glowColor, 1);
     }
 
@@ -323,8 +324,8 @@ export class Barrier {
   private placeSide(side: WallSide, x0: number, x1: number, capAtRight: boolean): void {
     const w = x1 - x0;
     const visible = w > 1;
-    side.fill.setVisible(visible);
     side.cap.setVisible(visible);
+    side.fill.setVisible(false); // repositioned below — only shown under centre body
     side.glow.setVisible(visible && this.showGlow);
     if (!visible) {
       side.center.setVisible(false);
@@ -335,18 +336,30 @@ export class Barrier {
     const band = this.bandHeight;
     const capW = Math.min(this.capDisplayW, w);
     const centerW = w - capW;
+    const hasCentre = centerW > 1;
 
-    side.fill.setPosition((x0 + x1) / 2, cy).setDisplaySize(w, band);
+    // Fill only the centre body — NOT under the cap — so the cap sprite's
+    // transparent rounded edges show the game background instead of the
+    // fill colour (which caused the jagged/blocky cap appearance).
+    side.fill.setVisible(hasCentre);
     side.glow.setPosition((x0 + x1) / 2, cy).setDisplaySize(w, band);
 
     if (capAtRight) {
       side.cap.setDisplaySize(capW, band).setPosition(x1 - capW / 2, cy);
-      if (centerW > 1) side.center.setSize(centerW, band).setPosition(x0 + centerW / 2, cy);
+      if (hasCentre) {
+        const cx = x0 + centerW / 2;
+        side.fill.setPosition(cx, cy).setDisplaySize(centerW, band);
+        side.center.setSize(centerW, band).setPosition(cx, cy);
+      }
     } else {
       side.cap.setDisplaySize(capW, band).setPosition(x0 + capW / 2, cy);
-      if (centerW > 1) side.center.setSize(centerW, band).setPosition(x1 - centerW / 2, cy);
+      if (hasCentre) {
+        const cx = x1 - centerW / 2;
+        side.fill.setPosition(cx, cy).setDisplaySize(centerW, band);
+        side.center.setSize(centerW, band).setPosition(cx, cy);
+      }
     }
-    side.center.setVisible(centerW > 1);
+    side.center.setVisible(hasCentre);
   }
 
   recycle(): void {
