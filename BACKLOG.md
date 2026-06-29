@@ -1,7 +1,7 @@
 # Dodge Rush — Backlog Colaborativo
 
 > **Propietario:** PM Session (`Product Owner`)
-> **Actualizado por última vez:** 2026-06-26
+> **Actualizado por última vez:** 2026-06-29
 > **Audiencia:** TODOS los chats del proyecto. Lean antes de empezar a trabajar. Reporten progreso aquí.
 
 ---
@@ -38,11 +38,23 @@ Este backlog es el **único punto de verdad** compartido entre todos los chats d
 
 ---
 
-## 🎯 VISIÓN MVP — Decisión del Product Owner (2026-06-26)
+## 🎯 VISIÓN MVP — Decisión del Product Owner (2026-06-29)
 
-**El MVP es: lanzar Dodge Rush en Google Play (Android) con el juego actual, monetización real y compliance de Families Policy.**
+**El MVP es: lanzar Dodge Rush en Google Play (Android) SIN ads y SIN IAP, validar retención, y recién en V1.1 prender monetización.**
 
-No es MVP: iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantalla de perfil, analytics, haptics. Todo eso es post-launch.
+Decisión 2026-06-29: V1.0 sale ads-free e IAP-free. Esto saca AdMob + COPPA + parental gate + CMP de la ruta crítica (eran el mayor bloqueante). Sin retención, los ads valen $0; primero se valida D1R/D7R en soft launch, después se prende `MONETIZATION` (flag ya existe en `FeatureFlags.ts`).
+
+No es MVP: ads/IAP, iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantalla de perfil, analytics, haptics. Todo eso es post-launch.
+
+### 🔒 BACKLOG PRE-STORE — SOLO 3 PUNTOS (nada más bloquea)
+
+Antes de salir al store el trabajo de producto/polish es exactamente esto:
+
+1. **Character — revertir a la versión anterior más simple que se veía bien** (SKN-007).
+2. **Mecánica riesgo↔recompensa: más puntos por gap más chico y/o más lejos** (GME-017).
+3. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008).
+
+Todo lo demás (ads, IAP, achievements, iOS, nuevos obstáculos/skins) es post-launch. La logística de release (firmar, subir, screenshots) NO es "backlog" — es checklist de ops, abajo.
 
 ### Decisiones tomadas por el PO
 
@@ -57,23 +69,25 @@ No es MVP: iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantall
 
 ### Ruta crítica al lanzamiento (en orden)
 
+Primero los 3 puntos de producto, después el release ops (puro trámite, no construir features):
+
 ```
-1. [BRN-001/BRN-002] Oficializar nombre "Dodge Rush" en GDD y toda la documentación
-2. [BG-005]          Corregir bug skyboxes en Android → sin esto el juego se ve mal en device
-3. [BRN-004/AND-009] Crear icon final + splash screen reales
-4. [AND-002]         Crear keystore de producción (firma para Play Store)
-5. [MON-001→004]     Integrar AdMob real (reemplazar Rewarded.ts stub)
-6. [AND-004/MON-006] Configurar Families Policy + COPPA + parental gate IAP
-7. [QA-003/QA-005/QA-007] Smoke test en 3 devices físicos + offline mode + perfil persiste
-8. [AND-003]         Configurar Google Play Console (ficha, age rating, policy)
-9. [ASO-002/003/005/006] Store listing: textos, screenshots, categoría
-10. [AND-005]        Upload a Internal Testing track
-11. [AND-006]        Open Testing → Production
+PRODUCTO (los 3 únicos blockers):
+1. [SKN-007] Revertir character a la versión anterior simple que se veía bien
+2. [GME-017] Mecánica riesgo↔recompensa (gap chico/lejos = más puntos)
+3. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
+
+RELEASE OPS (trámite, sin desarrollo de producto):
+4. [AND-002]              Keystore de producción (firma)
+5. [QA-003/005/007]       Smoke en device físico + offline + perfil persiste
+6. [AND-003]              Google Play Console (ficha, age rating, policy)
+7. [ASO-003]              Screenshots de store
+8. [AND-005→006]          Internal Testing → Open Testing → Production
 ```
 
-**Items del backlog que son MVP (P0):** BRN-001, BRN-002, BRN-004, BG-005, AND-001→005, AND-009, MON-001→004, MON-006, QA-003, QA-005, QA-007, ASO-001→003, ASO-005, ASO-006, DOC-001, DOC-003.
+**Backlog de producto pre-store (P0):** SKN-007, GME-017, BG-005. **Nada más.**
 
-**Todo lo demás:** P2 o P3 hasta que el MVP esté en Production.
+**Todo lo demás:** P2/P3 post-launch. Ads (MON-*), IAP, COPPA/parental gate y CMP → diferidos a V1.1 por la decisión ads-free.
 
 ---
 
@@ -123,6 +137,7 @@ Estado actual: **12 skins en el catálogo + 5 achievement skins (palette-swaps)*
 | `SKN-004` | Agregar skin DOG como nuevo personaje (separado de Hound) si la sesión lo decidió así | **P3** *(post-MVP — DEC-004)* | PENDING | Dog character sprite |
 | `SKN-005` | Validar que el achievement skin GOLD no se confunde visualmente con el GOLD KING (mismo tint) | **P3** *(post-MVP)* | PENDING | — |
 | `SKN-006` | Revisar que `pilot_kit.py` genere output consistente en todas las plataformas (Python versión) | P3 | PENDING | — |
+| `SKN-007` | **[PRE-STORE #1] Revertir el character a la versión anterior más simple que se veía bien.** El sprite Tier-3 actual "lee más cargado"; volver al look previo más limpio. Recuperar el sheet/commit anterior (`git log -- public/assets/character.png`), reemplazar el actual y validar facing (`PlayerFacing.ts`) + las 12 poses. | **P0** *(pre-store)* | PENDING | — |
 
 ### QA SKN-001 — `character_hound.png` (sesión Dog character, 2026-06-27) → **APROBADO con notas menores**
 
@@ -170,7 +185,7 @@ Background actual: "Sky City" con 6 zonas (day/dusk/sunset/twilight/night/aurora
 | `BG-002` | Si se agregan nuevas zonas: actualizar `Constants.ts` y `Background.ts` con zone config | P1 | PENDING | — |
 | `BG-003` | Verificar fondo en device (APK): cross-dissolve entre zonas + **skyboxes visibles (BG-005/BUG-008)**. Checklist paso a paso en `QA-MANUAL-CHECKLIST.md` → sección "Fondo Sky City" (BG-01..BG-07), incluye cómo capturar la línea `bg-audit` del logcat (evidencia decisiva) | P1 | PENDING | QA Tech Lead |
 | `BG-004` | Asegurar que layers nuevos siguen la guía de parallax speeds existentes | P2 | PENDING | Background Image Design |
-| `BG-005` | **[BUG-004/BUG-008]** Investigar y corregir skyboxes (`bg_sky_*.png`) invisibles en device Android físico — nubes y naves se ven, solo las skyboxes fallan. **REABIERTO (2026-06-27):** el fix del grade (Rectangle→Image) SÍ llegó al APK pero el bug persiste → el grade NO era la causa. Re-diagnóstico en curso: instrumentación (audit a logcat) + self-heal enviados al bundle; falta evidencia de device (screenshot + logcat) para confirmar decode-failure vs GPU-render. Ver Log de Progreso 2026-06-27. | P1 | IN PROGRESS | Background Image Design |
+| `BG-005` | **[PRE-STORE #3 / BUG-004/BUG-008]** Investigar y corregir skyboxes (`bg_sky_*.png`) invisibles en device Android físico — nubes y naves se ven, solo las skyboxes fallan. **REABIERTO (2026-06-27):** el fix del grade (Rectangle→Image) SÍ llegó al APK pero el bug persiste → el grade NO era la causa. Re-diagnóstico en curso: instrumentación (audit a logcat) + self-heal enviados al bundle; falta evidencia de device (screenshot + logcat) para confirmar decode-failure vs GPU-render. Ver Log de Progreso 2026-06-27. | **P0** *(pre-store)* | IN PROGRESS | Background Image Design |
 
 ---
 
@@ -207,6 +222,7 @@ Estado actual: `bgmusic.mp3/.ogg` y `menu.mp3/.ogg` funcionando. SFX es Web Audi
 | `GME-015` | **[DEC-007] Vidas por modo + cambio de default.** Tres cambios en un ticket: (1) `Constants.ts` — `DEFAULT_DIFFICULTY: 'relax'` (una línea); (2) lógica de vidas en `GameScene.ts` — si `difficulty === 'classic'` → 1 vida, si `difficulty === 'relax'` → 3 vidas; (3) `HUD.ts` — mostrar iconos de vida solo en Relax (en Classic no hay iconos, el juego es one-hit). Verificar que el selector de dificultad en `MainMenuScene` refleja el nuevo default visual. **[Impl 2026-06-27]** (1) `DEFAULT_DIFFICULTY: 'relax'`. (2) Vidas por modo via CONFIG (GameScene ya lee `mode.lives`, sin condicionales nuevos): `classic.lives = 1` (one-hit — `loseLife()` va directo a game over sin invencibilidad porque lives llega a 0), `relax.lives = 3`. (3) `HUD.setLives` oculta los corazones cuando `max <= 1`. MainMenu ya lee `DifficultyManager.mode` → muestra Relax por el nuevo default. **Nota:** DEC-007 dice "Relax = 3 vidas" pero el ticket decía "(comportamiento actual)"; el actual era **5**, no 3 → seguí la decisión formal (3) y actualicé el test de QA que tenía `toBe(5)` hardcoded (ahora deriva de config). Si el PO quería mantener 5, es 1 línea. `tsc` OK; `ScoreManager`/`DifficultyManager` tests verdes; `vite build` OK. | **P0** *(MVP — DEC-007)* | DONE (2026-06-27) | Dodge Rush Dev |
 | `GME-012` | **Fairness de scoring entre modos (Relax vs Classic)** — **DECISIÓN TOMADA (DEC-007 2026-06-27): Opción B.** Implementar `bestClassic` y `bestRelax` como campos separados en `ProfileManager`. Pasos: (1) En `ProfileManager`: renombrar `best`→`bestClassic`, agregar `bestRelax`, ambos persistidos en `STORAGE_KEYS`; (2) En `ScoreManager.commit()`: leer/escribir el campo correcto según `DifficultyManager.mode.id`; (3) En `GameScene.create()`: pasar el récord del modo activo a `HUD` y `startingHigh`; (4) En `GameOverScene`: mostrar el récord del modo activo. **Sin cambios al score base** — solo el high score se bifurca. **[Impl 2026-06-27]** El high score vive en `ScoreManager` (no en `ProfileManager`) → implementado ahí: nueva key `STORAGE_KEYS.HIGH_SCORE_RELAX` (CLASSIC mantiene `HIGH_SCORE` legacy → datos existentes = classic), `ScoreManager` resuelve la key por `DifficultyManager.mode.id` en load/save, y `GameOverScene` muestra `BEST · <MODO>`. GameScene/HUD ya leían `score.high` (ahora por-modo) sin cambios. Test nuevo en `ScoreManager.test`. | P1 | DONE (2026-06-27) | Dodge Rush Dev |
 | `GME-013` | **Playtest de game feel — validación manual**: sesión de juego enfocada en verificar que velocidad, incremento gradual y tamaño de gaps se sienten justos y divertidos para el target kids/families. Checklist mínimo: ¿los primeros 30s son accesibles para un jugador nuevo?, ¿la dificultad escala sin picos injustos?, ¿los gaps en fase 4-5 son navegables con reflejos normales?, ¿el combo speed bonus se siente como recompensa y no trampa?, ¿Relax se percibe notablemente más fácil que Classic? Registrar findings con timestamps de run y ajustar `SCROLL_CFG`, `OBSTACLE_CFG` o `DIFFICULTY_MODES` según resultados. | P1 | PENDING | — |
+| `GME-017` | **[PRE-STORE #2] Mecánica riesgo↔recompensa: más puntos por gap más chico y/o pasar más cerca.** Premiar el paso más arriesgado: gap angosto y/o near-miss = bonus de score (no de velocidad, queda desacoplada por GME-GD-004). Sumar el bonus en `GameScene`/`ScoreManager` al cruzar la barrera, escalando por (ancho del gap) y/o distancia al borde; feedback visual breve. Mantener Relax accesible (bonus opcional, nunca castiga). | **P0** *(pre-store)* | PENDING | — |
 
 ### Versionado e identificación de build
 
@@ -265,17 +281,17 @@ Estado actual: No iniciado. El WebView wrapper debería funcionar sin cambios ma
 
 ## ÉPICA 9 — Monetización (Fase 4)
 
-Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración real.
+Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración real. **DIFERIDO A V1.1 (2026-06-29):** V1.0 sale ads-free e IAP-free. Toda esta épica se reactiva cuando D1R/D7R del soft launch justifiquen prender la flag `MONETIZATION`.
 
 | ID | Item | Prioridad | Status | Sesión |
 |---|---|---|---|---|
-| `MON-001` | Seleccionar e integrar AdMob SDK certificado para Families Policy | P0 | PENDING | — |
-| `MON-002` | Reemplazar `Rewarded.ts` stub con implementación real (AdMob rewarded) | P0 | PENDING | — |
-| `MON-003` | Configurar ad units: placement Continue + placement Double Coins | P0 | PENDING | — |
-| `MON-004` | Verificar que los ads son non-personalized (COPPA compliance) | P0 | PENDING | — |
-| `MON-005` | Implementar Starter Pack IAP (opcional, una sola compra) | P1 | PENDING | — |
-| `MON-006` | Configurar parental gate para IAP (obligatorio para Families Policy) | P0 | PENDING | — |
-| `MON-007` | Testear que el flujo rewarded no bloquea retry (principio 1 del GDD: sin fricción en retry) | P1 | PENDING | QA Tech Lead |
+| `MON-001` | Seleccionar e integrar AdMob SDK certificado para Families Policy | ~~P0~~ V1.1 | DEFERRED | — |
+| `MON-002` | Reemplazar `Rewarded.ts` stub con implementación real (AdMob rewarded) | ~~P0~~ V1.1 | DEFERRED | — |
+| `MON-003` | Configurar ad units: placement Continue + placement Double Coins | ~~P0~~ V1.1 | DEFERRED | — |
+| `MON-004` | Verificar que los ads son non-personalized (COPPA compliance) | ~~P0~~ V1.1 | DEFERRED | — |
+| `MON-005` | Implementar Starter Pack IAP (opcional, una sola compra) | ~~P1~~ V1.1 | DEFERRED | — |
+| `MON-006` | Configurar parental gate para IAP (obligatorio para Families Policy) | ~~P0~~ V1.1 | DEFERRED | — |
+| `MON-007` | Testear que el flujo rewarded no bloquea retry (principio 1 del GDD: sin fricción en retry) | ~~P1~~ V1.1 | DEFERRED | QA Tech Lead |
 
 ---
 
@@ -365,7 +381,7 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 | ID | Decisión | Status | Notas |
 |---|---|---|---|
 | `DEC-001` | Nombre oficial del juego: "Dodge Rush" o "Fallcade" | **PENDIENTE** | GDD dice "Fallcade", todo lo demás dice "Dodge Rush". **[QA 2026-06-26]** Evidencia: `docs/gdd.md` es el ÚNICO archivo con "Fallcade" (3 ocurrencias, 0 de "Dodge Rush"); el resto del repo (código, `package.json`, assets, memoria del proyecto) usa "Dodge Rush" de forma consistente. Costo de cambio asimétrico: alinear el GDD = 1 doc; renombrar a "Fallcade" = código + assets + store + memoria. Sin contexto de negocio que favorezca "Fallcade" (¿conflicto de marca/ASO?), **recomendación QA: oficializar "Dodge Rush"** y actualizar el GDD (BRN-002/DOC-001). Decisión final del PM. |
-| `DEC-002` | Proveedor de AdMob para Families Policy | PENDIENTE | Debe ser certificado Families. Verificar con Google antes de integrar. |
+| `DEC-002` | Proveedor de AdMob para Families Policy | DIFERIDO V1.1 | V1.0 sale sin ads. Reevaluar tras soft launch. Debe ser certificado Families. |
 | `DEC-003` | iOS: lanzar simultáneamente con Android o diferir | PENDIENTE | |
 | `DEC-004` | Dog sprite: ¿es un skin adicional nuevo (> 12) o reemplaza a Hound? | PENDIENTE | Sesión "Dog character sprite" en progreso |
 | `DEC-005` | Fuentes: reemplazar Google Fonts CDN por fallback monospace o bundle | PENDIENTE | CDN falla en mode avión |
@@ -380,6 +396,7 @@ Estado actual: `Rewarded.ts` es un **stub** que simula éxito. Sin integración 
 
 | Fecha | Sesión | Item(s) | Notas |
 |---|---|---|---|
+| 2026-06-29 | Product Owner | DEC-009, BACKLOG reenfocado pre-store | V1.0 ads-free/IAP-free. Backlog pre-store reducido a 3 puntos: SKN-007 (revert character), GME-017 (riesgo↔recompensa), BG-005 (fondo en device). Épica 9 (MON-*) diferida a V1.1. Ruta crítica = 3 puntos de producto + release ops de trámite. |
 | 2026-06-27 | Dodge Rush Dev (LLM Agent) | DIS-002 (MVP Minimal v1.0) | Implementado el sistema de feature flags del `docs/archive/implementation-brief.md`. Nuevo `src/config/FeatureFlags.ts` con 5 flags en OFF (SHOP/DAILY/COMBO_LABELS/MONETIZATION/RELAX_MODE) + core loop en ON. UI ocultada (SHOP, DAILY, achievements, toggle de dificultad, monedas, spin slot, zone banners) y lógica gateada en `MainMenuScene`/`GameOverScene`/`GameScene`/`HUD`/`DifficultyManager`/`DailyManager`. Todo el código queda dormido (no borrado) → reactivar en V1.1 = flipear 5 booleanos. Tests adaptados (unit force-enable RELAX donde aplica; E2E `test.skip` flag-aware en daily/spin/persistence). Verificación: `tsc --noEmit` limpio, `vite build` OK (47 módulos), unit 86/89 (3 rojos = BUG-010 ajeno, probado pre-existente vía git stash), E2E 28 pass / 4 skip / 6 pre-existentes (DEC-007 lives + skins catalogue). Screenshots Playwright confirman UI simplificada. 10 commits. |
 | 2026-06-27 | Character Design | BUG-006 (validación + fix) | Validados los 12 sheets de facing (criterio real de `PlayerFacing.ts`: hover/boost/cheer/celebrate/dizzy→derecha, move/move_hard→izquierda; la premisa "idle mira a la izquierda" del reporte era incorrecta). **2 afectados, ambos corregidos** flipeando filas por-celda en el PNG: **WIZARD** move+move_hard (6-17) estaban espejados (causa raíz del reporte); **WITCH** hover+boost+cheer+combo+specials (0-5, 18-41) también espejados (no estaba reportado). Los otros 10 OK. Fuentes IA de ambos ya no están en Downloads → el PNG es la fuente de verdad. No existe `build-wizard.py`. Detalle completo en Bugs Conocidos / BUG-006. |
 | 2026-06-25 | Dodge Rush General | Fase 1, Fase 2 completa | APK funcional, música corregida, daily missions, dificultad Relax/Classic |
