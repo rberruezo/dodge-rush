@@ -1,7 +1,10 @@
 /**
  * The 10 obstacle archetypes from the design doc, each mapped 1:1 to a tile in
- * the obstacle atlas. Base spawn weights equal the design's spawn-rate percentages
- * (they sum to 100); DifficultyManager skews them toward the harder types over time.
+ * the obstacle atlas. Base spawn weights (sum to 100) set the spawn mix at
+ * difficulty 0; DifficultyManager skews them toward the harder types over time.
+ * [OBS-008] Rebalanced for early variety: Straight (blue_bar) is still the most
+ * common but no longer dominates, so the decorated types (arrow/spike/rune/gold)
+ * show up from the first barriers instead of only at higher difficulty.
  */
 export enum ObstacleType {
   Straight = 'straight',
@@ -41,7 +44,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Straight,
     frame: 'blue_bar',
     fill: 0x0ca8d8, // dominant: blue_bar — medium sky-blue
-    baseWeight: 46,
+    baseWeight: 30,
     gapFactor: 1.25,
     bandFactor: 1,
     diagonal: 0,
@@ -56,7 +59,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Wide,
     frame: 'green_bar',
     fill: 0x30cca8, // dominant: green_bar — mint green
-    baseWeight: 18,
+    baseWeight: 16,
     gapFactor: 0.95,
     bandFactor: 1.18,
     diagonal: 0,
@@ -71,7 +74,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Narrow,
     frame: 'purple_pillar',
     fill: 0x903c78, // dominant: purple_pillar — deep magenta-purple
-    baseWeight: 15,
+    baseWeight: 14,
     gapFactor: 0.66,
     bandFactor: 1,
     diagonal: 0,
@@ -86,7 +89,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Moving,
     frame: 'red_arrow',
     fill: 0xf02430, // dominant: red_arrow — vivid red
-    baseWeight: 8,
+    baseWeight: 12,
     gapFactor: 0.92,
     bandFactor: 1,
     diagonal: 0,
@@ -94,14 +97,14 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: false,
     glowing: false,
     golden: false,
-    animFrames: 2,
-    animMs: 150
+    animFrames: 3,
+    animMs: 140
   },
   [ObstacleType.Danger]: {
     type: ObstacleType.Danger,
     frame: 'red_spike',
     fill: 0xe40c24, // dominant: red_spike — deep red
-    baseWeight: 6,
+    baseWeight: 10,
     gapFactor: 0.74,
     bandFactor: 1.05,
     diagonal: 0,
@@ -109,14 +112,14 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: true,
     glowing: false,
     golden: false,
-    animFrames: 2,
-    animMs: 400
+    animFrames: 4,
+    animMs: 170
   },
   [ObstacleType.Broken]: {
     type: ObstacleType.Broken,
     frame: 'stone_crack',
     fill: 0x84849c, // dominant: stone_crack — cool grey
-    baseWeight: 4,
+    baseWeight: 8,
     gapFactor: 1.0,
     bandFactor: 1,
     diagonal: 0,
@@ -131,7 +134,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Glowing,
     frame: 'blue_tile',
     fill: 0x7722ee, // manually set to violet (source dominant was 0x24d8fc — too close to blue_bar)
-    baseWeight: 2,
+    baseWeight: 7,
     gapFactor: 1.0,
     bandFactor: 1,
     diagonal: 0,
@@ -146,7 +149,7 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     type: ObstacleType.Golden,
     frame: 'gold_block',
     fill: 0xfca800, // dominant: gold_block — warm amber-gold
-    baseWeight: 1,
+    baseWeight: 3,
     gapFactor: 1.05,
     bandFactor: 1,
     diagonal: 0,
@@ -154,8 +157,8 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: false,
     glowing: true,
     golden: true,
-    animFrames: 2,
-    animMs: 600
+    animFrames: 5,
+    animMs: 130
   }
 };
 

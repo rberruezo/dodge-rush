@@ -8,6 +8,15 @@ estirados o columnas derivadas del atlas actual.
 > los PNG, se colocan en `pieces/` y se actualiza `scripts/build-obstacles.py`
 > para empaquetarlos en el atlas (ver "Integración" abajo).
 
+> **`pieces/` (entrega 2, 2026-06-29):** extraídas de `new-obstacles2.png` (una
+> hoja de preview con checkerboard + labels horneados y SIN alpha real). Se
+> recortaron por celda con key-out del checker (neutralidad + flood-fill desde
+> el borde + silueta sólida con relleno de huecos). Resultado: 16 estáticas
+> limpias (8 `_center` + 8 `_cap`) + `red_arrow_cap_anim` (4 frames, limpio) +
+> `red_spike_cap_anim` (5 frames, algo rugoso). `gold_block_cap_anim` quedó
+> PENDIENTE (la fuente lo duplicó con tamaños/orientación inconsistentes). Si se
+> regenera el arte, exportarlo con alpha real evita todo este recorte.
+
 ---
 
 ## Por qué (contexto OBS-008)
@@ -106,7 +115,6 @@ tira de N frames** (sprite-strip horizontal), no solo 1 frame:
 ---
 
 ## Integración (cuando llegue el arte)
-
 1. Colocar los PNG en `art-src/obstacles/pieces/`.
 2. Actualizar `scripts/build-obstacles.py` para **empaquetar** las piezas en
    `public/assets/obstacles.png` (un slot por pieza; emitir `x/y/w/h` + cantidad
@@ -123,30 +131,43 @@ tira de N frames** (sprite-strip horizontal), no solo 1 frame:
 
 ## PROMPT para la IA generadora de sprites
 
-Copiá/pegá esto (ajustá sólo si la herramienta pide otro formato de salida):
+> ⚠️ La primera entrega (`new-obstacles.png`, 2026-06-29) vino como **hoja de
+> preview**: un solo PNG con **checkerboard y labels horneados** (alpha 100%
+> opaco, sin transparencia real) y **render anti-aliased** (bordes blandos en
+> 1-2px). El arte era bueno pero NO usable: hace falta alpha binario real. El
+> prompt de abajo ya incluye las correcciones (sin fondo, sin texto, alpha duro,
+> centros con bordes laterales planos). **Reglas que más fallaron, no omitir.**
+
+Copiá/pegá esto:
 
 ```
-Generá un set de sprites pixel-art para los obstáculos de un juego arcade
-vertical "Dodge Rush" (estilo retro, paleta vibrante, fondo 100% transparente,
-PNG con ALPHA DURO — sin bordes anti-aliasados ni halos semitransparentes).
+Generá sprites pixel-art para los obstáculos de un juego arcade vertical
+"Dodge Rush" (retro, paleta vibrante). Necesito piezas MODULARES para construir
+paredes horizontales por repetición: por tipo, un CUERPO tileable + una TAPA
+que remata el borde de un hueco (+ tiras de animación en 3 tipos).
 
-Necesito piezas MODULARES para construir paredes horizontales por repetición:
-para cada tipo, un CUERPO tileable + una TAPA que remata el borde de un hueco.
+FORMATO DE ENTREGA (CRÍTICO — la entrega anterior falló acá):
+- Cada pieza en su PROPIO archivo PNG con CANAL ALPHA / TRANSPARENCIA REAL.
+- NO pintes fondo: nada de checkerboard, ni blanco, ni color sólido detrás.
+- NO incluyas texto, labels, nombres ni marcos alrededor de las piezas.
+- ALPHA DURO / BINARIO: cada pixel del borde es 100% opaco o 100% transparente.
+  SIN anti-alias, SIN sombras suaves, SIN halos ni desenfoque en el contorno.
+- Pixel-art nítido a resolución nativa (no upscale borroso).
 
-REGLAS GLOBALES
-- Fondo transparente real (no blanco/checker pintado).
-- Borde con alpha binario (pixel 100% opaco o 100% transparente).
-- Pixel-art nítido, ~4-6 tonos por tipo (sombra/base/luz/brillo), con bevel.
+ESTILO
+- ~4-6 tonos por tipo (sombra/base/luz/brillo), con bevel/relieve.
 - Identidad SOLO por color + forma de tapa. NADA de glow/blur/neón difuso.
-- Mismo ALTO en todas las piezas de un tipo.
+- Mismo ALTO exacto en todas las piezas de un mismo tipo.
 
 PIEZAS POR TIPO
-1) CUERPO "<tipo>_center" 32x64 px, TILEABLE en horizontal SIN COSTURA
-   (el borde izquierdo continúa el derecho; al pegar 3 copias no debe verse
-   junta). Cuerpo brillante y uniforme, sin ventana oscura central, sin
-   degradé vertical fuerte.
-2) TAPA "<tipo>_cap" 24x64 px, con la cara decorada hacia la DERECHA (borde
-   derecho = remate legible; borde izquierdo se funde con el cuerpo).
+1) CUERPO "<tipo>_center" 32x64 px, TILEABLE en horizontal SIN COSTURA.
+   CLAVE: los bordes IZQUIERDO y DERECHO deben ser PLANOS y verticales —
+   SIN bevel, highlight ni sombra en los lados — para que al pegar 3 copias
+   lado a lado NO se vea ninguna junta. El relieve/bevel va SOLO arriba y abajo.
+   Cuerpo brillante y uniforme, sin ventana oscura central.
+2) TAPA "<tipo>_cap" 24x64 px (mismo alto que el centro), con la cara decorada
+   hacia la DERECHA (borde derecho = remate legible; borde izquierdo plano,
+   mismo tono base que el centro, para fundirse con él).
 
 LOS 8 TIPOS (hue dominante + forma de tapa)
 - blue_bar     #0ca8d8 celeste  — barra recta, bevel simple
@@ -158,19 +179,17 @@ LOS 8 TIPOS (hue dominante + forma de tapa)
 - blue_tile    #7722ee violeta   — placa de energía, borde con runas
 - gold_block   #fca800 ámbar     — lingote bevelado, brillo de borde
 
-ANIMACIÓN (mejorar el movimiento) — sólo estos 3, como TIRA horizontal de
-frames del MISMO tamaño 24x64, pegados sin separación, loop continuo
-(último frame encadena con el primero):
-- red_arrow_cap_anim: 4 frames — el chevrón/flecha AVANZA hacia el hueco y
-  reaparece.
-- red_spike_cap_anim: 4 frames — las púas se EXTIENDEN y RETRAEN (telegrafía
-  peligro).
-- gold_block_cap_anim: 6 frames — un BRILLO barre el bevel de un extremo al
-  otro.
+ANIMACIÓN (sólo estos 3) — tira horizontal de frames del MISMO tamaño 24x64,
+pegados sin separación, fondo transparente, loop continuo (último frame
+encadena con el primero):
+- red_arrow_cap_anim: 4 frames — el chevrón/flecha AVANZA hacia el hueco.
+- red_spike_cap_anim: 4 frames — las púas se EXTIENDEN y RETRAEN.
+- gold_block_cap_anim: 6 frames — un BRILLO barre el bevel de un extremo al otro.
 
 ENTREGABLE
-- Un PNG transparente por pieza, nombrado <tipo>_center.png / <tipo>_cap.png /
-  <tipo>_cap_anim.png.
-- Para las tiras de animación, todos los frames en una sola fila, mismo tamaño
-  y alineados.
+- 19 PNG transparentes individuales: 8 <tipo>_center, 8 <tipo>_cap,
+  3 <tipo>_cap_anim. Sin labels, sin fondo, cada uno recortado a su bbox.
+- Si la herramienta SÓLO puede exportar una imagen: poné las piezas en una
+  grilla con SEPARACIÓN transparente entre ellas, SIN labels y SIN checkerboard
+  (fondo transparente real), para poder recortarlas por bbox.
 ```
