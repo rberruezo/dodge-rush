@@ -14,8 +14,8 @@
  *   row 2 (12-17) side flight, straining    -> moving held, high effort
  *   row 3 (18-23) flight + sparkles         -> golden score boost
  *   row 4 (24-29) cheer (arms up)           -> celebration
- *   row 5 (30-35) combo x1,x2,x3,x5,x10,x20 -> brief combo celebration flash
- *   row 6 (36-41) dizzy, sad-cloud, trophy, crown, star head, sad head
+ *   row 5 (30-35) near-miss / startle       -> brief fright reaction (impact)
+ *   row 6 (36-41) dizzy, sad-cloud, trophy, crown(star-eyes), crying, x20 combo
  *   row 7 (42-47) knockout: bonk, shout, eyes-shut, roll, roll, head-down fall -> death anim
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player +
  * PlayerFacing. Skins remain 6x7 (no row 7); the death anim is base-only and
@@ -38,6 +38,7 @@ export const ANIM_KEYS = {
   MOVE_HARD: 'player-move-hard', // steering held, straining
   BOOST: 'player-boost', // golden score boost
   CHEER: 'player-cheer', // celebration
+  NEAR_MISS: 'player-near-miss', // brief startle reaction (base sheet only — row 5)
   DEATH: 'player-death' // run-over knockout (base sheet only — row 7)
 } as const;
 
@@ -46,18 +47,19 @@ export const CHAR_FRAMES = {
   dizzy: 36,
   sadCloud: 37,
   trophy: 38,
-  crown: 39,
-  starHead: 40,
-  sadHead: 41
+  crown: 39, // crown + star-eyes
+  starHead: 39, // star-eyes live on the crowned head
+  sadHead: 40 // crying
 } as const;
 
-/** Numbered combo-badge frames flashed on the hero (row 5, x2..x20). */
+/** Numbered combo-badge frames flashed on the hero. Only x20 has dedicated art
+ *  (row 6); lower tiers reuse the crown/trophy celebration heads. */
 export const CHARACTER_COMBO_FRAMES = {
-  x2: 31,
-  x3: 32,
-  x5: 33,
-  x10: 34,
-  x20: 35
+  x2: 38,
+  x3: 38,
+  x5: 39,
+  x10: 39,
+  x20: 41
 } as const;
 
 /**
@@ -83,6 +85,8 @@ export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
   // Celebration: we use frames 24 and 25 which feature the character
   // hovering (moving propeller) but with arms up and happy expressions.
   [ANIM_KEYS.CHEER]: { frames: [24, 25], frameRate: 6, repeat: -1 },
+  // Near-miss startle (row 5): a quick fright reaction for a close dodge.
+  [ANIM_KEYS.NEAR_MISS]: { start: 30, end: 35, frameRate: 14, repeat: 0 },
   // Row 7 (base sheet only): full knockout beat — bonk, shout, eyes-shut, roll, roll,
   // head-down fall — so death is a 2-beat reaction, not a static frame (DR-17/18).
   [ANIM_KEYS.DEATH]: { frames: [42, 43, 44, 45, 46, 47], frameRate: 10, repeat: 0 }

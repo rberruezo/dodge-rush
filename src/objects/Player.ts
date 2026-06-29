@@ -178,11 +178,11 @@ export class Player extends Phaser.GameObjects.Sprite {
           this.setFrame(CHAR_FRAMES.dizzy);
           break;
         case 'impact': {
-          // Brief startle for a hit / near-miss: base sheet has 'shout' (43);
-          // skins (no row 7) fall back to the distinct sad head (DR-12/15).
+          // Brief startle for a hit / near-miss: base sheet has a fright pose
+          // (row 5); skins (no row 5 startle) fall back to the sad head (DR-12/15).
           this.stop();
           const frames = this.scene.textures.get(this.sheetKey).frameTotal - 1;
-          this.setFrame(frames > 43 ? 43 : CHAR_FRAMES.sadHead);
+          this.setFrame(frames > 43 ? 32 : CHAR_FRAMES.sadHead);
           break;
         }
         case 'death': {
