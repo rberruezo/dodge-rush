@@ -33,6 +33,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create(data: GameOverData): void {
+    this.cameras.main.fadeIn(180, 0, 0, 0); // ease in to match the death fade-out (DR-21)
     const cx = GAME_WIDTH / 2;
     const score = data?.score ?? 0;
     const best = data?.best ?? 0;

@@ -215,8 +215,9 @@ export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
   // Celebration: we use frames 24 and 25 which feature the character
   // hovering (moving propeller) but with arms up and happy expressions.
   [ANIM_KEYS.CHEER]: { frames: [24, 25], frameRate: 8, repeat: -1 },
-  // Row 7 (base sheet only): uses the single 'bonk' frame (42) for death.
-  [ANIM_KEYS.DEATH]: { frames: [42], frameRate: 12, repeat: 0 }
+  // Row 7 (base sheet only): full knockout beat — bonk, shout, eyes-shut, roll, roll,
+  // head-down fall — so death is a 2-beat reaction, not a static frame (DR-17/18).
+  [ANIM_KEYS.DEATH]: { frames: [42, 43, 44, 45, 46, 47], frameRate: 10, repeat: 0 }
 } as const;
 
 /**
@@ -273,8 +274,8 @@ export const PLAYER_CFG = {
   hitboxScaleY: 0.36,
   tiltDegrees: 9, // gentle bank into the direction of travel
   effortHoldMs: 360, // holding a direction longer than this -> straining animation
-  faceFlipDelayMs: 0, // flip immediately when changing direction
-  bobAmp: 4, // subtle vertical "alive" bob (visual only, not collision)
+  faceFlipDelayMs: 90, // brief hold before mirroring -> debounces rapid dodge taps (no strobe, DR-06)
+  bobAmp: 7, // subtle vertical "alive" bob (visual only, not collision; DR-03)
   bobSpeed: 0.005
 } as const;
 
@@ -365,7 +366,7 @@ export const COMBO_TIERS: ComboTier[] = [
 export const COMBO_STATIC_MAX = 1_000;
 
 export const COMBO_CFG = {
-  celebrateMs: 850, // how long the combo flash lasts before returning to flight
+  celebrateMs: 550, // how long the combo flash lasts before returning to flight (DR-29: was 850)
   speedPerMult: 0.012, // fall-speed added per multiplier step above 1
   speedBonusMax: 0.26 // cap on the combo speed bonus
 } as const;

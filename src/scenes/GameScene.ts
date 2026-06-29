@@ -6,6 +6,7 @@ import {
   SCORE_CFG,
   LIVES_CFG,
   COMBO_CFG,
+  SCROLL_CFG,
   CHAR_FRAMES
 } from '../config/Constants';
 import { getSkin } from '../config/Skins';
@@ -57,6 +58,13 @@ export class GameScene extends Phaser.Scene {
 
   // Next allowed time for the rising-tension "danger" pulse (throttled).
   private dangerNextMs = 0;
+
+  // Next allowed time for a wind-rush streak (throttled; DR-01).
+  private windNextMs = 0;
+
+  // Brief startle window: an impact pose for hits and near-misses (DR-12/15).
+  private hitAtMs = -1;
+  private scareUntilMs = 0;
 
   // GME-GD-005: one-shot "first wow" — amplified feedback for the player's very
   // first near-miss on run #1, to make the close-call the emotional hook.
@@ -196,7 +204,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.player.steer(dt, dir);
-    this.player.aliveTick(dt);
+    // Faster fall -> livelier idle (deeper bob + quicker propeller) and, near top
+    // speed, faint upward wind streaks so the body sells "falling" (DR-01/02).
+    const fallIntensity = Phaser.Math.Clamp((speed - SCROLL_CFG.startSpeed) / (maxSpeed - SCROLL_CFG.startSpeed), 0, 1);
+    this.player.aliveTick(dt, fallIntensity);
+    if (fallIntensity > 0.6 && now >= this.windNextMs) {
+      this.fx.burst(this.player.x + Phaser.Math.Between(-24, 24), this.player.y + 46, 0xbfe9ff, 2);
+      this.windNextMs = now + 130;
+    }
 
     // Visual pose priority: dizzy > boost > steering > combo-celebration > hover.
     // Steering deliberately beats the combo cheer: while the player is actively
@@ -207,8 +222,11 @@ export class GameScene extends Phaser.Scene {
     const boostActive = now < this.boostUntilMs;
     const lifeInvincible = now < this.invincibleUntilMs;
     const immune = lifeInvincible;
-    if (lifeInvincible) {
-      this.player.setPose({ kind: 'dizzy' });
+    if (now < this.scareUntilMs) {
+      this.player.setPose({ kind: 'impact' }); // near-miss startle
+    } else if (lifeInvincible) {
+      // First ~180ms after a hit read as a recoil before the dizzy spin (DR-12).
+      this.player.setPose({ kind: now < this.hitAtMs + 180 ? 'impact' : 'dizzy' });
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
@@ -290,6 +308,7 @@ export class GameScene extends Phaser.Scene {
           this.fx.popup(px, py - 34, `CLOSE! +${Math.round(nm)}`, '#9be7ff', 24);
           this.fx.burst(px, this.player.y, 0x9be7ff, 6);
         }
+        this.scareUntilMs = this.score.elapsedMs + 160; // brief pilot startle (DR-15)
       }
     }
 
@@ -342,14 +361,17 @@ export class GameScene extends Phaser.Scene {
     Sound.hit();
     this.cameras.main.shake(220, 0.012);
     this.fx.burst(this.player.x, this.player.y, 0xff5050, 16);
-    this.fx.popup(this.player.x, this.player.y - 60, '-1  ♥', '#ff4060', 34);
-    this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sadHead, 0.9);
 
     if (this.lives <= 0) {
       this.finishGameOver(); // out of lives -> straight to results
       return;
     }
-    // Survive: brief invincibility (player blinks + dizzy) then carry on.
+    // DR-23: only show the life-lost feedback when a life actually remains. On the
+    // fatal hit we skip the "-1 ♥" popup and go straight to the death beat.
+    this.fx.popup(this.player.x, this.player.y - 60, '-1  ♥', '#ff4060', 34);
+    this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sadHead, 0.9);
+    // Survive: a short impact recoil, then brief invincibility (blink + dizzy).
+    this.hitAtMs = this.score.elapsedMs; // DR-12: drives the impact pose window
     this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs;
   }
 
@@ -357,9 +379,10 @@ export class GameScene extends Phaser.Scene {
   finishGameOver(): void {
     this.running = false;
     this.controls.setEnabled(false);
-    // Play the knockout animation through the 420ms beat before results appear.
-    this.player.setPose({ kind: 'death' });
-    this.player.setAlpha(1);
+    // Knockout beat: play the 6-frame death + tumble fly-out and a white impact flash,
+    // then let results appear after ~600ms so the animation reads (DR-17/20/22).
+    this.player.playDeath();
+    this.fx.burst(this.player.x, this.player.y, 0xffffff, 22);
 
     const finalScore = this.score.current;
     const isNewBest = this.score.commit();
@@ -380,7 +403,9 @@ export class GameScene extends Phaser.Scene {
     const missionDone = FEATURES.DAILY_ENABLED && Daily.hasUnclaimed();
 
     this.cameras.main.shake(300, 0.016);
-    this.time.delayedCall(420, () => {
+    // Ease into results: fade the death beat out instead of a hard scene cut (DR-21).
+    this.time.delayedCall(400, () => this.cameras.main.fadeOut(200, 0, 0, 0));
+    this.time.delayedCall(600, () => {
       Sound.gameOver();
       this.scene.start('GameOver', {
         score: finalScore,

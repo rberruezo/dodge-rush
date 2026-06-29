@@ -13,6 +13,7 @@ export const POSE_FACES_RIGHT: Record<string, boolean> = {
   boost: true,
   cheer: true,
   celebrate: true,
+  impact: true,
   death: true
 };
 

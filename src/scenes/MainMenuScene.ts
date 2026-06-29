@@ -61,9 +61,10 @@ export class MainMenuScene extends Phaser.Scene {
     if (skin.tint !== null) this.hero.setTint(skin.tint);
     const hoverKey = `${skin.sheet}:${ANIM_KEYS.HOVER}`;
     if (this.anims.exists(hoverKey)) this.hero.play(hoverKey);
+    // DR-04: ~14px peak-to-peak to match the in-game alive bob (PLAYER_CFG.bobAmp).
     this.tweens.add({
       targets: this.hero,
-      y: 324,
+      y: 326,
       duration: 1500,
       yoyo: true,
       repeat: -1,
