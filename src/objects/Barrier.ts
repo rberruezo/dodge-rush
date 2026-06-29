@@ -113,7 +113,7 @@ export class Barrier {
       center: scene.add
         .tileSprite(0, -9999, 10, 10, ASSET_KEYS.OBSTACLES, `${frame}_c`)
         .setOrigin(0.5)
-        .setDepth(5)
+        .setDepth(4)
         .setVisible(false),
       glow: rect(6, true)
     };
