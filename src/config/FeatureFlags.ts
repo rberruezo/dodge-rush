@@ -21,6 +21,9 @@ export const FEATURES = {
   CORE_LOOP_ENABLED: true,        // Gameplay, scoring, combo, lives
   ACHIEVEMENTS_ENABLED: false,    // [Future] Achievement skins, unlocks
   LEADERBOARD_ENABLED: false,     // [Future] Friends/global ranking
+
+  // Art A/B toggles
+  OBSTACLE_GLOW_ENABLED: false,   // [OBS-007] ADD-blend glow: gap-marker halos + glowing/danger/golden pulse. OFF keeps gap posts + obstacle fill visible. A/B veredicto: deshabilitado (mejor legibilidad, contraste, menos ruido, consistencia con SKN-007 limpio, menos overdraw en device).
 };
 
 // Type-safe helper
