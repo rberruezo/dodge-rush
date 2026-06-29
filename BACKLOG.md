@@ -46,15 +46,17 @@ Decisión 2026-06-29: V1.0 sale ads-free e IAP-free. Esto saca AdMob + COPPA + p
 
 No es MVP: ads/IAP, iOS, nuevos tipos de obstáculos, nuevos skins, achievements, pantalla de perfil, analytics, haptics. Todo eso es post-launch.
 
-### 🔒 BACKLOG PRE-STORE — SOLO 3 PUNTOS (nada más bloquea)
+### 🔒 BACKLOG PRE-STORE — pendientes a trabajar
 
-Antes de salir al store el trabajo de producto/polish es exactamente esto:
+Pendientes de producto/polish antes de salir al store:
 
-1. **Character — revertir a la versión anterior más simple que se veía bien** (SKN-007). 🔁 REABIERTO (revert hecho, pero el sprite "se ve raro a veces" — afinar frames de animación, no rehacer)
-2. **Mecánica riesgo↔recompensa: obstáculos con dos gaps (fácil vs difícil), el difícil paga más** (GME-017). ✅ DONE
-3. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008). 🔴 Único pendiente — necesita logcat de device.
+1. **Character — afinar el sprite (se ve raro a veces)** (SKN-007). 🔁 REABIERTO — afinar frames de animación, no rehacer.
+2. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008). 🔴 Necesita logcat de device.
+3. **Obstáculos: separar sprites en laterales/centro con alpha prolijo y bien recortado** (OBS-008). 🟡 PENDING.
 
-Todo lo demás (ads, IAP, achievements, iOS, nuevos obstáculos/skins) es post-launch. La logística de release (firmar, subir, screenshots) NO es "backlog" — es checklist de ops, abajo.
+Ya cerrado (no requiere más trabajo): **GME-017** riesgo↔recompensa ✅ DONE.
+
+Todo lo demás (ads, IAP, achievements, iOS, nuevos skins) es post-launch. La logística de release (firmar, subir, screenshots) NO es "backlog" — es checklist de ops, abajo.
 
 ### Decisiones tomadas por el PO
 
@@ -72,10 +74,11 @@ Todo lo demás (ads, IAP, achievements, iOS, nuevos obstáculos/skins) es post-l
 Primero los 3 puntos de producto, después el release ops (puro trámite, no construir features):
 
 ```
-PRODUCTO (los 3 únicos blockers):
-1. [SKN-007] Revertir character a la versión anterior simple que se veía bien
-2. [GME-017] Mecánica riesgo↔recompensa (gap chico/lejos = más puntos)
-3. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
+PRODUCTO (pendientes a trabajar):
+1. [SKN-007] Afinar el sprite del character (se ve raro a veces)
+2. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
+3. [OBS-008] Obstáculos: separar sprites laterales/centro, alpha prolijo, bien recortado
+(GME-017 riesgo↔recompensa ya ✅ DONE — fuera de la lista de pendientes)
 
 RELEASE OPS (trámite, sin desarrollo de producto):
 4. [AND-002]              Keystore de producción (firma)
@@ -85,7 +88,7 @@ RELEASE OPS (trámite, sin desarrollo de producto):
 8. [AND-005→006]          Internal Testing → Open Testing → Production
 ```
 
-**Backlog de producto pre-store (P0):** SKN-007, GME-017, BG-005. **Nada más.**
+**Backlog de producto pre-store:** SKN-007, BG-005, OBS-008 (GME-017 ✅ DONE).
 
 **Todo lo demás:** P2/P3 post-launch. Ads (MON-*), IAP, COPPA/parental gate y CMP → diferidos a V1.1 por la decisión ads-free.
 
@@ -173,6 +176,7 @@ Obstáculos actuales en código: Straight, Wide, Narrow, Moving, Danger, Broken,
 | `OBS-005` | Balance de spawn weights con nuevos tipos (no saturar niveles tempranos) | **P3** *(post-MVP)* | PENDING | Obstacle Design |
 | `OBS-006` | [DONE 2026-06-26] Auditoría y polish de los 8 tipos existentes (sprites, animación, diferenciación visual) | P2 | DONE | Obstacle Design |
 | `OBS-007` | **Feature flag para el glow de los bordes de los obstáculos + veredicto A/B.** (1) Agregar `OBSTACLE_GLOW_ENABLED` a `src/config/FeatureFlags.ts` (default `true`). (2) Gatear con ese flag el render del glow en `Barrier.ts` — los halos de los gap markers (`GapMarker.glow`, blend ADD) y el pulse de obstáculos `glowing`/`danger`/`golden` (`showGlow`/`Wall.glow`): si el flag está OFF, no crear/ocultar esas capas (los posts de gap y el fill del obstáculo siguen visibles para no perder legibilidad). (3) **Evaluar con y sin glow** capturando ambos estados en las 6 zonas (day/dusk/sunset/twilight/night/aurora) y sobre los 3 tipos que hoy lo usan. (4) **Dar un veredicto** de cuál se ve mejor. **Comparación a hacer (criterios):** (a) legibilidad del gap seguro a velocidad alta, (b) diferenciación entre tipos (glowing/danger/golden) sin el glow, (c) contraste contra fondos claros (día/aurora) vs oscuros (noche), (d) ruido visual / fatiga en runs largos, (e) consistencia con el look limpio del character revertido (SKN-007), (f) rendimiento en device (capas ADD extra). Entregar: screenshots lado a lado por zona + recomendación final (ON / OFF / ON-solo-para-danger) con justificación. | P2 | PENDING | — |
+| `OBS-008` | **[MVP — considerar] Mejorar los obstáculos usando los sprites: transparencias prolijas + separar en partes (laterales + centro) bien recortadas.** Objetivo: que las barreras se vean construidas con piezas de sprite limpias en vez de tiles estirados/rellenos planos. **Base de referencia (sprites que pasó el usuario, 2026-06-29):** una pieza dorada/ámbar compuesta + piezas verdes/teal **separadas en laterales y centro** (conector + barra central) — esa es la dirección: un obstáculo = **pieza lateral izquierda + tramo central tileable + pieza lateral derecha**, cada una como sprite propio. **Requisitos:** (1) **Transparencias lindas** — alpha limpio en los bordes, sin halo/fringe ni fondo de color; recortar el arte **bien pegado** (trim tight, sin padding muerto que cause bleed al tilear o escalar). (2) **Separación por partes con sentido** — solo donde aporta: el **centro** debe tilear sin costura (loopable) y los **laterales/tapas** rematan el borde del gap de forma legible (la tapa del gap es la señal de seguridad, ver `GapMarker`). (3) Mapear esas piezas en el atlas (`public/assets/obstacles.png` / `build-obstacles.py`, `OBSTACLE_FRAMES`) y componerlas en `Barrier.ts` (hoy: `center` TileSprite + paredes) — center tileable + caps recortadas. (4) Mantener la diferenciación por tipo (straight/wide/narrow/danger/golden/glowing) por hue/forma de la tapa, no por glow (ver veredicto OBS-007). **Entregar:** propuesta de cómo cortar/separar las piezas + atlas actualizado + render en `Barrier.ts` + screenshots antes/después en 2-3 zonas. **Reportar si queda terminado o no y qué falta; NO cambiar el status (lo decide el PO).** | **P1** *(MVP pre-store)* | PENDING | — |
 
 ---
 
