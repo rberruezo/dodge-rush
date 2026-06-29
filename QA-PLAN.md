@@ -8,7 +8,7 @@
 - **Qué es:** juego arcade *infinite-faller*, mobile-first, 100% frontend.
 - **Stack:** Phaser 3 (runtime **v3.90.0**) + TypeScript (strict) + Vite.
 - **Sin backend, sin auth, sin datos sensibles.** Persistencia en `localStorage`
-  (claves `dodgerush.*`): `highscore`, `coins`, `muted`, `skins`, `skin`, `ghost`.
+  (claves `dodgerush.*`): `highscore`, `highscore_relax`, `coins`, `muted`, `skins`, `skin`, `difficulty`.
 - **Actor único:** jugador anónimo.
 - **Resolución lógica:** 540×960 (portrait), escalado FIT.
 
@@ -34,12 +34,12 @@ Prioridad: P0 (crítico) … P3 (cosmético). ✅ verificado · ⬜ pendiente.
 | ID | Caso | Tipo | Resultado esperado | Pri | Estado |
 |---|---|---|---|---|---|
 | GP-01 | Steering izq/der | F | Mueve a 0.62 px/ms, clampado a bordes | P0 | ⬜ |
-| GP-02 | Dash evade obstáculo | F | 165px/165ms + 240ms i-frames; no colisiona | P0 | ⬜ |
+| GP-02 | Vidas por modo | F | Classic=1 (one-hit), Relax=3; 0 vidas → GameOver | P0 | ⬜ |
 | GP-03 | Colisión resta vida | F | -1 vida; con 0 → GameOver | P0 | ⬜ |
 | GP-04 | **No-muertes-inevitables** | B | Todo gap alcanzable a velocidad máx | P0 | 🟡 contrato cubierto por test de colisión |
 | GP-05 | AABB precisa (hitbox 30%×36%) | B | Sin "ghost hits" ni "phantom pass" | P0 | ✅ unit |
 | GP-06 | Combo multiplier x2→x200 | F | Escala por tabla; reset al fallar | P1 | ✅ unit |
-| GP-07 | i-frames de dash no abusables | N | Respeta cooldown 2600ms | P1 | ⬜ |
+| GP-07 | i-frames de gracia tras golpe | N | ~1500ms invencibilidad; no encadenable | P1 | ⬜ |
 | GP-08 | Rampa de dificultad suave | NF | Sin saltos bruscos (steps 30s) | P1 | ⬜ |
 | GP-09 | Pausa congela estado | F | Posición/score/combo/velocidad intactos | P1 | ⬜ |
 | GP-10 | Pérdida de foco / dt grande | B | dt clampado a 1000/30 → sin teleport | P1 | ✅ código (GameScene.ts:182) |
@@ -61,8 +61,7 @@ Prioridad: P0 (crítico) … P3 (cosmético). ✅ verificado · ⬜ pendiente.
 | ID | Caso | Tipo | Resultado esperado | Estado |
 |---|---|---|---|---|
 | PE-01 | localStorage deshabilitado | N | Defaults silenciosos, jugable | ✅ código |
-| PE-02 | JSON corrupto (`skins`/`ghost`) | N | try-catch → defaults, sin pantalla blanca | ✅ live |
-| PE-03 | Ghost graba/reproduce | F | Mejor run translúcido y sincronizado | ⬜ |
+| PE-02 | JSON corrupto (`skins`/`skin`) | N | try-catch → defaults, sin pantalla blanca | ✅ live |
 
 ### Carga / assets / audio (P1–P3)
 
@@ -102,7 +101,7 @@ Verificación en vivo (preview) + revisión de código:
 
 | # | Hallazgo | Tipo | Sev | Esf | Estado |
 |---|---|---|---|---|---|
-| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 11 suites / 70 tests |
+| 1 | Cobertura de tests en sistemas puros | Mejora | Alta | Medio | 🟢 13 suites / 99 tests |
 | 2 | Fairness no verificada de forma automatizada | Riesgo | Alta | Medio | ✅ GapPlanner.test.ts valida el generador real |
 | 3 | Persistencia sin saneo (negativos/NaN) | Bug | Media | Bajo | ✅ corregido |
 | 4 | Sin telemetría/analítica | Mejora | Media | Medio | ⬜ |
@@ -146,12 +145,12 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
 
 ## 5. Hecho en este ciclo
 - Montado Vitest + mock de `localStorage` (`test/setup.ts`).
-- 7 suites, **38 tests** verdes: `ComboManager`, `CollisionSystem`,
-  `ScoreManager`, `ProfileManager`, `GapPlanner`, `ObstacleGenerator`
-  (smash/`breakNext`), `DifficultyManager` (modos CLASSIC/RELAX).
-- Cobertura de las features nuevas del refactor: `breakNext()` rompe la barrera
-  no-pasada más cercana y la recicla; modos de dificultad conmutan/persisten y
-  RELAX es demostrablemente más suave (velocidad↓, gap↑, spacing↑).
+- 13 suites, **99 tests** verdes: `ComboManager`, `CollisionSystem`,
+  `ScoreManager`, `ProfileManager`, `GapPlanner`, `DifficultyManager`
+  (modos CLASSIC/RELAX), `AchievementManager`, `Diagnostics`, `SoundManager`,
+  `AudioAssets`, `Skins`, `PlayerFacing`, `TextureFactory`.
+- Modos de dificultad conmutan/persisten y RELAX es demostrablemente más
+  suave (velocidad↓, gap↑, spacing↑, más vidas).
 - Cleanup: `ObstacleGenerator` ya no importa Phaser en runtime (solo tipo).
 - **#8:** Phaser alineado a `^3.90.0` (= instalado/bloqueado/probado en build).
 - **#7 observabilidad:** módulo `Diagnostics.ts` (buffer circular, niveles
@@ -187,7 +186,8 @@ Unit en cada commit (GitHub Actions: `node 20` → `npm ci` → `npm run build` 
   Originales respaldados en el scratchpad de la sesión.
   Requiere `@types/node` (devDep) para el test de assets.
 
-> ⚠️ **Pendiente de verificación E2E:** el gameplay no se pudo probar en vivo
-> porque `GameScene`/`HUD` están a medio refactorizar (feature "power/smash":
-> `hud.setPower`, `POWER_CFG`, y retirada de `Ghost`/`DASH_CFG` en curso). Al
-> cerrarse ese trabajo, re-correr los casos GP-01..GP-10 en el navegador.
+> ✅ **Refactor cerrado:** las features `power/smash`, `dash` y `ghost-racing`
+> fueron **removidas** del juego (one-hit en Classic, 3 vidas en Relax;
+> `ContinueScene` eliminada). E2E con Playwright (`e2e/`) cubre humo de
+> navegación, gameplay, shop, daily, persistencia y spin. Re-correr GP-01..GP-10
+> manuales tras cambios de balance.

@@ -40,14 +40,14 @@ fresh install) **no es automatizable** y vive en el checklist manual.
 |---|---|---|---|---|
 | 1. Arranque y carga | 6 | 3 | 2 | 1 |
 | 2. Navegación / menú | 4 | 0 | 4 | 0 |
-| 3. Gameplay núcleo | 9 | 4 | 5 | 0 |
+| 3. Gameplay núcleo | 8 | 4 | 4 | 0 |
 | 4. Scoring y combo | 4 | 3 | 1 | 0 |
 | 5. Dificultad | 4 | 2 | 2 | 0 |
 | 6. Obstáculos | 4 | 2 | 2 | 0 |
 | 7. Player y skins | 6 | 4 | 2 | 0 |
 | 8. Economía y tienda | 6 | 4 | 2 | 0 |
 | 9. Daily / streak | 5 | 0 | 2 | 3 |
-| 10. Continue / rewarded | 4 | 0 | 3 | 1 |
+| 10. Rewarded (Fase 4) | 1 | 0 | 0 | 1 |
 | 11. Audio | 5 | 3 | 1 | 1 |
 | 12. Persistencia | 4 | 2 | 1 | 1 |
 | 13. Backgrounds | 3 | 0 | 3 | 0 |
@@ -81,14 +81,13 @@ fresh install) **no es automatizable** y vive en el checklist manual.
 | ID | Caso de uso | Cobertura | Ref | Pri | Decisión PO | Notas PO |
 |---|---|---|---|---|---|---|
 | GP-01 | Steering izq/der, clamp a bordes (0.62 px/ms) | 🧪 | GP-01 | P0 | `Mantener` | |
-| GP-02 | Dash (doble-tap) + i-frames 240ms | 🧪 | GP-02 | P0 | `Mantener` | confirmar si sigue activo |
+| GP-02 | Vidas por modo: Classic=1 (one-hit), Relax=3 | 🧪 | GP-02 | P0 | `Mantener` | DEC-007 |
 | GP-03 | Colisión resta vida; 0 vidas → GameOver | ✅+🧪 | `CollisionSystem.test` | P0 | `Mantener` | |
 | GP-04 | Fairness: ningún hueco es inalcanzable | ✅+🧪 | `GapPlanner.test` | P0 | `Mantener` | principio 3 GDD |
 | GP-05 | AABB precisa (hitbox 30%×36%, sin ghost/phantom) | ✅ | `CollisionSystem.test` | P0 | `Mantener` | |
-| GP-07 | Cooldown de dash no abusable (2600ms) | 🧪 | GP-07 | P1 | `Mantener` | |
+| GP-07 | i-frames de gracia tras golpe (~1500ms) | 🧪 | GP-07 | P1 | `Mantener` | |
 | GP-09 | Pausa congela estado (posición/score/combo/velocidad) | 🧪 | GP-09 | P1 | `Mantener` | |
-| GP-10 | dt clamp anti-teleport tras pérdida de foco | ⚙️+🧪 | `GameScene.ts:188` | P1 | `Mantener` | |
-| GP-11 | Smash power: rompe la barrera no-pasada más cercana | ✅+🧪 | `ObstacleGenerator.test` | P1 | `Mantener` | NX-01 |
+| GP-10 | dt clamp anti-teleport tras pérdida de foco | ⚙️+🧪 | `GameScene.ts` | P1 | `Mantener` | |
 
 ## 4. Scoring y combo
 
@@ -149,14 +148,11 @@ fresh install) **no es automatizable** y vive en el checklist manual.
 | DLY-04 | Rotación de misiones por fecha | 🧪 | QA-008 | P2 | `Mantener` | con fecha simulada |
 | DLY-05 | Build fresh (sin localStorage) inicializa bien | 🧪 | GME-002 | P1 | `Mantener` | device |
 
-## 10. Continue y rewarded (monetización)
+## 10. Rewarded (monetización — Fase 4)
 
 | ID | Caso de uso | Cobertura | Ref | Pri | Decisión PO | Notas PO |
 |---|---|---|---|---|---|---|
-| CNT-01 | ContinueScene: countdown de 6s auto-declina | 🧪 | GME-003 | P1 | `Mantener` | |
-| CNT-02 | Continuar (rewarded stub) reanuda la misma run | 🧪 | checklist | P1 | `Mantener` | |
-| CNT-03 | El flujo rewarded NO bloquea el retry (principio 1 GDD) | 🧪 | MON-007 | P1 | `Mantener` | |
-| MON-01 | `Rewarded.show()` stub resuelve true (placeholder Fase 4) | ⬜ | `Rewarded.ts` | P2 | `Mantener` | automatizable; real = Fase 4 |
+| MON-01 | `Rewarded.show()` stub resuelve true (placeholder Fase 4) | ⬜ | `Rewarded.ts` | P2 | `Mantener` | automatizable; real = Fase 4. ContinueScene/Double-Coins removidos (DEC-006); único placement = ruleta post-run |
 
 ## 11. Audio
 
@@ -227,7 +223,6 @@ próximos tests si el PO los prioriza):
   se pueden testear streak, claim, misiones y rotación de forma determinista.
 - **MON-01** — el stub `Rewarded.show()` se puede testear (resuelve true).
 - **SC-03** — fórmula de coins ganadas por score.
-- **CNT-01** — el countdown de 6s con timers falsos (como el crossfade de audio).
 
 > Lo que **no** se puede automatizar (queda siempre manual): lo perceptual
 > (audio agradable, arte lindo, game feel) y lo que necesita hardware real

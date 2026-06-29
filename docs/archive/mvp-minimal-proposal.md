@@ -1,5 +1,7 @@
 # MVP Minimal Proposal — Dodge Rush V1 Simplification
 
+> ⚫ **ARCHIVADO (2026-06-28).** Propuesta ya ejecutada — implementada vía `src/config/FeatureFlags.ts` (DIS-002 DONE). Se conserva como contexto histórico. Para vidas por modo rige DEC-007 (classic=1, relax=3), no el "3 vidas" de aquí.
+
 > **Fecha:** 2026-06-27
 > **Autor:** Mobile Game Design Expert (internal analysis)
 > **Estado:** Propuesta para decisión del Product Owner

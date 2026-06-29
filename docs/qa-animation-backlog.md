@@ -135,13 +135,13 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Aceptable para hypercasual; si se quiere suavizar, el squash de DR-05 enmascara el corte.
 
 #### DR-10 — Aparición brusca de `moveHard` a los 360 ms
-- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28 — puff de estela al entrar enmascara el pop)
 - **Descripción:** Al sostener una dirección > `effortHoldMs:360` se cambia a `moveHard` (líneas de velocidad + llama) de golpe.
 - **Impacto:** Las estelas/llama aparecen "pop", sin escalado.
 - **Recomendación:** Fade-in de las estelas o un frame intermedio. Menor.
 
 #### DR-11 — Tilt sin overshoot/settle
-- **Severidad:** Bajo · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28)
 - **Descripción:** `tiltDegrees:9` con lerp lineal; no hay leve sobre-inclinación al iniciar ni asentamiento al frenar.
 - **Impacto:** El bank se siente correcto pero "plano".
 - **Recomendación:** Pequeño overshoot (p. ej. a 11° y asentar a 9°) con easing Back muy suave.
@@ -173,7 +173,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Flash de 1 frame de susto (43/41) o un micro-retroceso en X (~6px) y vuelta. Barato y muy rentable.
 
 #### DR-16 — El blink de invencibilidad puede leerse como glitch
-- **Severidad:** Bajo · **Categoría:** Legibilidad / FX · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Legibilidad / FX · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28 — alpha más suave 0.55 + movimiento vivo de DR-14)
 - **Descripción:** Alpha alterna 0.35/1 cada `blinkMs:110` sobre un frame estático. Sin movimiento debajo, parece parpadeo/error más que invulnerabilidad.
 - **Impacto:** Comunicación ambigua del estado "protegido".
 - **Recomendación:** Combinar con DR-13 (animación viva) y/o usar un tint/halo en vez de alpha duro.
@@ -231,7 +231,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 ### E. Spawn / Reinicio / Transiciones
 
 #### DR-25 — Sin animación de spawn
-- **Severidad:** Medio · **Categoría:** Animación / Game Feel · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING` (parcial: el fade-in de escena de DR-26 suaviza la entrada; falta el drop-in del sprite)
+- **Severidad:** Medio · **Categoría:** Animación / Game Feel · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `DONE` (2026-06-28 — drop-in de 280ms con scale + Back.out)
 - **Descripción:** En `GameScene.create` (`src/scenes/GameScene.ts:86`) el `Player` aparece instantáneamente en su Y fija; igual el héroe del menú. Sin fade/scale/drop-in.
 - **Impacto:** Entrada brusca; sin "arranque" que prepare al jugador (primera impresión de cada run).
 - **Recomendación:** Drop-in corto desde arriba (~250 ms) o scale/fade-in de 150 ms con el propeller ya girando.
@@ -263,7 +263,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Mantener el loop del propeller debajo del badge (ver DR-24) y reducir a ~500 ms (recorte del 40% sin perder lectura).
 
 #### DR-30 — La celebración de combo casi nunca se ve en juego activo
-- **Severidad:** Cosmético · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Cosmético · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** S · **Status:** `DONE` (2026-06-28 — burst dorado sobre el sprite en cada tier, convive con el steering)
 - **Descripción:** `steering` pisa la celebración por diseño (`src/scenes/GameScene.ts:205`); mientras esquivas (lo normal en combos altos) nunca aparece.
 - **Impacto:** El frame de combo del personaje es trabajo casi siempre invisible.
 - **Recomendación:** Aceptable (decisión consciente), pero considerar un micro-overlay/glow sobre el sprite que conviva con el steering.
@@ -275,7 +275,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Permitir que el tilt/squash (cosméticos) sigan activos sobre la pose boost.
 
 #### DR-32 — Squash/stretch del GameOver con origin 0.5
-- **Severidad:** Cosmético · **Categoría:** Animación · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Cosmético · **Categoría:** Animación · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28 — origin anclado a los pies)
 - **Descripción:** El héroe de récord estira `scaleY:1.2` con origin centrado (`src/scenes/GameOverScene.ts:73`); estira desde el centro, no desde los pies.
 - **Impacto:** El "rebote" lee algo menos natural (crece en ambos sentidos).
 - **Recomendación:** Anclar origin abajo (o compensar Y) para que estire hacia arriba.
@@ -338,5 +338,6 @@ Ordenados por relación impacto/esfuerzo:
 | 2026-06-28 | DR-12, DR-15 | QA Session | Pose de impacto/susto. **Player.ts:** nueva pose `impact` (frame 43 `shout`, fallback `sadHead` 41 en skins). **GameScene.ts:** recoil ~180ms al sobrevivir un golpe + startle 160ms en near-miss antes de dizzy. **PlayerFacing(.test).ts:** `impact` agregado. Validación: `tsc --noEmit` OK; `PlayerFacing` (6) OK. |
 | 2026-06-28 | DR-07, DR-14 | QA Session | **Player.ts:** al espejar, el tilt cruza por 0 (no se inclina hacia atrás, DR-07). **GameScene.ts:** durante invencibilidad ahora se muestran poses de movimiento/hover tras el recoil de 180ms (ya no dizzy fijo), el blink sigue comunicando inmunidad (DR-14). Validación: `tsc --noEmit` OK. |
 | 2026-06-28 | DR-26, DR-28, DR-31 | QA Session | Pulido P2/P3. **GameScene.ts:** `cameras.fadeIn(180)` al iniciar/retry (DR-26). **Constants.ts:** cheer 8→6fps (menos tembleque, DR-28). DR-31 confirmado: tilt+squash cosméticos ya persisten en boost vía `steer()`. SKIP aceptados: DR-09/27/33/34. Validación: `tsc --noEmit` OK. |
+| 2026-06-28 | DR-10, DR-11, DR-16, DR-25, DR-30, DR-32 | QA Session | Lote sin-sprites. **Player.ts:** overshoot+settle del bank (DR-11); `spawnIn()` drop-in 280ms (DR-25). **GameScene.ts:** puff al entrar moveHard (DR-10); blink más suave 0.55 (DR-16); burst dorado sobre el sprite por tier (DR-30). **GameOverScene.ts:** origin a los pies (DR-32). Validación: `tsc` OK, 88 unit OK (3 fallos pre-existentes de tint), E2E core 10/10. Restan solo DR-13/24 (BLOCKED, necesitan sprite de hélice). |
 </content>
 </invoke>

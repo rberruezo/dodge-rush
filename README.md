@@ -94,3 +94,19 @@ src/
 - Audio unlocks on first tap (mobile autoplay policy).
 - `delta` is clamped each frame so a background-tab stall can't tunnel obstacles
   through the player.
+
+## Testing
+
+```bash
+npm run test:run   # 99 tests / 13 suites (Vitest, Node ≥20)
+```
+
+Manual passes that can't be automated (game feel, audio, device render) live in
+[`QA-MANUAL-CHECKLIST.md`](QA-MANUAL-CHECKLIST.md); strategy in
+[`QA-PLAN.md`](QA-PLAN.md), case catalogue in [`USE-CASES.md`](USE-CASES.md).
+
+## More docs
+
+- Design & launch: [`docs/gdd.md`](docs/gdd.md) (hub) → core-loop, skins, monetization, ASO.
+- Android build/sideload: [`mobile/README.md`](mobile/README.md).
+- Planning & decisions: [`BACKLOG.md`](BACKLOG.md).

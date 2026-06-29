@@ -48,7 +48,8 @@ export class GameOverScene extends Phaser.Scene {
 
     const skin = getSkin(Profile.selected);
     const hero = this.add
-      .sprite(cx, 232, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .sprite(cx, 298, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .setOrigin(0.5, 1) // feet-anchored so the stretch grows upward, not from center (DR-32)
       .setScale(1.1);
     if (skin.tint !== null) hero.setTint(skin.tint);
     if (isNewBest) {
@@ -61,7 +62,7 @@ export class GameOverScene extends Phaser.Scene {
       if (this.anims.exists(cheerKey)) hero.play(cheerKey);
       this.tweens.add({
         targets: hero,
-        y: 214,
+        y: 280,
         duration: 640,
         yoyo: true,
         repeat: -1,
@@ -80,7 +81,7 @@ export class GameOverScene extends Phaser.Scene {
     } else {
       this.tweens.add({
         targets: hero,
-        y: 244,
+        y: 310,
         angle: -4,
         duration: 1200,
         yoyo: true,

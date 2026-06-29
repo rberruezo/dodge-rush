@@ -45,6 +45,7 @@ export class GameScene extends Phaser.Scene {
   private running = false;
   private lastMoveDir: -1 | 0 | 1 = 0;
   private dirHoldMs = 0;
+  private moveHardActive = false; // tracks moveHard entry to ease in the strain trails (DR-10)
   private boostUntilMs = -1;
   private passCount = 0;
   private lives: number = LIVES_CFG.count;
@@ -104,6 +105,7 @@ export class GameScene extends Phaser.Scene {
     // Apply the selected skin (sprite sheet + recolour).
     const skin = getSkin(Profile.selected);
     this.player.applySkin(skin.sheet, skin.tint);
+    this.player.spawnIn(); // drop-in arrival so the run starts with a beat (DR-25)
 
     this.score = new ScoreManager();
     this.score.reset();
@@ -230,7 +232,10 @@ export class GameScene extends Phaser.Scene {
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
-      this.player.setPose({ kind: this.dirHoldMs > PLAYER_CFG.effortHoldMs ? 'moveHard' : 'move' });
+      const hard = this.dirHoldMs > PLAYER_CFG.effortHoldMs;
+      if (hard && !this.moveHardActive) this.fx.burst(this.player.x, this.player.y + 40, 0xbfe9ff, 4); // ease in the strain trails (DR-10)
+      this.moveHardActive = hard;
+      this.player.setPose({ kind: hard ? 'moveHard' : 'move' });
     } else if (now < this.comboCelebUntilMs) {
       // x2-x20 combos flash their numbered gesture (row 5) on the character;
       // milestone combos (no frame) fall back to the animated arms-up cheer.
@@ -242,7 +247,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.player.setPose({ kind: 'hover' });
     }
-    this.player.setAlpha(lifeInvincible ? (Math.floor(now / LIVES_CFG.blinkMs) % 2 ? 0.35 : 1) : 1);
+    this.player.setAlpha(lifeInvincible ? (Math.floor(now / LIVES_CFG.blinkMs) % 2 ? 0.55 : 1) : 1);
 
     const passed = this.obstacles.update(dt, { ...snapshot, speed }, this.player.y);
     if (passed.length) {
@@ -324,6 +329,8 @@ export class GameScene extends Phaser.Scene {
     if (state.tierUp) {
       Sound.combo(mult);
       const cx = GAME_WIDTH / 2;
+      // Glow on the body so a tier still reads while steering hides the cheer (DR-30).
+      this.fx.burst(this.player.x, this.player.y, 0xffe14a, 8);
       this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
       // x2-x20 tiers carry a numbered combo frame -> show it on the character
       // (pose 'celebrate'); milestone tiers (huge/epic) have none -> cheer anim.

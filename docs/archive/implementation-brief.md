@@ -1,5 +1,7 @@
 # MVP Minimal Implementation Brief — For Standalone LLM Agent
 
+> ⚫ **ARCHIVADO (2026-06-28).** Tarea completada (DIS-002 DONE). Brief de un solo uso, conservado como referencia histórica.
+
 > **Target:** Another Claude instance running independently
 > **Project:** Dodge Rush (Phaser.js arcade casual game)
 > **Task:** Implement MVP Minimal (feature flags + UI simplification)

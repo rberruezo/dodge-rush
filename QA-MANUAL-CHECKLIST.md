@@ -12,11 +12,11 @@
    - `window.game` — instancia Phaser (escenas, loop).
    - `window.diagnostics.recent` — eventos de error registrados (debería estar **vacío** en una sesión sana).
    - `window.sound` — control de audio.
-4. **Estado limpio:** en consola, `['coins','highscore','skins','ghost','skin','difficulty'].forEach(k=>localStorage.removeItem('dodgerush.'+k)); location.reload()`.
+4. **Estado limpio:** en consola, `['coins','highscore','highscore_relax','skins','skin','difficulty','achievements'].forEach(k=>localStorage.removeItem('dodgerush.'+k)); location.reload()`.
 
-> ⚠️ El código tuvo un refactor reciente (power/smash, modos de dificultad,
-> daily challenge; posible retirada de ghost/dash). Antes de empezar, **confirma
-> en el menú/HUD qué mecánicas existen hoy** y ajusta GP-02/GP-07 y el anexo.
+> ✅ Refactor cerrado: ya **no existen** dash, smash/power ni ghost-racing.
+> Vidas: **Classic = 1 (one-hit)**, **Relax = 3**. Sin `ContinueScene`. Confirmá
+> el HUD/menú antes de empezar y reportá cualquier mecánica fantasma.
 
 ## Matriz de dispositivos
 
@@ -37,14 +37,14 @@
 - **Esperado:** el personaje se mueve lateral y fluido (~0.62 px/ms), responde al instante, **se detiene en el borde** (no se sale ni "rebota"). La animación cambia a "esfuerzo" si mantienes >360 ms.
 - **Resultado:** ⬜  · Notas:
 
-### GP-02 — Dash (doble-tap) evade obstáculo · **P0**
-> Confirmar primero que el dash sigue existiendo (el menú indica "Double-tap a side to DASH").
-- **Pasos:** acércate a una pared y haz **doble-tap** en un lado (<300 ms entre taps) justo antes de impactar.
-- **Esperado:** ráfaga de ~165 px en ~165 ms; durante ~240 ms eres invencible (atraviesas sin perder vida); hay trail/FX de dash.
+### GP-02 — Vidas por modo · **P0**
+> Classic = one-hit; Relax = 3 vidas (DEC-007).
+- **Pasos:** jugá un run en Classic y chocá; repetí en Relax.
+- **Esperado:** en Classic un solo golpe → Game Over (sin corazones en HUD); en Relax 3 corazones, cada golpe resta uno.
 - **Resultado:** ⬜  · Notas:
 
 ### GP-03 — Colisión resta vida · **P0**
-- **Precondición:** vidas iniciales = 3 (CLASSIC) o 5 (RELAX) — confírmalo en el HUD.
+- **Precondición:** vidas iniciales = 1 (CLASSIC, one-hit) o 3 (RELAX) — confírmalo en el HUD.
 - **Pasos:** choca deliberadamente contra una pared (fuera del hueco).
 - **Esperado:** −1 vida, feedback visual (parpadeo) + sonido; **invencibilidad de gracia ~1500 ms** (parpadeo ~110 ms) tras el golpe. Al llegar a 0 vidas → pantalla **Game Over**.
 - **Resultado:** ⬜  · Notas:
@@ -67,9 +67,9 @@
 - **Esperado:** el multiplicador sube por los tiers indicados con su flash/celebración; el juego **acelera** con el combo; al perder vida el combo y el multiplicador **vuelven a x1**.
 - **Resultado:** ⬜  · Notas:
 
-### GP-07 — Cooldown del dash no abusable · **P1**
-- **Pasos:** intenta hacer dash repetidamente (spam de doble-tap).
-- **Esperado:** tras un dash hay **recarga ~2600 ms** durante la cual no se puede volver a hacer dash (indicador en HUD si existe). No permite invencibilidad continua.
+### GP-07 — i-frames de gracia tras golpe (solo Relax) · **P1**
+- **Pasos:** en Relax, chocá y al instante intentá chocar de nuevo.
+- **Esperado:** tras el golpe hay **invencibilidad ~1500 ms** (parpadeo ~110 ms); no se pueden encadenar dos golpes seguidos. No hay invencibilidad continua.
 - **Resultado:** ⬜  · Notas:
 
 ### GP-08 — Rampa de dificultad suave · **P1**
@@ -94,10 +94,8 @@
 
 | ID | Qué | Cómo | Esperado | Resultado |
 |---|---|---|---|---|
-| NX-01 | **Power / Smash** | Cargar/activar el "smash" (HUD `setPower`/`breakNext`) | Rompe el obstáculo más cercano no pasado + FX "SMASH!"; respeta su recarga | ⬜ |
-| NX-02 | **Modos de dificultad** | Elegir CLASSIC vs RELAX | Persiste tras recargar; RELAX más lento/forgiving (más vidas, huecos más anchos) | ⬜ |
+| NX-02 | **Modos de dificultad** | Elegir CLASSIC vs RELAX | Persiste tras recargar; RELAX más lento/forgiving (3 vidas, huecos más anchos); CLASSIC one-hit | ⬜ |
 | NX-03 | **Daily challenge** | Entrar a la escena `Daily` | Carga sin crash; reglas/seed del día coherentes | ⬜ |
-| NX-04 | **Ghost racing** (si sigue) | Tras un best, reintentar | Réplica translúcida sincronizada — **o** confirmar que se retiró | ⬜ |
 
 ## Cierre de cobertura no-funcional (complementa NF-01..NF-05)
 
@@ -118,7 +116,6 @@
 | SND-01 | Loop de música (menú y juego) | Empalme **sin gap ni click** (loop por crossfade de ~0.9s); sin bajón de volumen en la costura; volumen agradable (~0.45), no tapa los SFX. Dejar sonar ≥1 vuelta completa (~28s/~31s) y escuchar la unión | ⬜ |
 | SND-02 | SFX de pase / near-miss | "Swish+ping" satisfactorio; el near-miss se distingue del pase normal | ⬜ |
 | SND-03 | SFX de golpe (`hit`) | "Bonk" cartoon, **no** estridente ni agresivo | ⬜ |
-| SND-04 | SFX de smash | Lee como "metal roto" 8-bit, punchy, no molesto | ⬜ |
 | SND-05 | Combo subiendo | El tono **sube** con el combo y se siente más emocionante en tiers altos | ⬜ |
 | SND-06 | Coin / new-best / skin-unlock | Arpegios alegres, premian sin saturar | ⬜ |
 | SND-07 | Mezcla general | Ningún SFX satura/clippea al solaparse (varios a la vez en combo alto) | ⬜ |

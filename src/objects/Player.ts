@@ -29,6 +29,8 @@ export class Player extends Phaser.GameObjects.Sprite {
   private baseY: number;
   private targetTilt = 0;
   private bobT = 0;
+  private bankT = 0; // time held in current bank direction (drives overshoot/settle; DR-11)
+  private spawning = false; // drop-in tween owns Y until it lands (DR-25)
   private baseScale = 1; // cosmetic squash/stretch baseline (set in constructor; DR-05)
   private poseKey = '';
   private faceDir: 1 | -1 = 1; // last horizontal facing (+1 right, -1 left)
@@ -84,6 +86,7 @@ export class Player extends Phaser.GameObjects.Sprite {
     } else {
       this.targetTilt = 0;
       this.faceHoldMs = 0;
+      this.bankT = 0;
     }
     // Stable margin (configured width, not the live one) so the cosmetic squash
     // below never wobbles the clamp boundary.
@@ -93,8 +96,11 @@ export class Player extends Phaser.GameObjects.Sprite {
     // Frame-rate-independent easing so tilt + squash feel identical at any FPS (DR-08).
     const ease = (rate: number): number => 1 - Math.pow(1 - rate, dt / (1000 / 60));
 
-    // Bank tilt toward the travel direction.
-    this.angle = Phaser.Math.Linear(this.angle, this.targetTilt, ease(0.18));
+    // Bank tilt toward the travel direction, with a brief overshoot that settles
+    // back so the lean snaps in with life instead of reading flat (DR-11).
+    if (dir !== 0) this.bankT += dt;
+    const overshoot = dir !== 0 ? 1 + 0.28 * Math.exp(-this.bankT / 120) : 1;
+    this.angle = Phaser.Math.Linear(this.angle, this.targetTilt * overshoot, ease(0.18));
 
     // Subtle squash & stretch: stretch a touch along travel while steering, relax
     // back to base at rest. Cosmetic only — the hitbox is fixed (see getHitbox; DR-05).
@@ -110,8 +116,27 @@ export class Player extends Phaser.GameObjects.Sprite {
    *  the bob and spins the propeller faster as the fall accelerates (DR-01/02). */
   aliveTick(dt: number, intensity = 0): void {
     this.bobT += dt;
+    if (this.spawning) return; // drop-in tween owns Y/scale until it lands (DR-25)
     this.y = this.baseY + Math.sin(this.bobT * PLAYER_CFG.bobSpeed) * PLAYER_CFG.bobAmp * (1 + 0.6 * intensity);
     this.anims.timeScale = 1 + 0.5 * intensity;
+  }
+
+  /** Drop-in arrival: fall into the held line with a quick fade + scale so each run
+   *  starts with a beat instead of a hard pop (DR-25). */
+  spawnIn(): void {
+    this.spawning = true;
+    this.setPose({ kind: 'hover' });
+    this.y = this.baseY - 160;
+    this.setScale(this.baseScale * 0.7);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.baseY,
+      scaleX: this.baseScale,
+      scaleY: this.baseScale,
+      duration: 280,
+      ease: 'Back.out',
+      onComplete: () => (this.spawning = false)
+    });
   }
 
   /** Knockout: play the death pose + a tumbling fly-out (sheet-agnostic; DR-17/19/20). */
