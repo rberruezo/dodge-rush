@@ -306,8 +306,8 @@ export class Barrier {
   private placeMarker(m: GapMarker | undefined, x: number): void {
     if (!m) return;
     const onScreen = x > 1 && x < GAME_WIDTH - 1;
-    // [OBS-007] keep the bright core post for legibility; gate only the ADD halo.
-    m.core.setVisible(onScreen);
+    // [OBS-007] gate both core and glow behind the flag — no posts when glow is off.
+    m.core.setVisible(onScreen && this.glowEnabled);
     m.glow.setVisible(onScreen && this.glowEnabled);
     if (!onScreen) return;
     const band = this.bandHeight * GAP_MARKER_CFG.heightScale;
