@@ -164,6 +164,12 @@ export interface ObstacleFrameDef {
   y: number;
   width: number;
   height: number;
+  // [OBS-008] Absolute atlas X of the 1px-wide body column the Barrier tiles to
+  // fill a wall's mid-section. Picked (build-obstacles.py) as the brightest,
+  // (near-)opaque column in the bar's left shoulder — just inside the end-cap and
+  // before the dark centre window — so the tiled body stays bright and on-brand
+  // (visible on night) while a 1px column tiles with zero seam.
+  centerX: number;
 }
 
 /**
@@ -177,23 +183,24 @@ export interface ObstacleAnimFrameDef {
   y: number;
   width: number;
   height: number;
+  centerX: number; // [OBS-008] seamless body column — see ObstacleFrameDef.centerX
 }
 
 export const OBSTACLE_ANIM_FRAMES: ObstacleAnimFrameDef[] = [
-  { name: 'red_arrow_f1',  x: 255, y: 50, width: 40, height: 33 },
-  { name: 'red_spike_f1',  x: 297, y: 50, width: 59, height: 42 },
-  { name: 'gold_block_f1', x: 487, y: 50, width: 58, height: 39 }
+  { name: 'red_arrow_f1',  x: 255, y: 50, width: 40, height: 33, centerX: 264 },
+  { name: 'red_spike_f1',  x: 297, y: 50, width: 59, height: 42, centerX: 313 },
+  { name: 'gold_block_f1', x: 487, y: 50, width: 58, height: 39, centerX: 502 }
 ];
 
 export const OBSTACLE_FRAMES: ObstacleFrameDef[] = [
-  { name: 'blue_bar', x: 0, y: 0, width: 53, height: 28 },
-  { name: 'green_bar', x: 55, y: 0, width: 78, height: 30 },
-  { name: 'purple_pillar', x: 135, y: 0, width: 25, height: 42 },
-  { name: 'red_arrow', x: 255, y: 0, width: 40, height: 33 },
-  { name: 'red_spike', x: 297, y: 0, width: 59, height: 42 },
-  { name: 'stone_crack', x: 358, y: 0, width: 68, height: 34 },
-  { name: 'blue_tile', x: 428, y: 0, width: 57, height: 34 },
-  { name: 'gold_block', x: 487, y: 0, width: 58, height: 39 }
+  { name: 'blue_bar', x: 0, y: 0, width: 53, height: 28, centerX: 14 },
+  { name: 'green_bar', x: 55, y: 0, width: 78, height: 30, centerX: 76 },
+  { name: 'purple_pillar', x: 135, y: 0, width: 25, height: 42, centerX: 142 },
+  { name: 'red_arrow', x: 255, y: 0, width: 40, height: 33, centerX: 267 },
+  { name: 'red_spike', x: 297, y: 0, width: 59, height: 42, centerX: 313 },
+  { name: 'stone_crack', x: 358, y: 0, width: 68, height: 34, centerX: 376 },
+  { name: 'blue_tile', x: 428, y: 0, width: 57, height: 34, centerX: 442 },
+  { name: 'gold_block', x: 487, y: 0, width: 58, height: 39, centerX: 503 }
 ];
 
 /** Player tuning. Speeds are in pixels-per-millisecond for frame-rate independence. */

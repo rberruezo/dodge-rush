@@ -233,23 +233,29 @@ export class TextureFactory {
   /**
    * Register named sub-frames on the obstacle texture (real or fallback),
    * including the 3-slice pieces used to build bars: `<name>_l` / `<name>_r`
-   * (fixed end-caps) and `<name>_c` (a solid cross-section column that tiles to
-   * fill the bar's length without distortion or a repeated hole).
+   * (fixed end-caps that remate the gap edge) and `<name>_c`, a single body
+   * column the wall tiles to fill its mid-section.
+   *
+   * [OBS-008] `_c` is a 1px-wide column at the per-frame `centerX` (chosen by
+   * build-obstacles.py as the brightest near-opaque column in the bar's left
+   * shoulder). A 1px column tiles with zero seam (every repeat is identical) and
+   * stays bright/on-brand, so the body reads as a clean extruded beam instead of
+   * a stretched tile or a flat colour fill, and obstacles stay visible on night.
    */
   static registerObstacleFrames(scene: Phaser.Scene): void {
     const tex = scene.textures.get(ASSET_KEYS.OBSTACLES);
 
-    const slice = (name: string, x: number, y: number, w: number, h: number) => {
+    const slice = (name: string, x: number, y: number, w: number, h: number, centerX: number) => {
       if (!tex.has(name)) tex.add(name, 0, x, y, w, h);
       const capW = Math.max(8, Math.round(w * OBSTACLE_CFG.capFraction));
-      const stripW = Math.min(4, w);
-      const stripX = Math.max(x, x + capW - stripW);
+      // Clamp the body column inside the frame in case art shifts on a regen.
+      const cx = Math.min(Math.max(centerX, x), x + w - 1);
       if (!tex.has(`${name}_l`)) tex.add(`${name}_l`, 0, x, y, capW, h);
       if (!tex.has(`${name}_r`)) tex.add(`${name}_r`, 0, x + w - capW, y, capW, h);
-      if (!tex.has(`${name}_c`)) tex.add(`${name}_c`, 0, stripX, y, stripW, h);
+      if (!tex.has(`${name}_c`)) tex.add(`${name}_c`, 0, cx, y, 1, h);
     };
 
-    OBSTACLE_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height));
-    OBSTACLE_ANIM_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height));
+    OBSTACLE_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height, f.centerX));
+    OBSTACLE_ANIM_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height, f.centerX));
   }
 }

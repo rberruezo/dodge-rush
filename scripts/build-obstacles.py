@@ -4,9 +4,10 @@ Build a clean, pixel-art obstacle atlas from the raw obstacle pack.
 
 Crops each obstacle by its detected bounding box, downscales + quantises to a
 limited palette with hard alpha edges (matching the character art style), and
-packs them tightly into a single-row atlas. Prints the frame rectangles and each
+packs them tightly into a single-row atlas. Prints the frame rectangles, each
 obstacle's dominant colour (used as the solid "wall fill" behind the tiled texture
-so the barriers never look see-through).
+so the barriers never look see-through) and the per-frame `centerX` (the 1px
+seamless body column the Barrier tiles for a wall's mid-section — OBS-008).
 
 Source resolution guide:
   1024×1024 source → DOWNSCALE=4.0 → ~40-55px tiles (current baseline)
@@ -68,6 +69,36 @@ def dominant(img: Image.Image) -> str:
     return f"0x{r*16:02x}{g*16:02x}{b*16:02x}"
 
 
+def body_column(img: Image.Image) -> int:
+    """[OBS-008] Pick the 1px body column the Barrier tiles for a wall's centre.
+
+    Returns the relative X (0-based) of the brightest, (near-)opaque column in the
+    bar's left shoulder — just inside the left end-cap and before the dark central
+    window. That keeps the tiled body bright and on-brand (so obstacles stay
+    visible on dark zones like night) while a 1px column tiles seamlessly (every
+    repeat is identical, no stretch). Add the tile's atlas X to get the absolute
+    `centerX` baked into OBSTACLE_FRAMES.
+    """
+    px = img.load()
+    w, h = img.size
+    cap_w = max(8, round(w * 0.32))  # mirror OBSTACLE_CFG.capFraction
+    lo = max(2, cap_w - 4)
+    hi = max(lo + 1, w // 2)         # shoulder band: inside the cap, pre-window
+
+    def opacity(cx: int) -> float:
+        return sum(1 for y in range(h) if px[cx, y][3] == 255) / h
+
+    def bright(cx: int) -> float:
+        col = [px[cx, y] for y in range(h) if px[cx, y][3] == 255]
+        return sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b, _ in col) / len(col) if col else -1.0
+
+    cands = [cx for cx in range(lo, hi) if opacity(cx) >= 0.95]
+    if not cands:
+        cands = [cx for cx in range(lo, hi) if opacity(cx) >= 0.8] or [lo]
+    return max(cands, key=bright)
+
+
+
 def main() -> None:
     src = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SRC
     im = Image.open(src).convert("RGBA")
@@ -102,9 +133,13 @@ def main() -> None:
     final.save(OUT)
 
     print(f"wrote {OUT} {final.size}")
-    print("frames + dominant colour:")
+    print("frames + dominant colour + centerX (paste into Constants.ts/ObstacleTypes.ts):")
     for (name, x, y, w, h), (_, tile) in zip(rects, tiles):
-        print(f"  {name:14s} rect=({x},{y},{w},{h}) fill={dominant(tile)}")
+        crop = final.crop((x, y, x + w, y + h))
+        print(
+            f"  {name:14s} rect=({x},{y},{w},{h}) fill={dominant(tile)} "
+            f"centerX={x + body_column(crop)}"
+        )
 
 
 if __name__ == "__main__":
