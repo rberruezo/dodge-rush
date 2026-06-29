@@ -17,6 +17,19 @@ estirados o columnas derivadas del atlas actual.
 > PENDIENTE (la fuente lo duplicó con tamaños/orientación inconsistentes). Si se
 > regenera el arte, exportarlo con alpha real evita todo este recorte.
 
+> **`pieces/` (entrega 3 — ACTUAL, 2026-06-29):** **REEMPLAZADAS** desde
+> `new-obstacles-3.png` (1536×1024 RGBA, alpha real, fondo transparente — el
+> sheet más limpio hasta ahora). Cuerpos (`*_center`) glossy de las columnas
+> verticales grandes; caps decorados de las piezas modulares grandes (bevel
+> azul, ranurado púrpura, grietas, runa-X violeta/oro, chevron `>`, púas).
+> `green_bar_cap` = recolor HLS del cap azul al hue verde (no había cap verde
+> modular). **Animaciones procedurales** (los strips de anim del sheet eran muy
+> chicos y se distorsionaban a 40×88): `red_arrow` 3 frames (chevron marchando,
+> x-offset 2/5/8), `red_spike` 4 frames (púas clavando, x-offset 0/3/6/3),
+> `gold_block` 5 frames (shimmer de brillo 1.0/1.12/1.28/1.12/0.92). El packer
+> (`scripts/pack-obstacles.py`) regenera el mismo layout (764×272, mismas
+> coords) ⇒ `Constants.ts`/`ObstacleTypes.ts` sin cambios. Validado in-engine.
+
 ---
 
 ## Por qué (contexto OBS-008)
