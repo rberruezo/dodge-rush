@@ -7,6 +7,8 @@
  * adjust the numbers below rather than editing engine code.
  */
 
+import { CHARACTER_KEY, CHARACTER_COMBO_FRAMES } from './CharacterSprite';
+
 /** Logical (design) resolution. The game is rendered here and scaled to fit. */
 export const GAME_WIDTH = 540;
 export const GAME_HEIGHT = 960;
@@ -21,7 +23,7 @@ export const BUILD_NUMBER = 6;
 
 /** Texture / animation lookup keys (avoid magic strings around the codebase). */
 export const ASSET_KEYS = {
-  CHARACTER: 'character',
+  CHARACTER: CHARACTER_KEY,
   OBSTACLES: 'obstacles',
   COIN: 'coin', // spinning-coin sprite strip
   PARTICLE: 'spark' // generated at runtime, never loaded from disk
@@ -109,15 +111,6 @@ export const BG_CFG = {
 export const BG_SKY_KEYS = BG_ZONES.map((z) => z.sky);
 export const BG_LAYER_KEYS = BG_LAYERS.map((l) => l.key);
 
-export const ANIM_KEYS = {
-  HOVER: 'player-hover', // not steering (alive idle float)
-  MOVE: 'player-move', // steering, low effort
-  MOVE_HARD: 'player-move-hard', // steering held, straining
-  BOOST: 'player-boost', // golden score boost
-  CHEER: 'player-cheer', // celebration
-  DEATH: 'player-death' // run-over knockout (base sheet only — row 7)
-} as const;
-
 export const STORAGE_KEYS = {
   HIGH_SCORE: 'dodgerush.highscore', // CLASSIC mode best (legacy key — existing data = classic)
   HIGH_SCORE_RELAX: 'dodgerush.highscore.relax', // RELAX mode best (GME-012 — per-mode records)
@@ -144,28 +137,6 @@ export const COLORS = {
 } as const;
 
 /**
- * Character sprite-sheet slicing.
- *
- * Re-packed by `scripts/repack-character.py` into a clean 6x8 grid at
- * `public/assets/character.png` (120px cells — rendered ~1:1 so it stays crisp
- * against the detailed background). Frame map (index = row*6 + col):
- *   row 0 (0-5)   hover (front)            -> not steering (alive float)
- *   row 1 (6-11)  side flight, calm        -> moving, low effort
- *   row 2 (12-17) side flight, straining   -> moving held, high effort
- *   row 3 (18-23) flight + sparkles        -> golden score boost
- *   row 4 (24-29) cheer (arms up)          -> celebration
- *   row 5 (30-35) combo x1,x2,x3,x5,x10,x20-> brief combo celebration flash
- *   row 6 (36-41) dizzy, sad-cloud, trophy, crown, star head, sad head
- *   row 7 (42-47) knockout: bonk, shout, eyes-shut, roll, roll, head-down fall -> death anim
- * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player.
- * Skins remain 6x7 (no row 7); the death anim is base-only and falls back to dizzy.
- */
-export const CHARACTER_FRAME = {
-  width: 120,
-  height: 120
-} as const;
-
-/**
  * Zone milestones (GME-GD-006): a brief, non-intrusive banner shown the first
  * time the run's score crosses each threshold. Names are altitude-themed; the
  * score doubles as the "distance" metric (~10/s + combo bonuses).
@@ -181,44 +152,6 @@ export const ZONE_MILESTONES: ZoneMilestone[] = [
   { at: 300, name: '¡Estratosfera!' },
   { at: 500, name: '¡Órbita!' }
 ];
-
-/** Single-purpose frames (not animations). */
-export const CHAR_FRAMES = {
-  dizzy: 36,
-  sadCloud: 37,
-  trophy: 38,
-  crown: 39,
-  starHead: 40,
-  sadHead: 41
-} as const;
-
-/**
- * One character animation. Supply EITHER a contiguous `start`/`end` range, OR an
- * explicit `frames` list for a curated (possibly non-contiguous / ping-pong)
- * loop — the latter lets us cherry-pick same-silhouette poses so a clip never
- * strobes through mismatched art.
- */
-export interface CharAnimDef {
-  start?: number;
-  end?: number;
-  frames?: readonly number[];
-  frameRate: number;
-  repeat: number;
-}
-
-export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
-  [ANIM_KEYS.HOVER]: { start: 0, end: 5, frameRate: 7, repeat: -1 },
-  [ANIM_KEYS.MOVE]: { start: 6, end: 11, frameRate: 12, repeat: -1 },
-  [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 14, repeat: -1 },
-  // Golden boost: a calmer rate so the sparkly glow shimmers instead of flickering.
-  [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 12, repeat: -1 },
-  // Celebration: we use frames 24 and 25 which feature the character
-  // hovering (moving propeller) but with arms up and happy expressions.
-  [ANIM_KEYS.CHEER]: { frames: [24, 25], frameRate: 6, repeat: -1 },
-  // Row 7 (base sheet only): full knockout beat — bonk, shout, eyes-shut, roll, roll,
-  // head-down fall — so death is a 2-beat reaction, not a static frame (DR-17/18).
-  [ANIM_KEYS.DEATH]: { frames: [42, 43, 44, 45, 46, 47], frameRate: 10, repeat: 0 }
-} as const;
 
 /**
  * Obstacle atlas slicing (named sub-rectangles inside the packed PNG).
@@ -355,11 +288,11 @@ export const COMBO_TIERS: ComboTier[] = [
   { at: 40, mult: 34, fx: 'huge' },
   { at: 30, mult: 28, fx: 'huge' },
   // Sprite-frame milestones (numbered badge flashes on the character).
-  { at: 20, mult: 20, frame: 35 },
-  { at: 12, mult: 10, frame: 34 },
-  { at:  7, mult:  5, frame: 33 },
-  { at:  4, mult:  3, frame: 32 },
-  { at:  2, mult:  2, frame: 31 },
+  { at: 20, mult: 20, frame: CHARACTER_COMBO_FRAMES.x20 },
+  { at: 12, mult: 10, frame: CHARACTER_COMBO_FRAMES.x10 },
+  { at:  7, mult:  5, frame: CHARACTER_COMBO_FRAMES.x5 },
+  { at:  4, mult:  3, frame: CHARACTER_COMBO_FRAMES.x3 },
+  { at:  2, mult:  2, frame: CHARACTER_COMBO_FRAMES.x2 },
 ];
 
 /** Highest `at` value in COMBO_TIERS — ComboManager generates tiers dynamically above this. */

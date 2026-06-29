@@ -66,12 +66,12 @@ export class Background {
 
     // 1. One full-screen sky per zone, alpha-crossfaded in syncZone(). The sky is
     // a tiny runtime-generated vertical gradient (a 16×960 canvas texture), NOT
-    // the heavy bg_sky_*.png. On some Android WebView GL drivers the large
-    // (81–200 KB) sky PNGs decoded but never uploaded/rendered while every
-    // lighter texture — including the same-sized vignette — did (BG-005). A
-    // generated gradient has no heavy file to decode, so it renders identically
-    // on web and device. Visibility = alpha only (no setTexture swap, which also
-    // failed on those drivers).
+    // the heavy bg_sky_*.png. On some Android WebView GL drivers the sky PNGs
+    // decoded but never uploaded/rendered while every lighter texture — including
+    // the same-sized vignette — did (BG-005); even repacked power-of-two PNGs
+    // still failed to render on the WebView. A generated gradient has no heavy
+    // file to upload, so it renders identically on web and device. Visibility =
+    // alpha only (no setTexture swap, which also failed on those drivers).
     this.skies = BG_ZONES.map((z) => mkFull(this.makeSkyGradient(z)).setAlpha(0));
 
     // 2/4/5. Parallax + light + near-cloud layers, plus the grade wash injected
@@ -106,17 +106,17 @@ export class Background {
   // ---- construction helpers -------------------------------------------------
 
   /**
-   * Build (once) a tiny vertical-gradient sky texture for a zone and return its
-   * key. We draw a native linear gradient into a 16×960 canvas — crisp,
-   * band-free, and a few KB — instead of loading the heavy bg_sky_*.png, which
-   * decoded but never rendered on some Android WebView GL drivers (BG-005). The
-   * 16px width stretches uniformly to the full game width (the gradient is
-   * vertical, so horizontal sampling is constant).
+   * Build (once) a 256×960 canvas sky texture for a zone and return its key. A
+   * native linear gradient gives the base day/night tone; drawSkyDetail adds
+   * stars + aurora ribbons. Canvas-generated (not bg_sky_*.png), so it uploads
+   * on every driver — the PNGs decoded but never rendered on some Android WebView
+   * GL drivers (BG-005). 256px stretches uniformly to the full game width.
    */
   private makeSkyGradient(zone: BgZone): string {
     const key = `bg_skygrad_${zone.id}`;
     if (this.scene.textures.exists(key)) return key;
-    const canvas = this.scene.textures.createCanvas(key, 16, GAME_HEIGHT);
+    const W = 256; // wide enough for stars/aurora bands; stretched to full width
+    const canvas = this.scene.textures.createCanvas(key, W, GAME_HEIGHT);
     if (!canvas) return zone.sky; // fall back to the PNG if canvas textures are unavailable
     const ctx = canvas.getContext();
     const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
@@ -125,9 +125,40 @@ export class Background {
     grad.addColorStop(0.45, hex(zone.skyMid));
     grad.addColorStop(1, hex(zone.skyBot));
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 16, GAME_HEIGHT);
+    ctx.fillRect(0, 0, W, GAME_HEIGHT);
+    this.drawSkyDetail(ctx, zone, W);
     canvas.refresh();
     return key;
+  }
+
+  /**
+   * Procedural sky detail drawn into the canvas (so it uploads on every driver,
+   * unlike the bg_sky_*.png that some WebViews never render — BG-005): stars for
+   * the night/aurora zones and soft aurora ribbons for the aurora zone. Seeded
+   * per-zone so the pattern is stable across regenerations.
+   */
+  private drawSkyDetail(ctx: CanvasRenderingContext2D, zone: BgZone, w: number): void {
+    const rng = (() => { let s = 0; for (const c of zone.id) s = (s * 31 + c.charCodeAt(0)) >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); })();
+    if (zone.id === 'aurora') {
+      const tints = ['#5dffc0', '#6fe0ff', '#c08cff', '#7dffd0'];
+      for (let k = 0; k < tints.length; k++) {
+        ctx.save();
+        ctx.strokeStyle = tints[k]; ctx.globalAlpha = 0.3; ctx.lineWidth = 44;
+        ctx.shadowColor = tints[k]; ctx.shadowBlur = 40;
+        const base = GAME_HEIGHT * (0.16 + k * 0.13), amp = 44 + k * 16;
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 4) ctx.lineTo(x, base + Math.sin((x / w) * Math.PI * 3 + k) * amp);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    if (zone.id === 'night' || zone.id === 'aurora') {
+      for (let i = 0; i < 140; i++) {
+        const x = rng() * w, y = rng() * GAME_HEIGHT * 0.72, r = 0.6 + rng() * 1.8;
+        ctx.fillStyle = `rgba(255,255,255,${0.55 + rng() * 0.45})`;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
   }
 
   /**

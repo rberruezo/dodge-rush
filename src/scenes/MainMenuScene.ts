@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import {
   ASSET_KEYS,
-  ANIM_KEYS,
   COLORS,
   GAME_WIDTH,
   GAME_HEIGHT,
   PLAYER_CFG,
   BUILD_NUMBER
 } from '../config/Constants';
+import { ANIM_KEYS } from '../config/CharacterSprite';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';

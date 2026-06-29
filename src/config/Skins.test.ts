@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { SKINS, ACHIEVEMENT_SKINS, SKIN_SHEETS, getSkin } from './Skins';
-import { CHARACTER_ANIMS, CHAR_FRAMES, ANIM_KEYS, CHARACTER_FRAME } from './Constants';
+import { SKINS, ACHIEVEMENT_SKINS, SKIN_SHEETS, CHARACTER_SHEETS, getSkin } from './Skins';
+import { CHARACTER_ANIMS, CHAR_FRAMES, ANIM_KEYS, CHARACTER_FRAME } from './CharacterSprite';
 
 // Enumerate the shipped art + the loader source via Vite's glob.
 const assetKeys = Object.keys(import.meta.glob('../../public/assets/*.png'));
@@ -84,14 +84,15 @@ describe('Skins — every skin has its art + animations available', () => {
   });
 
   it('PreloadScene loads every distinct skin sheet (guards list drift)', () => {
-    // Match the asset path literal (`assets/<sheet>.png`) — robust whether the
-    // key is passed as a string literal or via the ASSET_KEYS constant.
+    // Loads are now derived from CHARACTER_SHEETS in a single loop, so verify the
+    // catalogue covers every animated sheet and the loader reads from that list.
     for (const sheet of SKIN_SHEETS) {
       expect(
-        preloadSrc.includes(`assets/${sheet}.png`),
-        `PreloadScene does not load sheet "${sheet}"`
+        CHARACTER_SHEETS.includes(sheet),
+        `CHARACTER_SHEETS is missing animated sheet "${sheet}"`
       ).toBe(true);
     }
+    expect(preloadSrc).toContain('CHARACTER_SHEETS.forEach');
   });
 });
 

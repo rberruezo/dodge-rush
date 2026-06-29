@@ -87,6 +87,33 @@ export const SKIN_SHEETS: string[] = [
   ])
 ];
 
+/**
+ * Fallback body colour per character sheet key — picked to echo each skin's
+ * identity so a missing sheet still reads as "that character" rather than a
+ * generic blob. This map is the single source of truth for every character
+ * sheet shipped: the preloader loads each key, TextureFactory generates a
+ * stand-in from the colour, and TextureFactory.test enforces a colour for every
+ * entry in SKIN_SHEETS. Includes a few sheets not yet in the shop catalogue
+ * (king/frost/ghost/hound/dragon) that ship as assets pending DEC-008.
+ */
+export const SHEET_FALLBACK: Record<string, number> = {
+  character: 0xff4f9a, // classic — pink hero
+  character_cat: 0xffa24a, // orange tabby
+  character_unicorn: 0x9fe6d2, // mint
+  character_hound: 0x9c6b43, // old brown dog
+  character_dragon: 0x5fbf5a, // green
+  character_witch: 0xa84dc4, // purple
+  character_phoenix: 0xff6a3d, // fiery orange
+  character_wizard: 0x6a5acd, // indigo robe
+  character_frost: 0x8fd6ff, // ice blue
+  character_ghost: 0xb8c0e8, // pale lavender
+  character_king: 0xffd24a, // gold
+  character_evil: 0x8a3fb8 // nemesis violet
+};
+
+/** Every character sheet PNG the preloader must fetch (drives load.spritesheet). */
+export const CHARACTER_SHEETS: string[] = Object.keys(SHEET_FALLBACK);
+
 /** Look up a purchasable skin by id; falls back to CLASSIC if not found. */
 export const getSkin = (id: string): SkinDef =>
   SKINS.find((s) => s.id === id) ?? SKINS[0];

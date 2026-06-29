@@ -6,9 +6,9 @@ import {
   SCORE_CFG,
   LIVES_CFG,
   COMBO_CFG,
-  SCROLL_CFG,
-  CHAR_FRAMES
+  SCROLL_CFG
 } from '../config/Constants';
+import { CHAR_FRAMES } from '../config/CharacterSprite';
 import { getSkin } from '../config/Skins';
 import { Background } from '../objects/Background';
 import { Player } from '../objects/Player';

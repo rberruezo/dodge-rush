@@ -3,16 +3,17 @@ import {
   ASSET_KEYS,
   BG_SKY_KEYS,
   BG_LAYER_KEYS,
-  CHARACTER_FRAME,
   COIN_CFG,
   GAME_WIDTH,
   GAME_HEIGHT,
   COLORS
 } from '../config/Constants';
+import { CHARACTER_FRAME } from '../config/CharacterSprite';
 import { Diagnostics } from '../systems/Diagnostics';
 import { AnimationManager } from '../systems/AnimationManager';
 import { TextureFactory } from '../utils/TextureFactory';
 import { Sound, MUSIC } from '../systems/SoundManager';
+import { CHARACTER_SHEETS } from '../config/Skins';
 
 /**
  * Loads all art with a progress bar, then builds frames + animations.
@@ -33,57 +34,15 @@ export class PreloadScene extends Phaser.Scene {
     this.buildLoadingBar();
 
     // Real assets live in /public/assets. Missing files trigger 'loaderror',
-    // which we swallow — fallbacks are generated in create().
-    this.load.spritesheet(ASSET_KEYS.CHARACTER, 'assets/character.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    // Alternate skin sheets (same 6x7 / 120px layout as the main character).
-    this.load.spritesheet('character_cat', 'assets/character_cat.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_unicorn', 'assets/character_unicorn.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_phoenix', 'assets/character_phoenix.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_dragon', 'assets/character_dragon.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_witch', 'assets/character_witch.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_wizard', 'assets/character_wizard.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_evil', 'assets/character_evil.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    // Tier-1 palette variants derived from the painted originals (build-variants.py).
-    this.load.spritesheet('character_king', 'assets/character_king.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_frost', 'assets/character_frost.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_ghost', 'assets/character_ghost.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
-    this.load.spritesheet('character_hound', 'assets/character_hound.png', {
-      frameWidth: CHARACTER_FRAME.width,
-      frameHeight: CHARACTER_FRAME.height
-    });
+    // which we swallow — fallbacks are generated in create(). Every character
+    // skin sheet shares the same 6x7/120px layout, so derive the loads from the
+    // single sheet catalogue instead of repeating one line per skin.
+    CHARACTER_SHEETS.forEach((sheet) =>
+      this.load.spritesheet(sheet, `assets/${sheet}.png`, {
+        frameWidth: CHARACTER_FRAME.width,
+        frameHeight: CHARACTER_FRAME.height
+      })
+    );
     // Sky City background: fixed skyboxes per zone + looping parallax layers.
     [...BG_SKY_KEYS, ...BG_LAYER_KEYS].forEach((key) => this.load.image(key, `assets/${key}.png`));
     this.load.image(ASSET_KEYS.OBSTACLES, 'assets/obstacles.png');

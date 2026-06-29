@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { CHARACTER_ANIMS, ASSET_KEYS, COIN_CFG } from '../config/Constants';
+import { ASSET_KEYS, COIN_CFG } from '../config/Constants';
+import { CHARACTER_ANIMS } from '../config/CharacterSprite';
 import { SKIN_SHEETS } from '../config/Skins';
 
 /**

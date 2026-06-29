@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ANIM_KEYS, CHAR_FRAMES, COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { COLORS, GAME_WIDTH, GAME_HEIGHT } from '../config/Constants';
+import { ANIM_KEYS, CHAR_FRAMES } from '../config/CharacterSprite';
 import { getSkin } from '../config/Skins';
 import { Text } from '../config/TextStyles';
 import { Background } from '../objects/Background';

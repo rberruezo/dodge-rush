@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, ANIM_KEYS, PLAYER_CFG, CHAR_FRAMES, GAME_WIDTH } from '../config/Constants';
+import { ASSET_KEYS, PLAYER_CFG, GAME_WIDTH } from '../config/Constants';
+import { ANIM_KEYS, CHAR_FRAMES } from '../config/CharacterSprite';
 import { poseFacesRight, shouldFlipX } from './PlayerFacing';
 
 export interface Hitbox {
@@ -128,6 +129,12 @@ export class Player extends Phaser.GameObjects.Sprite {
     this.setPose({ kind: 'hover' });
     this.y = this.baseY - 160;
     this.setScale(this.baseScale * 0.7);
+    const land = (): void => {
+      this.spawning = false;
+      this.setScale(this.baseScale);
+      this.y = this.baseY; // never leave the body parked above the line if a tween is cut short
+    };
+    this.scene.tweens.killTweensOf(this);
     this.scene.tweens.add({
       targets: this,
       y: this.baseY,
@@ -135,8 +142,10 @@ export class Player extends Phaser.GameObjects.Sprite {
       scaleY: this.baseScale,
       duration: 280,
       ease: 'Back.out',
-      onComplete: () => (this.spawning = false)
+      onComplete: land,
+      onStop: land
     });
+    this.scene.time.delayedCall(320, land); // safety: guarantee control returns even if interrupted
   }
 
   /** Knockout: play the death pose + a tumbling fly-out (sheet-agnostic; DR-17/19/20). */

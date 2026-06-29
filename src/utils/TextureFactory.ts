@@ -3,7 +3,6 @@ import {
   ASSET_KEYS,
   BG_ZONES,
   BG_LAYERS,
-  CHARACTER_FRAME,
   OBSTACLE_FRAMES,
   OBSTACLE_ANIM_FRAMES,
   OBSTACLE_CFG,
@@ -11,28 +10,12 @@ import {
   GAME_WIDTH,
   GAME_HEIGHT
 } from '../config/Constants';
-import { SKIN_SHEETS } from '../config/Skins';
+import { CHARACTER_FRAME } from '../config/CharacterSprite';
+import { SKIN_SHEETS, SHEET_FALLBACK } from '../config/Skins';
 
-/**
- * Fallback body colour per character sheet key — picked to echo each skin's
- * identity so a missing sheet still reads as "that character" rather than a
- * generic blob. Keep one entry per distinct sheet in `SKIN_SHEETS`
- * (enforced by TextureFactory.test.ts).
- */
-export const SHEET_FALLBACK: Record<string, number> = {
-  character: 0xff4f9a, // classic — pink hero
-  character_cat: 0xffa24a, // orange tabby
-  character_unicorn: 0x9fe6d2, // mint
-  character_hound: 0x9c6b43, // old brown dog
-  character_dragon: 0x5fbf5a, // green
-  character_witch: 0xa84dc4, // purple
-  character_phoenix: 0xff6a3d, // fiery orange
-  character_wizard: 0x6a5acd, // indigo robe
-  character_frost: 0x8fd6ff, // ice blue
-  character_ghost: 0xb8c0e8, // pale lavender
-  character_king: 0xffd24a, // gold
-  character_evil: 0x8a3fb8 // nemesis violet
-};
+// Re-exported for back-compat: the master sheet→colour map now lives in Skins.ts
+// (single source of truth for the character sprite mapping).
+export { SHEET_FALLBACK };
 
 /**
  * Procedurally generates stand-in textures when the real art assets are missing
