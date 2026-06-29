@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS } from '../config/Constants';
+import { ASSET_KEYS, FEEDBACK_CFG } from '../config/Constants';
 
 /**
  * Lightweight visual-feedback layer: floating score popups and particle bursts
@@ -25,7 +25,7 @@ export class EffectsLayer {
         speed: { min: 80, max: 220 },
         angle: { min: 0, max: 360 },
         scale: { start: 0.55, end: 0 },
-        lifespan: 480,
+        lifespan: FEEDBACK_CFG.sparkBurstMs,
         gravityY: 260,
         quantity: 1,
         emitting: false,
@@ -38,7 +38,7 @@ export class EffectsLayer {
         speed: { min: 40, max: 160 },
         angle: { min: 0, max: 360 },
         scale: { start: 0.7, end: 0 },
-        lifespan: 700,
+        lifespan: FEEDBACK_CFG.goldBurstMs,
         gravityY: 80,
         tint: 0xffd54a,
         quantity: 1,
@@ -68,7 +68,7 @@ export class EffectsLayer {
     this.scene.tweens.add({
       targets: icon,
       scale,
-      duration: 220,
+      duration: FEEDBACK_CFG.iconEnterMs,
       ease: 'Back.out',
       yoyo: false
     });
@@ -76,8 +76,8 @@ export class EffectsLayer {
       targets: icon,
       y: y - 50,
       alpha: { from: 1, to: 0 },
-      delay: 600,
-      duration: 500,
+      delay: FEEDBACK_CFG.iconHoldMs,
+      duration: FEEDBACK_CFG.iconExitMs,
       ease: 'Cubic.in',
       onComplete: () => icon.destroy()
     });
@@ -101,7 +101,7 @@ export class EffectsLayer {
       y: y - 70,
       alpha: { from: 1, to: 0 },
       scale: { from: 1.1, to: 0.9 },
-      duration: 720,
+      duration: FEEDBACK_CFG.popupMs,
       ease: 'Cubic.out',
       onComplete: () => label.destroy()
     });

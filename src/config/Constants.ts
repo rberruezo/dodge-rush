@@ -337,6 +337,25 @@ export const COMBO_CFG = {
   speedBonusMax: 0.26 // cap on the combo speed bonus
 } as const;
 
+/**
+ * Feedback animation timings (GME-018). All durations in milliseconds.
+ * Adjusted from 720ms to 1000ms to meet mobile UX standard (Apple/Google: 1.0–1.5s).
+ * 720ms was 20% below the recommended range, making feedback marginal under GPU stress or in long runs.
+ */
+export const FEEDBACK_CFG = {
+  // Main feedback popup (text that rises and fades): TIGHT, CLOSE, RISKY, GOLDEN, SCORE, COMBO
+  popupMs: 1000, // was 720ms — GME-018 adjustment to mobile standard
+  
+  // Icon popups (trophy/crown on combo milestones)
+  iconEnterMs: 220, // scale-in duration (Back.out ease)
+  iconHoldMs: 600, // how long it stays at full scale before fading
+  iconExitMs: 500, // fade + rise out duration (Cubic.in ease)
+  
+  // Particle bursts (complementary to popups)
+  sparkBurstMs: 480, // colored spark lifespan
+  goldBurstMs: 700 // golden sparkle lifespan
+} as const;
+
 /*
  * Smash power — REMOVED (GME-008). There is intentionally no power/double-tap
  * config here. The double-tap-to-destroy mechanic was cut after design review:
