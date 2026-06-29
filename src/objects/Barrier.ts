@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ASSET_KEYS, FORK_CFG, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
+import { isFeatureEnabled } from '../config/FeatureFlags';
 
 /** Fast lookup of a frame's source size by name. */
 const FRAME_SIZE = new Map(OBSTACLE_FRAMES.map((f) => [f.name, { w: f.width, h: f.height }]));
@@ -58,6 +59,10 @@ export class Barrier {
   private t = 0;
   private showGlow = false;
   private capDisplayW = 0;
+
+  // [OBS-007] A/B gate for ADD-blend glow (gap-marker halos + obstacle pulse).
+  // Read once at construction: A/B is exercised by flipping the flag + rebuild.
+  private readonly glowEnabled = isFeatureEnabled('OBSTACLE_GLOW_ENABLED');
 
   constructor(scene: Phaser.Scene) {
     this.left = Barrier.makeSide(scene);
@@ -164,7 +169,8 @@ export class Barrier {
     const capPx = Math.max(8, Math.round(size.w * OBSTACLE_CFG.capFraction));
     this.capDisplayW = capPx * tileScale;
 
-    this.showGlow = def.glowing || def.danger || def.golden;
+    // [OBS-007] obstacle pulse (Wall.glow) only when the type uses it AND the flag is on.
+    this.showGlow = (def.glowing || def.danger || def.golden) && this.glowEnabled;
     const glowColor = def.golden ? 0xffd54a : def.danger ? 0xff3030 : def.glowing ? 0x9933ff : 0x46e6ff;
 
     // Left wall's cap faces right (toward the gap); right wall's cap faces left.
@@ -300,8 +306,9 @@ export class Barrier {
   private placeMarker(m: GapMarker | undefined, x: number): void {
     if (!m) return;
     const onScreen = x > 1 && x < GAME_WIDTH - 1;
+    // [OBS-007] keep the bright core post for legibility; gate only the ADD halo.
     m.core.setVisible(onScreen);
-    m.glow.setVisible(onScreen);
+    m.glow.setVisible(onScreen && this.glowEnabled);
     if (!onScreen) return;
     const band = this.bandHeight * GAP_MARKER_CFG.heightScale;
     const pulse = 1 + 0.18 * Math.sin(this.t * GAP_MARKER_CFG.pulseSpeed);
