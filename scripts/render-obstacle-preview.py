@@ -21,8 +21,8 @@ OUT = os.path.join(ROOT, "docs", "obs-008", "modular-walls.png")
 CAP_FRACTION = 0.32
 BAND = 88          # Barrier.bandHeight
 GAME_WIDTH = 540
-CENTER_ALPHA = 0.78
-FILL_ALPHA = 0.55
+CENTER_ALPHA = 1.0  # opaque sprite body (no see-through)
+FILL_ALPHA = 1.0
 
 # Mirror src/config/Constants OBSTACLE_FRAMES (name -> rect, centerX absolute).
 FRAMES = [
@@ -51,21 +51,21 @@ def hex_rgb(v: int) -> tuple[int, int, int]:
 
 
 def slice_frame(atlas: Image.Image, x: int, y: int, w: int, h: int, center_abs: int):
-    """Reproduce TextureFactory.slice: _l/_r caps + 1px _c body column."""
+    """Reproduce TextureFactory.slice: _l/_r caps + real _c body region."""
     cap_w = max(8, round(w * CAP_FRACTION))
     frame = atlas.crop((x, y, x + w, y + h))
     left = frame.crop((0, 0, cap_w, h))
     right = frame.crop((w - cap_w, 0, w, h))
-    cx = center_abs - x
-    center = frame.crop((cx, 0, cx + 1, h))
+    center = frame.crop((cap_w, 0, w - cap_w, h))  # real body slice
     return left, right, center, cap_w
 
 
 def tile_body(col: Image.Image, width: int, height: int) -> Image.Image:
-    """Repeat the 1px body column to `width`, scaled to `height` (tileScale)."""
-    col = col.resize((1, height), Image.NEAREST)
+    """Repeat the real body slice to `width`, scaled to `height` (tileScale)."""
+    bw = max(1, col.width)
+    col = col.resize((bw, height), Image.NEAREST)
     body = Image.new("RGBA", (max(1, width), height))
-    for i in range(max(1, width)):
+    for i in range(0, max(1, width), bw):
         body.paste(col, (i, 0))
     return body
 

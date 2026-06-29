@@ -30,6 +30,17 @@ estirados o columnas derivadas del atlas actual.
 > (`scripts/pack-obstacles.py`) regenera el mismo layout (764×272, mismas
 > coords) ⇒ `Constants.ts`/`ObstacleTypes.ts` sin cambios. Validado in-engine.
 
+> **`pieces/` (entrega 3b — cuerpos reales, 2026-06-29):** los `*_center` se
+> re-extrajeron de las **piezas modulares horizontales** del sheet (la sección
+> plana izquierda de cada segmento fila2/fila3) en vez de las barras verticales,
+> así el cuerpo es un **trozo real del sprite pintado** (bisel/ranuras/grietas
+> del artista). `green_bar_center` = recolor HLS del cuerpo azul al hue verde (no
+> hay segmento verde horizontal). El motor cambió: `TextureFactory._c` ahora es
+> la **región de cuerpo real entre caps** (no una columna 1px), y `Barrier` la
+> dibuja **opaca** (sin transparencia ni relleno plano). El packer toma la franja
+> central horizontalmente uniforme del panel ⇒ tilea con costura mínima
+> manteniendo el material real.
+
 ---
 
 ## Por qué (contexto OBS-008)

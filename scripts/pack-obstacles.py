@@ -77,30 +77,22 @@ def cap_end(cap_img):
 
 
 def body_column(center_img):
-    """Build the body strip from the bar's REAL cross-section.
+    """Real body slice from the sprite's horizontal body panel.
 
-    The *_center pieces are vertical bars; a horizontal row across one shows the
-    bar's rounded 3D profile (dark edge -> bright highlight -> dark edge). We
-    average a band of rows around the vertical middle, crop to the opaque bar
-    span, and resize that 1D profile to the band height. Tiling that 1px column
-    horizontally yields a fully opaque, glossy 3D horizontal beam (no flat fill,
-    no transparency) that is seamless by construction.
+    The *_center pieces are actual horizontal wall bodies (bright top bevel rail
+    + interior + dark bottom rail). Their MIDDLE columns are horizontally uniform
+    (the bevel runs along the length), so we scale the panel to band height and
+    take a BODY_W-wide window from the centre — a real slice of sprite art that
+    tiles seamlessly (left edge == right edge) with no auto-generated fill.
     """
-    s = harden(center_img)
-    h = s.shape[0]
-    y0, y1 = int(h * 0.40), int(h * 0.60)
-    band = s[y0:max(y1, y0 + 1)].astype(float)
-    prof = band.mean(axis=0)  # (w, 4) alpha-weighted cross-section
-    op = prof[:, 3] > 128
-    xs = np.where(op)[0]
-    if len(xs) == 0:  # fallback: brightest opaque column (legacy)
-        t = harden(scale_to_h(center_img, TH))
-        col = t[:, t.shape[1] // 2:t.shape[1] // 2 + 1, :]
-        return harden(np.repeat(col, BODY_W, axis=1))
-    cross = prof[xs.min():xs.max() + 1].astype(np.uint8)  # (span, 4)
-    col_img = Image.fromarray(cross.reshape(1, -1, 4), 'RGBA').resize((1, TH), Image.LANCZOS)
-    col = harden(np.array(col_img))  # (TH, 1, 4) rounded vertical profile
-    strip = np.repeat(col, BODY_W, axis=1)
+    s = harden(scale_to_h(center_img, TH))
+    w = s.shape[1]
+    if w >= BODY_W:
+        x0 = (w - BODY_W) // 2
+        strip = s[:, x0:x0 + BODY_W, :].copy()
+    else:  # narrow panel: repeat to reach BODY_W
+        reps = (BODY_W + w - 1) // w
+        strip = np.tile(s, (1, reps, 1))[:, :BODY_W, :].copy()
     return harden(strip)
 
 
