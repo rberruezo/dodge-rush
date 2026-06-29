@@ -15,6 +15,7 @@ export const FEATURES = {
   COMBO_LABELS_ENABLED: false,    // [V1.1] Re-enable zone milestone banners (¡Las Nubes!, ¡Tormenta!, etc.)
   MONETIZATION_ENABLED: false,    // [V1.1] Re-enable with AdMob + ruleta spin + coin economy
   RELAX_MODE_ENABLED: false,      // [V1.1] Re-enable difficulty picker (RELAX / CLASSIC toggle)
+  HOWTO_ENABLED: false,           // [V1.1] Re-enable HOW? button → Info/how-to-play screen
 
   // V1.0 ENABLED (do not touch)
   CORE_LOOP_ENABLED: true,        // Gameplay, scoring, combo, lives

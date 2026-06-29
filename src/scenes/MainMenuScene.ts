@@ -97,6 +97,10 @@ export class MainMenuScene extends Phaser.Scene {
       fontSize: 24,
       fill: 0x44345e
     });
+    if (!FEATURES.HOWTO_ENABLED) {
+      howBtn.setVisible(false);
+      howBtn.disableInteractive();
+    }
 
     const tip = this.add
       .text(cx, 790, 'Tap LEFT to go left · Tap RIGHT to go right', Text.body(26, '#ffd9ec'))
