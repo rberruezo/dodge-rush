@@ -129,7 +129,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Escalar el factor por `dt` (interpolación exponencial independiente de FPS).
 
 #### DR-09 — Corte de silueta hover(frontal)→move(lateral)
-- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** M · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** M · **Status:** `SKIP` (aceptado para hypercasual; enmascarado por el squash de DR-05)
 - **Descripción:** Pasar de idle frontal (0–5) a vuelo lateral (6–11) es un cambio de silueta en corte duro (Phaser no interpola frames).
 - **Impacto:** Pequeño "snap" al empezar a moverse.
 - **Recomendación:** Aceptable para hypercasual; si se quiere suavizar, el squash de DR-05 enmascara el corte.
@@ -231,19 +231,19 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 ### E. Spawn / Reinicio / Transiciones
 
 #### DR-25 — Sin animación de spawn
-- **Severidad:** Medio · **Categoría:** Animación / Game Feel · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Medio · **Categoría:** Animación / Game Feel · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING` (parcial: el fade-in de escena de DR-26 suaviza la entrada; falta el drop-in del sprite)
 - **Descripción:** En `GameScene.create` (`src/scenes/GameScene.ts:86`) el `Player` aparece instantáneamente en su Y fija; igual el héroe del menú. Sin fade/scale/drop-in.
 - **Impacto:** Entrada brusca; sin "arranque" que prepare al jugador (primera impresión de cada run).
 - **Recomendación:** Drop-in corto desde arriba (~250 ms) o scale/fade-in de 150 ms con el propeller ya girando.
 
 #### DR-26 — Reinicio sin transición (corte + pop-in)
-- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `DONE` (2026-06-28)
 - **Descripción:** RETRY/RESTART hacen `scene.start('Game')` directo; combinado con DR-25, el run nuevo "aparece de golpe".
 - **Impacto:** El loop muerte→retry se siente entrecortado (clave porque es el bucle más repetido).
 - **Recomendación:** Fade-in corto + spawn animado (DR-25).
 
 #### DR-27 — Todas las transiciones de pose son cortes duros
-- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P3 · **Esfuerzo:** M · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Transición · **Prioridad:** P3 · **Esfuerzo:** M · **Status:** `SKIP` (blending real es caro; se acepta y se enmascara con squash)
 - **Descripción:** Cada `setPose` cambia la animación al instante (Phaser no interpola). Las frontal↔lateral (DR-09) son las que más se notan.
 - **Impacto:** Sensación general algo "saltada" entre estados.
 - **Recomendación:** No perseguir blending real (caro); enmascarar con squash (DR-05) y mantener siluetas compatibles. Aceptar el resto.
@@ -251,7 +251,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 ### F. Celebración / Combo / Boost
 
 #### DR-28 — Cheer es un loop de 2 frames (puede "vibrar")
-- **Severidad:** Bajo · **Categoría:** Animación · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Animación · **Prioridad:** P2 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28)
 - **Descripción:** `CHEER: { frames:[24,25], frameRate:8 }`: ciclo de 250 ms (4 Hz) entre 2 poses; hay 4 frames de cheer más (26–29) sin usar. El código eligió 24/25 deliberadamente (propeller en movimiento + brazos arriba), así que extender requiere verificar que 26–29 loopean limpio.
 - **Impacto:** El festejo puede leerse como tembleque en vez de animación fluida.
 - **Recomendación:** Verificar 26–29; si loopean, extender a 4 frames; si no, bajar a 6fps. Solo config.
@@ -269,7 +269,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Aceptable (decisión consciente), pero considerar un micro-overlay/glow sobre el sprite que conviva con el steering.
 
 #### DR-31 — Durante el boost dorado (5 s) se pierde el lean/effort
-- **Severidad:** Bajo · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Game Feel · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `DONE` (2026-06-28 — el tilt+squash cosméticos siguen activos en boost vía `steer()`)
 - **Descripción:** Prioridad de pose: boost > steering (`src/scenes/GameScene.ts:207`); durante 5 s el cuerpo no refleja el movimiento lateral.
 - **Impacto:** Pérdida de feedback de control durante un tramo largo y frecuente.
 - **Recomendación:** Permitir que el tilt/squash (cosméticos) sigan activos sobre la pose boost.
@@ -281,7 +281,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 - **Recomendación:** Anclar origin abajo (o compensar Y) para que estire hacia arriba.
 
 #### DR-33 — Frame 30 (combo x1 / pulgar) autorizado pero sin usar
-- **Severidad:** Cosmético · **Categoría:** Performance / Limpieza · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `PENDING`
+- **Severidad:** Cosmético · **Categoría:** Performance / Limpieza · **Prioridad:** P3 · **Esfuerzo:** XS · **Status:** `SKIP` (reserva documentada — no aporta sin un tier x1)
 - **Descripción:** `COMBO_TIERS` usa 31–35; el 30 no se referencia.
 - **Impacto:** Frame muerto (limpieza/uso potencial).
 - **Recomendación:** Usarlo como primer escalón de combo, o documentarlo como reserva.
@@ -289,7 +289,7 @@ El arte **estático** del piloto es bueno (vector flat, expresivo, sheet de 48 f
 ### G. Performance / FPS
 
 #### DR-34 — A <30fps el juego entra en cámara lenta
-- **Severidad:** Bajo · **Categoría:** Performance / Timing · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `PENDING`
+- **Severidad:** Bajo · **Categoría:** Performance / Timing · **Prioridad:** P2 · **Esfuerzo:** S · **Status:** `SKIP` (salvaguarda intencional; el bank ya no suma FPS-dep tras DR-08)
 - **Descripción:** `dt = Math.min(delta, 1000/30)` (`src/scenes/GameScene.ts:165`) clampa el delta; por debajo de 30fps el tiempo de juego (y toda animación basada en dt) se ralentiza en vez de mantener tiempo real.
 - **Impacto:** En dispositivos lentos las animaciones se arrastran (afecta el "feel" percibido), aunque protege de saltos grandes.
 - **Recomendación:** Está bien como salvaguarda; combinarlo con DR-08 (easing por dt) para que al menos el bank no sume su propia dependencia de FPS.
@@ -337,5 +337,6 @@ Ordenados por relación impacto/esfuerzo:
 | 2026-06-28 | DR-13, DR-24 | QA Session | **BLOCKED:** sin asset de propeller separado (la hélice está pintada en cada frame), una capa que siga viva requiere arte propio. Se posponen hasta tener el sprite. |
 | 2026-06-28 | DR-12, DR-15 | QA Session | Pose de impacto/susto. **Player.ts:** nueva pose `impact` (frame 43 `shout`, fallback `sadHead` 41 en skins). **GameScene.ts:** recoil ~180ms al sobrevivir un golpe + startle 160ms en near-miss antes de dizzy. **PlayerFacing(.test).ts:** `impact` agregado. Validación: `tsc --noEmit` OK; `PlayerFacing` (6) OK. |
 | 2026-06-28 | DR-07, DR-14 | QA Session | **Player.ts:** al espejar, el tilt cruza por 0 (no se inclina hacia atrás, DR-07). **GameScene.ts:** durante invencibilidad ahora se muestran poses de movimiento/hover tras el recoil de 180ms (ya no dizzy fijo), el blink sigue comunicando inmunidad (DR-14). Validación: `tsc --noEmit` OK. |
+| 2026-06-28 | DR-26, DR-28, DR-31 | QA Session | Pulido P2/P3. **GameScene.ts:** `cameras.fadeIn(180)` al iniciar/retry (DR-26). **Constants.ts:** cheer 8→6fps (menos tembleque, DR-28). DR-31 confirmado: tilt+squash cosméticos ya persisten en boost vía `steer()`. SKIP aceptados: DR-09/27/33/34. Validación: `tsc --noEmit` OK. |
 </content>
 </invoke>

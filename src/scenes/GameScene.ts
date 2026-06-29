@@ -96,6 +96,7 @@ export class GameScene extends Phaser.Scene {
     this.firstWowShown = false;
 
     this.bg = new Background(this, this.startScrollY).setDepth(0);
+    this.cameras.main.fadeIn(180, 0, 0, 0); // soft enter on start/retry, no pop-in (DR-26)
 
     this.player = new Player(this, GAME_WIDTH / 2, GAME_HEIGHT * PLAYER_CFG.startYRatio);
     this.player.setDepth(10);
