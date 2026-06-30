@@ -52,7 +52,6 @@ export class GameScene extends Phaser.Scene {
   private livesMax: number = LIVES_CFG.count;
   private invincibleUntilMs = 0;
   private comboCelebUntilMs = 0;
-  private comboCelebFrame: number | null = null;
   private startingHigh = 0;
   private beatBest = false;
   private maxCombo = 0;
@@ -91,7 +90,6 @@ export class GameScene extends Phaser.Scene {
     this.lives = this.livesMax;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
-    this.comboCelebFrame = null;
     this.maxCombo = 0;
     this.dangerNextMs = 0;
     this.firstWowShown = false;
@@ -216,12 +214,10 @@ export class GameScene extends Phaser.Scene {
       this.windNextMs = now + 130;
     }
 
-    // Visual pose priority: dizzy > boost > steering > combo-celebration > hover.
-    // Steering deliberately beats the combo cheer: while the player is actively
-    // dodging, the character keeps flying instead of flickering into the
-    // front-facing cheer every time a combo tier fires (the "goes crazy" look at
-    // high speed). The cheer only plays when coasting, and the combo popup/SFX
-    // still celebrate the tier regardless.
+    // Visual pose priority: impact > combo-celebration > boost > steering > hover.
+    // The combo beat plays the smooth front-facing CHEER animation (not a static
+    // numbered badge), so a tier reads as lively motion even while steering and
+    // never mirror-flips with facing the way the old badge frame did (SKN-007).
     const boostActive = now < this.boostUntilMs;
     const lifeInvincible = now < this.invincibleUntilMs;
     const immune = lifeInvincible;
@@ -229,6 +225,8 @@ export class GameScene extends Phaser.Scene {
       this.player.setPose({ kind: 'impact' }); // near-miss startle
     } else if (lifeInvincible && now < this.hitAtMs + 180) {
       this.player.setPose({ kind: 'impact' }); // brief recoil right after a hit (DR-12)
+    } else if (now < this.comboCelebUntilMs) {
+      this.player.setPose({ kind: 'cheer' }); // brief arms-up celebration animation
     } else if (boostActive) {
       this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
@@ -236,14 +234,6 @@ export class GameScene extends Phaser.Scene {
       if (hard && !this.moveHardActive) this.fx.burst(this.player.x, this.player.y + 40, 0xbfe9ff, 4); // ease in the strain trails (DR-10)
       this.moveHardActive = hard;
       this.player.setPose({ kind: hard ? 'moveHard' : 'move' });
-    } else if (now < this.comboCelebUntilMs) {
-      // x2-x20 combos flash their numbered gesture (row 5) on the character;
-      // milestone combos (no frame) fall back to the animated arms-up cheer.
-      this.player.setPose(
-        this.comboCelebFrame !== null
-          ? { kind: 'celebrate', frame: this.comboCelebFrame }
-          : { kind: 'cheer' }
-      );
     } else {
       this.player.setPose({ kind: 'hover' });
     }
@@ -374,12 +364,9 @@ export class GameScene extends Phaser.Scene {
     if (state.tierUp) {
       Sound.combo(mult);
       const cx = GAME_WIDTH / 2;
-      // Glow on the body so a tier still reads while steering hides the cheer (DR-30).
+      // Extra sparkle on the body to punctuate the tier alongside the cheer.
       this.fx.burst(this.player.x, this.player.y, 0xffe14a, 8);
       this.comboCelebUntilMs = this.score.elapsedMs + COMBO_CFG.celebrateMs;
-      // x2-x20 tiers carry a numbered combo frame -> show it on the character
-      // (pose 'celebrate'); milestone tiers (huge/epic) have none -> cheer anim.
-      this.comboCelebFrame = state.frame;
 
       // For sprite-frame tiers (x2–x20) show the score mult; for all higher tiers
       // show the raw combo count so the player sees the round milestone number.

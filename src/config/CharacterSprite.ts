@@ -80,9 +80,11 @@ export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
   [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 14, repeat: -1 },
   // Golden boost: a calmer rate so the sparkly glow shimmers instead of flickering.
   [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 12, repeat: -1 },
-  // Celebration: we use frames 24 and 25 which feature the character
-  // hovering (moving propeller) but with arms up and happy expressions.
-  [ANIM_KEYS.CHEER]: { frames: [24, 25], frameRate: 6, repeat: -1 },
+  // Celebration (combo flash + new-best screen): a lively arms-up pump so a combo
+  // reads as motion, not a frozen pose. Tune this frame list to taste — row 4
+  // (24-29) holds the cheer poses: 24 rest, 26/27/28 one-or-two arms raised,
+  // 29 big two-arm smile.
+  [ANIM_KEYS.CHEER]: { frames: [24, 27, 29], frameRate: 8, repeat: -1 },
   // Row 7 (base sheet only): full knockout beat — bonk, shout, eyes-shut, roll, roll,
   // head-down fall — so death is a 2-beat reaction, not a static frame (DR-17/18).
   [ANIM_KEYS.DEATH]: { frames: [42, 43, 44, 45, 46, 47], frameRate: 10, repeat: 0 }
