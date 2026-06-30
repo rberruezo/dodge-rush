@@ -78,6 +78,37 @@ face-opening size — add these as kit parameters before shipping more of them.
 4. Fix in the builder, rebuild, re-diff. Repeat until the new frame is hard to
    tell apart from the originals at game size.
 
+## Archiving source art for regeneration
+
+**IMPORTANT:** Each time new art is loaded into the pipeline, save a copy of the
+original/generated source file in the repo alongside the builder script.
+
+Why this matters:
+- **Regeneration capability**: if you need to rebuild or adjust a Tier 2 generated
+  sheet (style, palette, pose tweaks), the original file is the single source of
+  truth — without it, you lose the ability to iterate.
+- **Attribution & reference**: keeps a clear record of what the source was
+  (generated via prompt, derived from X character, procedurally built, etc.).
+- **Batch updates**: if house-style rules change (colour count, outline weight,
+  proportions), you can re-process the original source in bulk without manual
+  rework.
+
+**Where to archive:**
+- **Tier 1 (Derived):** Original sheet already in `art-src/character/` — no extra
+  copy needed; keep the builder script (`build-evil.py`, etc.) as the
+  transformation record.
+- **Tier 2 (Generated):** Save the generated sheet in `art-src/character/`
+  with a descriptive name + timestamp or version, e.g.
+  `character_lion_v1_generated.png`. Also document the prompt or generation
+  parameters used (in a comment at the top of the builder or in a `.txt`
+  sidecar).
+- **Tier 3 (Procedural):** The builder script itself (`build-phoenix.py`) IS the
+  source — it is re-runnable. No separate archive needed, but update the script
+  if style rules change so the next rebuild stays consistent.
+
+Document the source file location in the builder script header so future devs
+know where to find the original if they need to regenerate or tweak.
+
 ## Wiring a finished sheet into the game
 
 `public/assets/character_<id>.png` (6×7, 120 px) → add a `load.spritesheet` in
