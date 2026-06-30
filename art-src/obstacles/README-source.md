@@ -8,16 +8,20 @@ estirados o columnas derivadas del atlas actual.
 > los PNG, se colocan en `pieces/` y se actualiza `scripts/build-obstacles.py`
 > para empaquetarlos en el atlas (ver "Integración" abajo).
 
-> **`pieces/` (entrega 2, 2026-06-29):** extraídas de `new-obstacles2.png` (una
-> hoja de preview con checkerboard + labels horneados y SIN alpha real). Se
-> recortaron por celda con key-out del checker (neutralidad + flood-fill desde
-> el borde + silueta sólida con relleno de huecos). Resultado: 16 estáticas
-> limpias (8 `_center` + 8 `_cap`) + `red_arrow_cap_anim` (4 frames, limpio) +
-> `red_spike_cap_anim` (5 frames, algo rugoso). `gold_block_cap_anim` quedó
-> PENDIENTE (la fuente lo duplicó con tamaños/orientación inconsistentes). Si se
-> regenera el arte, exportarlo con alpha real evita todo este recorte.
+> **`new-way-obstacles.png` (entrega 4 — ACTUAL, 2026-06-30, long-panel):** 
+> ChatGPT generó 1024×1536 RGBA, fondo transparente. **Nuevo enfoque:** cada
+> tipo = **un solo tile LARGO** (664px wide) sin repetición + pilar separado
+> (107px para forks). Motor: `Image+setCrop()` dinámico (anclado derecha/izq,
+> mostrar solo los pixels necesarios) en vez de `TileSprite` tileado. Resultado: 
+> muros glossy 3D continuos, sin costura, sin artefactos de repetición, genuinos 
+> como el panel modular de referencia que mostró el usuario. Packer: nuevo 
+> `scripts/pack-obstacles-v2.py` → `public/assets/obstacles.png` (889×941). 
+> Wiring: `OBSTACLE_WALL_FRAMES` en `Constants.ts`, `Barrier.WallSide={panel, glow}`, 
+> `placeSide()` con `setCrop()` dinámico. Sin animaciones en esta versión. 
+> Validado in-engine: green_bar, red_arrow, gold_block, etc. todos con aspecto 
+> limpio y continuo. Cambios sin push (local commits `c9ccce9`, `ce28772`).
 
-> **`pieces/` (entrega 3 — ACTUAL, 2026-06-29):** **REEMPLAZADAS** desde
+> **`pieces/` (entrega 3, 2026-06-29):** **REEMPLAZADAS** desde
 > `new-obstacles-3.png` (1536×1024 RGBA, alpha real, fondo transparente — el
 > sheet más limpio hasta ahora). Cuerpos (`*_center`) glossy de las columnas
 > verticales grandes; caps decorados de las piezas modulares grandes (bevel
@@ -29,17 +33,6 @@ estirados o columnas derivadas del atlas actual.
 > `gold_block` 5 frames (shimmer de brillo 1.0/1.12/1.28/1.12/0.92). El packer
 > (`scripts/pack-obstacles.py`) regenera el mismo layout (764×272, mismas
 > coords) ⇒ `Constants.ts`/`ObstacleTypes.ts` sin cambios. Validado in-engine.
-
-> **`pieces/` (entrega 3b — cuerpos reales, 2026-06-29):** los `*_center` se
-> re-extrajeron de las **piezas modulares horizontales** del sheet (la sección
-> plana izquierda de cada segmento fila2/fila3) en vez de las barras verticales,
-> así el cuerpo es un **trozo real del sprite pintado** (bisel/ranuras/grietas
-> del artista). `green_bar_center` = recolor HLS del cuerpo azul al hue verde (no
-> hay segmento verde horizontal). El motor cambió: `TextureFactory._c` ahora es
-> la **región de cuerpo real entre caps** (no una columna 1px), y `Barrier` la
-> dibuja **opaca** (sin transparencia ni relleno plano). El packer toma la franja
-> central horizontalmente uniforme del panel ⇒ tilea con costura mínima
-> manteniendo el material real.
 
 ---
 
