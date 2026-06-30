@@ -97,8 +97,8 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: false,
     glowing: false,
     golden: false,
-    animFrames: 3,
-    animMs: 140
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Danger]: {
     type: ObstacleType.Danger,
@@ -112,8 +112,8 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: true,
     glowing: false,
     golden: false,
-    animFrames: 4,
-    animMs: 170
+    animFrames: 1,
+    animMs: 0
   },
   [ObstacleType.Broken]: {
     type: ObstacleType.Broken,
@@ -157,8 +157,8 @@ export const OBSTACLE_TYPES: Record<ObstacleType, ObstacleTypeDef> = {
     danger: false,
     glowing: true,
     golden: true,
-    animFrames: 5,
-    animMs: 130
+    animFrames: 1,
+    animMs: 0
   }
 };
 

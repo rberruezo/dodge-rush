@@ -3,9 +3,7 @@ import {
   ASSET_KEYS,
   BG_ZONES,
   BG_LAYERS,
-  OBSTACLE_FRAMES,
-  OBSTACLE_ANIM_FRAMES,
-  OBSTACLE_CFG,
+  OBSTACLE_WALL_FRAMES,
   COIN_CFG,
   GAME_WIDTH,
   GAME_HEIGHT
@@ -181,16 +179,23 @@ export class TextureFactory {
     const palette = [
       0x0ca8d8, 0x30cca8, 0x903c78, 0xf02430, 0xe40c24, 0x84849c, 0x24d8fc, 0xfca800
     ];
-    const w = Math.max(...OBSTACLE_FRAMES.map((f) => f.x + f.width));
-    const h = Math.max(...OBSTACLE_FRAMES.map((f) => f.y + f.height));
+    // Atlas is 889x941 with 8 rows; use the wall frame bounds for the fallback.
+    const AW = 889;
+    const AH = 941;
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
-    OBSTACLE_FRAMES.forEach((f, idx) => {
-      g.fillStyle(palette[idx % palette.length], 1);
-      g.fillRect(f.x, f.y, f.width, f.height);
-      g.fillStyle(0x111118, 1); // the "hole" detail
-      g.fillRect(f.x + f.width * 0.34, f.y + f.height * 0.3, f.width * 0.32, f.height * 0.4);
+    OBSTACLE_WALL_FRAMES.forEach((f, idx) => {
+      const color = palette[idx % palette.length];
+      g.fillStyle(color, 1);
+      g.fillRect(f.wallX, f.wallY, f.wallW, f.wallH);
+      g.fillStyle(0x111118, 1);
+      g.fillRect(f.wallX + f.wallW * 0.1, f.wallY + f.wallH * 0.25, f.wallW * 0.8, f.wallH * 0.5);
+      // Pillar
+      g.fillStyle(color, 1);
+      g.fillRect(f.pillarX, f.pillarY, f.pillarW, f.pillarH);
+      g.fillStyle(0x111118, 1);
+      g.fillRect(f.pillarX + 8, f.pillarY + f.pillarH * 0.25, f.pillarW - 16, f.pillarH * 0.5);
     });
-    g.generateTexture(ASSET_KEYS.OBSTACLES, w, h);
+    g.generateTexture(ASSET_KEYS.OBSTACLES, AW, AH);
     g.destroy();
   }
 
@@ -231,32 +236,20 @@ export class TextureFactory {
   }
 
   /**
-   * Register named sub-frames on the obstacle texture (real or fallback),
-   * including the 3-slice pieces used to build bars: `<name>_l` / `<name>_r`
-   * (fixed end-caps that remate the gap edge) and `<name>_c`, the body section
-   * the wall tiles to fill its mid-section.
-   *
-   * [OBS-008] `_c` is the REAL body slice of the sprite — the region between the
-   * two end-caps (a genuine chunk of the painted bar art, packed from the
-   * sprite's horizontal body panel), not a synthesised 1px column. The packed
-   * body is taken from the panel's horizontally-uniform middle so it tiles with
-   * minimal seam while keeping the artist's bevel/highlight and material.
+   * Register named sub-frames on the obstacle texture (real or fallback).
+   * Each obstacle type registers:
+   *   `<name>_wall`   — the full long wall panel (~664 px wide × native height)
+   *   `<name>_pillar` — the fork pillar panel (~107 px wide × native height)
+   * Barrier.ts uses Image + setCrop to show only the needed end of the wall
+   * without ever repeating / tiling the texture.
    */
   static registerObstacleFrames(scene: Phaser.Scene): void {
     const tex = scene.textures.get(ASSET_KEYS.OBSTACLES);
-
-    const slice = (name: string, x: number, y: number, w: number, h: number, centerX: number) => {
-      if (!tex.has(name)) tex.add(name, 0, x, y, w, h);
-      const capW = Math.max(8, Math.round(w * OBSTACLE_CFG.capFraction));
-      void centerX; // body is the real mid-section between caps (not a column)
-      const bodyX = x + capW;
-      const bodyW = Math.max(1, w - capW * 2);
-      if (!tex.has(`${name}_l`)) tex.add(`${name}_l`, 0, x, y, capW, h);
-      if (!tex.has(`${name}_r`)) tex.add(`${name}_r`, 0, x + w - capW, y, capW, h);
-      if (!tex.has(`${name}_c`)) tex.add(`${name}_c`, 0, bodyX, y, bodyW, h);
-    };
-
-    OBSTACLE_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height, f.centerX));
-    OBSTACLE_ANIM_FRAMES.forEach((f) => slice(f.name, f.x, f.y, f.width, f.height, f.centerX));
+    for (const f of OBSTACLE_WALL_FRAMES) {
+      if (!tex.has(`${f.name}_wall`))
+        tex.add(`${f.name}_wall`,   0, f.wallX,   f.wallY,   f.wallW,   f.wallH);
+      if (!tex.has(`${f.name}_pillar`))
+        tex.add(`${f.name}_pillar`, 0, f.pillarX, f.pillarY, f.pillarW, f.pillarH);
+    }
   }
 }

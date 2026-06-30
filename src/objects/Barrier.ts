@@ -1,17 +1,17 @@
 import Phaser from 'phaser';
-import { ASSET_KEYS, FORK_CFG, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_CFG, OBSTACLE_FRAMES } from '../config/Constants';
+import { ASSET_KEYS, FORK_CFG, GAME_WIDTH, GAP_MARKER_CFG, OBSTACLE_WALL_FRAMES } from '../config/Constants';
 import { ObstacleType, ObstacleTypeDef, OBSTACLE_TYPES } from '../config/ObstacleTypes';
 import { isFeatureEnabled } from '../config/FeatureFlags';
 
-/** Fast lookup of a frame's source size by name. */
-const FRAME_SIZE = new Map(OBSTACLE_FRAMES.map((f) => [f.name, { w: f.width, h: f.height }]));
+/** Fast lookup of wall/pillar native sizes by obstacle type name. */
+const WALL_FRAME_SIZE = new Map(
+  OBSTACLE_WALL_FRAMES.map((f) => [f.name, { wallW: f.wallW, wallH: f.wallH, pillarW: f.pillarW, pillarH: f.pillarH }])
+);
 
-/** One side of a barrier wall: one gap-facing end-cap + a tiled body. */
+/** One side of a barrier wall: a single long panel shown via Image + setCrop. */
 interface WallSide {
-  fill: Phaser.GameObjects.Rectangle; // solid backing (no see-through)
-  cap: Phaser.GameObjects.Image; // single end-cap, facing the gap
-  center: Phaser.GameObjects.TileSprite; // tiling body filling toward the screen edge
-  glow: Phaser.GameObjects.Rectangle; // neon/danger/golden pulse
+  panel: Phaser.GameObjects.Image; // full wall panel, cropped at runtime to wall width
+  glow: Phaser.GameObjects.Rectangle; // neon/danger/golden pulse (ADD blend)
 }
 
 /** A high-contrast post marking one inner edge of the safe gap (legibility). */
@@ -58,7 +58,6 @@ export class Barrier {
   private moveOmega = 0;
   private t = 0;
   private showGlow = false;
-  private capDisplayW = 0;
 
   // [OBS-007] A/B gate for ADD-blend glow (gap-marker halos + obstacle pulse).
   // Read once at construction: A/B is exercised by flipping the flag + rebuild.
@@ -93,29 +92,19 @@ export class Barrier {
   }
 
   private static makeSide(scene: Phaser.Scene): WallSide {
-    const frame = OBSTACLE_FRAMES[0].name;
-    const rect = (depth: number, blend = false) => {
-      const r = scene.add
-        .rectangle(0, -9999, 10, 10, 0xffffff)
-        .setOrigin(0.5)
-        .setDepth(depth)
-        .setVisible(false);
-      if (blend) r.setBlendMode(Phaser.BlendModes.ADD);
-      return r;
-    };
+    const frame = OBSTACLE_WALL_FRAMES[0].name;
     return {
-      fill: rect(4),
-      cap: scene.add
-        .image(0, -9999, ASSET_KEYS.OBSTACLES, `${frame}_r`)
-        .setOrigin(0.5)
+      panel: scene.add
+        .image(0, -9999, ASSET_KEYS.OBSTACLES, `${frame}_wall`)
+        .setOrigin(0, 0.5)
         .setDepth(5)
         .setVisible(false),
-      center: scene.add
-        .tileSprite(0, -9999, 10, 10, ASSET_KEYS.OBSTACLES, `${frame}_c`)
+      glow: scene.add
+        .rectangle(0, -9999, 10, 10, 0xffffff)
         .setOrigin(0.5)
-        .setDepth(4)
-        .setVisible(false),
-      glow: rect(6, true)
+        .setDepth(6)
+        .setVisible(false)
+        .setBlendMode(Phaser.BlendModes.ADD)
     };
   }
 
@@ -164,23 +153,14 @@ export class Barrier {
       this.gap2Width = fork.width;
     }
 
-    const size = FRAME_SIZE.get(def.frame) ?? { w: 50, h: 30 };
-    const tileScale = bandHeight / size.h;
-    const capPx = Math.max(8, Math.round(size.w * OBSTACLE_CFG.capFraction));
-    this.capDisplayW = capPx * tileScale;
+    const size = WALL_FRAME_SIZE.get(def.frame);
+    void size; // dimensions used per-frame in placeSide via WALL_FRAME_SIZE
 
     // [OBS-007] obstacle pulse (Wall.glow) only when the type uses it AND the flag is on.
     this.showGlow = (def.glowing || def.danger || def.golden) && this.glowEnabled;
     const glowColor = def.golden ? 0xffd54a : def.danger ? 0xff3030 : def.glowing ? 0x9933ff : 0x46e6ff;
 
-    // Left wall's cap faces right (toward the gap); right wall's cap faces left.
-    this.left.cap.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_r`);
-    this.right.cap.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_l`);
     for (const side of [this.left, this.right, this.pillar]) {
-      side.center.setTexture(ASSET_KEYS.OBSTACLES, `${def.frame}_c`);
-      side.center.setTileScale(tileScale, tileScale);
-      side.center.setAlpha(1); // solid sprite body (3D beam) — no see-through
-      side.fill.setFillStyle(def.fill, 1); // opaque on-brand backing under body
       side.glow.setFillStyle(glowColor, 1);
     }
 
@@ -202,15 +182,6 @@ export class Barrier {
     this.y -= riseBy;
     if (this.moveAmp > 0) {
       this.gapX = this.baseGapX + Math.sin(this.t * this.moveOmega) * this.moveAmp;
-    }
-    if (this.def.animFrames > 1) {
-      const frameIdx = Math.floor(this.t / this.def.animMs) % this.def.animFrames;
-      const frameName = frameIdx === 0 ? this.def.frame : `${this.def.frame}_f${frameIdx}`;
-      this.left.cap.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_r`);
-      this.right.cap.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_l`);
-      this.left.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
-      this.right.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
-      this.pillar.center.setTexture(ASSET_KEYS.OBSTACLES, `${frameName}_c`);
     }
     this.layout();
   }
@@ -272,27 +243,29 @@ export class Barrier {
     this.placeMarker(this.gap2R, hardR);
   }
 
-  /** Lay out the central pillar spanning [x0, x1] (no end-caps — flat faces). */
+  /** Lay out the central pillar spanning [x0, x1] (caps on both sides from pillar sprite). */
   private placePillar(x0: number, x1: number): void {
     const w = x1 - x0;
     const visible = w > 1;
-    this.pillar.fill.setVisible(visible);
-    this.pillar.center.setVisible(visible);
+    this.pillar.panel.setVisible(visible);
     this.pillar.glow.setVisible(visible && this.showGlow);
-    this.pillar.cap.setVisible(false);
     if (!visible) return;
     const cx = (x0 + x1) / 2;
     const band = this.bandHeight;
-    this.pillar.fill.setPosition(cx, this.y).setDisplaySize(w, band);
+    // Stretch pillar sprite to fill pillar width; slight x-scale on a narrow
+    // element is imperceptible, and both caps of the pillar face the gaps.
+    this.pillar.panel
+      .setTexture(ASSET_KEYS.OBSTACLES, `${this.def.frame}_pillar`)
+      .setDisplaySize(w, band)
+      .setCrop() // clear any previous crop so full texture is shown
+      .setOrigin(0.5, 0.5)
+      .setPosition(cx, this.y);
     this.pillar.glow.setPosition(cx, this.y).setDisplaySize(w, band);
-    this.pillar.center.setSize(w, band).setPosition(cx, this.y);
   }
 
   /** Hide the central pillar (single-gap barriers). */
   private hidePillar(): void {
-    this.pillar.fill.setVisible(false);
-    this.pillar.cap.setVisible(false);
-    this.pillar.center.setVisible(false);
+    this.pillar.panel.setVisible(false);
     this.pillar.glow.setVisible(false);
   }
 
@@ -318,48 +291,44 @@ export class Barrier {
   }
 
   /**
-   * Lay out one wall side spanning [x0, x1]. `capAtRight` puts the end-cap at
-   * the right edge (used for the left wall, whose cap faces the central gap).
+   * Lay out one wall side spanning [x0, x1].
+   * `capAtRight` = true  → left wall: show rightmost `w` px of the panel (right cap faces gap).
+   * `capAtRight` = false → right wall: show leftmost `w` px of the panel (left cap faces gap).
    */
   private placeSide(side: WallSide, x0: number, x1: number, capAtRight: boolean): void {
     const w = x1 - x0;
     const visible = w > 1;
-    side.cap.setVisible(visible);
-    side.fill.setVisible(false); // repositioned below — only shown under centre body
+    side.panel.setVisible(visible);
     side.glow.setVisible(visible && this.showGlow);
-    if (!visible) {
-      side.center.setVisible(false);
-      return;
-    }
+    if (!visible) return;
 
-    const cy = this.y;
     const band = this.bandHeight;
-    const capW = Math.min(this.capDisplayW, w);
-    const centerW = w - capW;
-    const hasCentre = centerW > 1;
-
-    // Fill only the centre body — NOT under the cap — so the cap sprite's
-    // transparent rounded edges show the game background instead of the
-    // fill colour (which caused the jagged/blocky cap appearance).
-    side.fill.setVisible(hasCentre);
-    side.glow.setPosition((x0 + x1) / 2, cy).setDisplaySize(w, band);
+    const fs = WALL_FRAME_SIZE.get(this.def.frame);
+    const nativeW = fs?.wallW ?? 664;
+    const nativeH = fs?.wallH ?? 120;
+    const scaleY = band / nativeH;
 
     if (capAtRight) {
-      side.cap.setDisplaySize(capW, band).setPosition(x1 - capW / 2, cy);
-      if (hasCentre) {
-        const cx = x0 + centerW / 2;
-        side.fill.setPosition(cx, cy).setDisplaySize(centerW, band);
-        side.center.setSize(centerW, band).setPosition(cx, cy);
-      }
+      // Left wall: anchor right edge at x1, crop the rightmost `w` world-px of the texture.
+      const texCropW = Math.min(nativeW, w / scaleY);
+      const texCropX = nativeW - texCropW;
+      side.panel
+        .setTexture(ASSET_KEYS.OBSTACLES, `${this.def.frame}_wall`)
+        .setScale(scaleY)
+        .setCrop(texCropX, 0, texCropW, nativeH)
+        .setOrigin(1, 0.5)
+        .setPosition(x1, this.y);
     } else {
-      side.cap.setDisplaySize(capW, band).setPosition(x0 + capW / 2, cy);
-      if (hasCentre) {
-        const cx = x1 - centerW / 2;
-        side.fill.setPosition(cx, cy).setDisplaySize(centerW, band);
-        side.center.setSize(centerW, band).setPosition(cx, cy);
-      }
+      // Right wall: anchor left edge at x0, crop the leftmost `w` world-px of the texture.
+      const texCropW = Math.min(nativeW, w / scaleY);
+      side.panel
+        .setTexture(ASSET_KEYS.OBSTACLES, `${this.def.frame}_wall`)
+        .setScale(scaleY)
+        .setCrop(0, 0, texCropW, nativeH)
+        .setOrigin(0, 0.5)
+        .setPosition(x0, this.y);
     }
-    side.center.setVisible(hasCentre);
+    side.glow.setPosition((x0 + x1) / 2, this.y).setDisplaySize(w, band);
   }
 
   recycle(): void {
@@ -367,9 +336,8 @@ export class Barrier {
     this.isFork = false;
     this.y = -9999;
     for (const side of [this.left, this.right, this.pillar]) {
-      [side.fill, side.cap, side.center, side.glow].forEach((o) =>
-        o.setVisible(false).setPosition(0, -9999)
-      );
+      side.panel.setVisible(false).setPosition(0, -9999);
+      side.glow.setVisible(false).setPosition(0, -9999);
     }
     for (const m of [this.gapL, this.gapR, this.gap2L, this.gap2R]) {
       if (m) [m.core, m.glow].forEach((o) => o.setVisible(false).setPosition(0, -9999));
@@ -378,7 +346,8 @@ export class Barrier {
 
   destroy(): void {
     for (const side of [this.left, this.right, this.pillar]) {
-      [side.fill, side.cap, side.center, side.glow].forEach((o) => o.destroy());
+      side.panel.destroy();
+      side.glow.destroy();
     }
     for (const m of [this.gapL, this.gapR, this.gap2L, this.gap2R]) {
       if (m) [m.core, m.glow].forEach((o) => o.destroy());
