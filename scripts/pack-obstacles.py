@@ -96,12 +96,37 @@ def body_column(center_img):
     return harden(strip)
 
 
+SEAM_FEATHER = 9  # px: blend the cap's body-facing edge into the body so the
+#                   wall reads as ONE continuous panel (body flows into the tip)
+
+
+def _blend_into_body(cap, body_edge, from_left):
+    """Cross-fade the cap's body-facing columns toward the body edge colour.
+
+    The decorated terminator lives on the cap's OUTER (gap-facing) side; only its
+    INNER ~SEAM_FEATHER columns get faded so the junction with the tiled body has
+    no hard double-bevel seam. `body_edge` is the adjacent body column (TH,1,4).
+    """
+    out = cap.astype(np.float32).copy()
+    be = body_edge.astype(np.float32)[:, 0, :]
+    f = min(SEAM_FEATHER, out.shape[1])
+    for i in range(f):
+        a = i / f  # 0 at the seam -> body colour, 1 -> untouched cap
+        col = (f - 1 - i) if from_left else i  # inner column index
+        out[:, col, :] = be * (1.0 - a) + out[:, col, :] * a
+    return harden(out.astype(np.uint8))
+
+
 def compose(cap_end_img, body_strip):
     tile = np.zeros((TH, TW, 4), np.uint8)
-    left = cap_end_img[:, ::-1, :]            # mirrored cap faces left
+    body_l = body_strip[:, :1, :]    # body's left edge colour
+    body_r = body_strip[:, -1:, :]   # body's right edge colour
+    left = cap_end_img[:, ::-1, :]   # mirrored cap faces left; its RIGHT edge meets body
+    left = _blend_into_body(left, body_l, from_left=True)
+    right = _blend_into_body(cap_end_img, body_r, from_left=False)  # LEFT edge meets body
     tile[:, 0:CAP_W] = left
     tile[:, CAP_W:CAP_W + BODY_W] = body_strip
-    tile[:, CAP_W + BODY_W:TW] = cap_end_img  # cap faces right
+    tile[:, CAP_W + BODY_W:TW] = right  # cap faces right
     return tile
 
 
