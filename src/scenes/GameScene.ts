@@ -90,6 +90,8 @@ export class GameScene extends Phaser.Scene {
     this.lives = this.livesMax;
     this.invincibleUntilMs = 0;
     this.comboCelebUntilMs = 0;
+    this.hitAtMs = -1;
+    this.scareUntilMs = 0;
     this.maxCombo = 0;
     this.dangerNextMs = 0;
     this.firstWowShown = false;
