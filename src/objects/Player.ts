@@ -38,6 +38,8 @@ export class Player extends Phaser.GameObjects.Sprite {
   private faceHoldMs = 0; // how long the current non-facing direction has been held
   private natFacesRight = true; // natural facing of the current pose
   private sheetKey: string = ASSET_KEYS.CHARACTER; // skin sprite sheet
+  private boostGlow?: Phaser.FX.Glow; // shape-hugging glow that also lights the hero
+  private boosting = false; // whether the golden boost glow is currently active
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, ASSET_KEYS.CHARACTER, 0);
@@ -64,6 +66,23 @@ export class Player extends Phaser.GameObjects.Sprite {
   /** Mirror so the current pose faces `faceDir`, accounting for its natural side. */
   private refreshFlip(): void {
     this.setFlipX(shouldFlipX(this.natFacesRight, this.faceDir));
+  }
+
+  /** Toggle the golden boost glow: a shape-hugging FX that traces whatever frame
+   *  is currently showing and lights the hero slightly (inner glow). It is driven
+   *  independently of the pose, so it follows the steering/hover frames while the
+   *  boost is active instead of locking to a single image. */
+  setBoosting(on: boolean): void {
+    if (on === this.boosting) return;
+    this.boosting = on;
+    if (on) {
+      if (!this.boostGlow) {
+        this.boostGlow = this.postFX.addGlow(0xffc23c, 4, 1.4, false, 0.08, 14);
+      }
+    } else if (this.boostGlow) {
+      this.postFX.remove(this.boostGlow);
+      this.boostGlow = undefined;
+    }
   }
 
   /** Horizontal steering + facing + bank tilt. `dir` is -1/0/1. */
@@ -120,6 +139,11 @@ export class Player extends Phaser.GameObjects.Sprite {
     if (this.spawning) return; // drop-in tween owns Y/scale until it lands (DR-25)
     this.y = this.baseY + Math.sin(this.bobT * PLAYER_CFG.bobSpeed) * PLAYER_CFG.bobAmp * (1 + 0.6 * intensity);
     this.anims.timeScale = 1 + 0.5 * intensity;
+    // Give the boost glow a slow breathing pulse; it hugs whatever frame shows.
+    if (this.boostGlow) {
+      const p = 0.5 + 0.5 * Math.sin(this.bobT * 0.006);
+      this.boostGlow.outerStrength = 3 + 3 * p;
+    }
   }
 
   /** Drop-in arrival: fall into the held line with a quick fade + scale so each run
@@ -204,7 +228,9 @@ export class Player extends Phaser.GameObjects.Sprite {
           this.playSafe(ANIM_KEYS.CHEER);
           break;
         case 'boost':
-          this.playSafe(ANIM_KEYS.BOOST);
+          // Show the NORMAL flight image and sell the boost with the golden aura
+          // (toggled above) instead of a dedicated boost animation row.
+          this.playSafe(ANIM_KEYS.HOVER);
           break;
         case 'moveHard':
           this.playSafe(ANIM_KEYS.MOVE_HARD);

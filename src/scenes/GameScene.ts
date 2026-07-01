@@ -227,8 +227,6 @@ export class GameScene extends Phaser.Scene {
       this.player.setPose({ kind: 'impact' }); // brief recoil right after a hit (DR-12)
     } else if (now < this.comboCelebUntilMs) {
       this.player.setPose({ kind: 'cheer' }); // brief arms-up celebration animation
-    } else if (boostActive) {
-      this.player.setPose({ kind: 'boost' });
     } else if (dir !== 0) {
       const hard = this.dirHoldMs > PLAYER_CFG.effortHoldMs;
       if (hard && !this.moveHardActive) this.fx.burst(this.player.x, this.player.y + 40, 0xbfe9ff, 4); // ease in the strain trails (DR-10)
@@ -237,6 +235,9 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.player.setPose({ kind: 'hover' });
     }
+    // Boost is a cosmetic glow layered on top of the live pose, so the golden
+    // aura hugs whatever frame (hover/steer) is playing instead of a fixed image.
+    this.player.setBoosting(boostActive);
     this.player.setAlpha(lifeInvincible ? (Math.floor(now / LIVES_CFG.blinkMs) % 2 ? 0.55 : 1) : 1);
 
     const passed = this.obstacles.update(dt, { ...snapshot, speed }, this.player.y);
