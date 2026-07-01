@@ -280,16 +280,22 @@ def main():
     # grid clips the legs and lets the row above bleed in.
     #
     # The game always ships a 6x8 (48-frame) grid so the skins + AnimationManager
-    # stay stable, but the source art comes in two shapes:
-    #   * 8-row sheet -> map straight through (row_map = identity).
-    #   * 6-row sheet (HOVER, FLY, BOOST, CHEER, EMOTES, DEATH) -> there is no
-    #     separate "diving" flight row nor a front-celebration row, so we DUPLICATE
-    #     FLY into MOVE_HARD (out r2) and CHEER into the celebration row (out r5):
-    #       out row: 0     1    2    3      4      5      6       7
-    #       src row: HOVER FLY  FLY  BOOST  CHEER  CHEER  EMOTES  DEATH
+    # stay stable, but the source art comes in a few shapes. We detect the real
+    # row/col centres, then a `row_map` picks which detected SOURCE row feeds each
+    # of the 8 OUTPUT rows (HOVER, MOVE, MOVE_HARD, BOOST, cheer-spare, CHEER,
+    # EMOTES, DEATH):
+    #   * 6-row sheet (HOVER, FLY, BOOST, CHEER, EMOTES, DEATH): no diving nor
+    #     front-celebration row -> duplicate FLY into MOVE_HARD and CHEER into the
+    #     celebration row.  row_map = [0,1,1,2,3,3,4,5]
+    #   * 8-row "labelled sections" sheet (HOVER, FLY, BOOST-side, BOOST-front,
+    #     CHEER, EMOTE-poses, labelled-emotes HIT/SAD/CROWN/TROPHY/STAR, DEATH):
+    #     MOVE_HARD reuses FLY (src1); BOOST uses the side-view boost (src2, faces
+    #     LEFT like flight); CHEER reuses src4 for both cheer rows; the game's
+    #     emote frames come from the LABELLED row (src6). src3 (front star-power)
+    #     and src5 (emote standing poses) are unused.  row_map = [0,1,1,2,4,4,6,7]
     row_c, col_c = detect_centers(arr)
-    if len(col_c) == COLS and len(row_c) == ROWS:
-        row_map = list(range(ROWS))
+    if len(col_c) == COLS and len(row_c) == 8:
+        row_map = [0, 1, 1, 2, 4, 4, 6, 7]
     elif len(col_c) == COLS and len(row_c) == 6:
         row_map = [0, 1, 1, 2, 3, 3, 4, 5]
     else:

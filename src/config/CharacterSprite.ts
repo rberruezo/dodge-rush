@@ -19,7 +19,7 @@
  *   row 4 (24-29) cheer, arms up             -> spare celebration
  *   row 5 (30-35) cheer, arms up (dup)       -> combo cheer flash
  *   row 6 (36-40) startled, sad, crown, trophy, star
- *   row 7 (42-44) knockout: stars, tumble, KO -> death anim (base only)
+ *   row 7 (42-45) knockout: stars, lying, flip, KO -> death anim (base only)
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player +
  * PlayerFacing. Skins remain 6x7 (no row 7); the death anim is base-only and
  * falls back to the sad frame.
@@ -91,11 +91,12 @@ export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
   // shimmers instead of flickering.
   [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 12, repeat: -1 },
   // Celebration (combo flash + new-best screen): a lively arms-up cheer so a
-  // combo reads as motion, not a frozen pose. Row 5 holds front-facing
-  // celebration gestures; 33/34/35 (arms up: big grin, star eyes, fists +
-  // sparkles) share a silhouette so the loop never jitters.
-  [ANIM_KEYS.CHEER]: { frames: [33, 34, 35], frameRate: 8, repeat: -1 },
-  // Row 7 (base sheet only): knockout beat — dizzy stars, tumble, KO — so death
-  // is a short reaction, not a static frame (DR-17/18).
-  [ANIM_KEYS.DEATH]: { frames: [42, 43, 44], frameRate: 8, repeat: 0 }
+  // combo reads as motion, not a frozen pose. Row 5 holds the celebration
+  // gestures; 31/34/35 (arms up: big grin, wide calm, fist pump) share a
+  // front-facing arms-up silhouette so the loop never jitters (33 is a
+  // horizontal tumble pose, deliberately skipped).
+  [ANIM_KEYS.CHEER]: { frames: [31, 34, 35], frameRate: 8, repeat: -1 },
+  // Row 7 (base sheet only): knockout beat — dizzy stars -> flip -> KO settle —
+  // so death is a short reaction that ends on the grounded pose (DR-17/18).
+  [ANIM_KEYS.DEATH]: { frames: [42, 44, 45], frameRate: 8, repeat: 0 }
 } as const;
