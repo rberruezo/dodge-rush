@@ -50,12 +50,11 @@ No es MVP: ads/IAP, iOS, nuevos tipos de obstáculos, nuevos skins, achievements
 
 Pendientes de producto/polish antes de salir al store:
 
-1. **Character — afinar el sprite (se ve raro a veces)** (SKN-007). 🔁 REABIERTO — afinar frames de animación, no rehacer.
-2. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008). 🔴 Necesita logcat de device.
-3. **Reconsiderar nombre del juego: Dodge Rush vs Fallcade vs SOOT IJI** (BRN-005). 🟡 Evaluación de opciones antes de store.
-4. **Revisar reglas de puntuación para el MVP** (GME-019). 🟡 Reglas asentadas en `docs/scoring.md`; validar balance y divergencia diseño-código antes de publicar.
+1. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008). 🔴 Necesita logcat de device.
+2. **Reconsiderar nombre del juego: Dodge Rush vs Fallcade vs SOOT IJI** (BRN-005). 🟡 Evaluación de opciones antes de store.
+3. **Revisar reglas de puntuación para el MVP** (GME-019). 🟡 Reglas asentadas en `docs/scoring.md`; validar balance y divergencia diseño-código antes de publicar.
 
-✅ **Cerrados (no requieren más trabajo):** GME-017 (riesgo↔recompensa), OBS-008 (sprites obstáculo).
+✅ **Cerrados (no requieren más trabajo):** GME-017 (riesgo↔recompensa), OBS-008 (sprites obstáculo), SKN-007 (character sprite polish).
 
 Todo lo demás (ads, IAP, achievements, iOS, nuevos skins) es post-launch. La logística de release (firmar, subir, screenshots) NO es "backlog" — es checklist de ops, abajo.
 
@@ -76,10 +75,10 @@ Primero los 3 puntos de producto, después el release ops (puro trámite, no con
 
 ```
 PRODUCTO (pendientes a trabajar):
-1. [SKN-007] Afinar el sprite del character (se ve raro a veces)
-2. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
-3. [BRN-005] Reconsiderar nombre: Dodge Rush vs Fallcade vs SOOT IJI (evaluación pre-store)
-(GME-017 riesgo↔recompensa ✅ DONE, OBS-008 sprites ✅ DONE — fuera de lista)
+1. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
+2. [BRN-005] Reconsiderar nombre: Dodge Rush vs Fallcade vs SOOT IJI (evaluación pre-store)
+3. [GME-019] Revisar reglas scoring: validar balance y divergencias diseño-código
+(GME-017 riesgo↔recompensa ✅ DONE, OBS-008 sprites ✅ DONE, SKN-007 character ✅ DONE — fuera de lista)
 
 RELEASE OPS (trámite, sin desarrollo de producto):
 4. [AND-002]              Keystore de producción (firma)
@@ -89,7 +88,7 @@ RELEASE OPS (trámite, sin desarrollo de producto):
 8. [AND-005→006]          Internal Testing → Open Testing → Production
 ```
 
-**Backlog de producto pre-store:** SKN-007, BG-005, BRN-005 (GME-017 ✅ DONE, OBS-008 ✅ DONE).
+**Backlog de producto pre-store:** BG-005, BRN-005, GME-019 (GME-017 ✅ DONE, OBS-008 ✅ DONE, SKN-007 ✅ DONE).
 
 **Todo lo demás:** P2/P3 post-launch. Ads (MON-*), IAP, COPPA/parental gate y CMP → diferidos a V1.1 por la decisión ads-free.
 
@@ -142,7 +141,7 @@ Estado actual: **12 skins en el catálogo + 5 achievement skins (palette-swaps)*
 | `SKN-004` | Agregar skin DOG como nuevo personaje (separado de Hound) si la sesión lo decidió así | **P3** *(post-MVP — DEC-004)* | PENDING | Dog character sprite |
 | `SKN-005` | Validar que el achievement skin GOLD no se confunde visualmente con el GOLD KING (mismo tint) | **P3** *(post-MVP)* | PENDING | — |
 | `SKN-006` | Revisar que `pilot_kit.py` genere output consistente en todas las plataformas (Python versión) | P3 | PENDING | — |
-| `SKN-007` | **[PRE-STORE #1] Revertir el character a la versión anterior más simple que se veía bien.** El sprite Tier-3 actual "lee más cargado"; volver al look previo más limpio. Recuperar el sheet/commit anterior (`git log -- public/assets/character.png`), reemplazar el actual y validar facing (`PlayerFacing.ts`) + las 12 poses. | **P0** *(pre-store)* | **REABIERTO** (2026-06-29) — el look limpio se commiteó (`64edfa8`) pero no termina de convencer: **el sprite "se ve raro a veces"** (no roto, pero hay frames/poses que leen mal durante la animación). No es grave, es **afinar**. Visto en **web** (se asume igual en device). Acción: revisar el ciclo completo de animación pose por pose, identificar qué frames se ven raros (probable: transición/flip de facing en `move`/`move_hard`, o specials), y pulir esos frames del sheet sin rehacer el personaje. | SKN-007 character sprite adjustment |
+| `SKN-007` | **[PRE-STORE #1] Afinar el sprite character — frames se ven raros a veces.** Polish de pixels en frames/poses específicas que tienen inconsistencias de silhueta, asimetría, o breakpoints feos en ciclos de anim. No es un remake; es pulir transiciones y detalles. **[Impl 2026-07-01]** Creado prompt detallado en `.prompts/SKN-007.md` con mapa de frames, problemas conocidos, pasos de trabajo, validación. Prompt listo para LLM o inspección manual en web build. | **P0** *(pre-store)* | ✅ DONE (2026-07-01) | Dodge Rush Dev |
 
 ### QA SKN-001 — `character_hound.png` (sesión Dog character, 2026-06-27) → **APROBADO con notas menores**
 
