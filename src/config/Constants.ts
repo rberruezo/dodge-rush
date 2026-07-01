@@ -246,7 +246,7 @@ export const DIFFICULTY_CFG = {
 export const SCORE_CFG = {
   pointsPerSecond: 10, // survival score
   pointsPerPass: 10, // base points per cleared obstacle (before combo multiplier)
-  goldenBonus: 125, // instant points for threading a golden obstacle (reduced so boost is the primary reward)
+  goldenBonus: 50, // instant points for threading a golden obstacle (reduced so boost is the primary reward)
   goldenBoostMs: 5000, // duration of the golden score boost
   goldenBoostMult: 2, // score multiplier while the golden boost is active
   nearMissBonus: 15, // extra points (× multiplier) for a tight pass
