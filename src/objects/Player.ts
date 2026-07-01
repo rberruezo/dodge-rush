@@ -175,16 +175,14 @@ export class Player extends Phaser.GameObjects.Sprite {
       switch (pose.kind) {
         case 'dizzy':
           this.stop();
-          this.setFrame(CHAR_FRAMES.dizzy);
+          this.setFrame(CHAR_FRAMES.startled);
           break;
-        case 'impact': {
-          // Brief startle for a hit / near-miss: base sheet has 'shout' (43);
-          // skins (no row 7) fall back to the distinct sad head (DR-12/15).
+        case 'impact':
+          // Brief startle for a hit / near-miss: the surprised emote (row 6)
+          // reads on both the base sheet and skins (DR-12/15).
           this.stop();
-          const frames = this.scene.textures.get(this.sheetKey).frameTotal - 1;
-          this.setFrame(frames > 43 ? 43 : CHAR_FRAMES.sadHead);
+          this.setFrame(CHAR_FRAMES.startled);
           break;
-        }
         case 'death': {
           // Base sheet plays the knockout row; skins (6x7) have no such anim and
           // settle on the distinct sad-head frame so death never mirrors the hit
@@ -194,13 +192,13 @@ export class Player extends Phaser.GameObjects.Sprite {
             this.play(deathKey, true);
           } else {
             this.stop();
-            this.setFrame(CHAR_FRAMES.sadHead);
+            this.setFrame(CHAR_FRAMES.sad);
           }
           break;
         }
         case 'celebrate':
           this.stop();
-          this.setFrame(pose.frame ?? CHAR_FRAMES.starHead);
+          this.setFrame(pose.frame ?? CHAR_FRAMES.star);
           break;
         case 'cheer':
           this.playSafe(ANIM_KEYS.CHEER);

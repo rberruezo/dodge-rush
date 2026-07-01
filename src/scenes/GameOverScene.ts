@@ -49,7 +49,7 @@ export class GameOverScene extends Phaser.Scene {
 
     const skin = getSkin(Profile.selected);
     const hero = this.add
-      .sprite(cx, 298, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sadCloud)
+      .sprite(cx, 298, skin.sheet, isNewBest ? CHAR_FRAMES.crown : CHAR_FRAMES.sad)
       .setOrigin(0.5, 1) // feet-anchored so the stretch grows upward, not from center (DR-32)
       .setScale(1.1);
     if (skin.tint !== null) hero.setTint(skin.tint);

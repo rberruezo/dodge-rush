@@ -384,7 +384,7 @@ export class GameScene extends Phaser.Scene {
         this.fx.burst(this.player.x, this.player.y, 0xffd54a, 18);
       } else {
         this.fx.popup(cx, py - 90, comboLabel, '#ffd54a', 40);
-        if (mult >= 10) this.fx.iconPopup(cx, py - 140, CHAR_FRAMES.starHead, 1.0);
+        if (mult >= 10) this.fx.iconPopup(cx, py - 140, CHAR_FRAMES.star, 1.0);
       }
     }
 
@@ -408,7 +408,7 @@ export class GameScene extends Phaser.Scene {
     // DR-23: only show the life-lost feedback when a life actually remains. On the
     // fatal hit we skip the "-1 ♥" popup and go straight to the death beat.
     this.fx.popup(this.player.x, this.player.y - 60, '-1  ♥', '#ff4060', 34);
-    this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sadHead, 0.9);
+    this.fx.iconPopup(this.player.x, this.player.y - 96, CHAR_FRAMES.sad, 0.9);
     // Survive: a short impact recoil, then brief invincibility (blink + dizzy).
     this.hitAtMs = this.score.elapsedMs; // DR-12: drives the impact pose window
     this.invincibleUntilMs = this.score.elapsedMs + LIVES_CFG.invincibleMs;

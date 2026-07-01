@@ -11,15 +11,15 @@
  * crisp against the detailed background). Frame map (index = row*6 + col):
  *   row 0 (0-5)   hover (front)             -> not steering (alive float)
  *   row 1 (6-11)  side flight, calm         -> moving, low effort
- *   row 2 (12-17) side flight, straining    -> moving held, high effort
- *   row 3 (18-23) flight + sparkles         -> golden score boost
- *   row 4 (24-29) cheer (arms up)           -> celebration
- *   row 5 (30-35) combo x1,x2,x3,x5,x10,x20 -> brief combo celebration flash
- *   row 6 (36-41) dizzy, sad-cloud, trophy, crown, star head, sad head
- *   row 7 (42-47) knockout: bonk, shout, eyes-shut, roll, roll, head-down fall -> death anim
+ *   row 2 (12-17) side flight, diving        -> moving held, high effort
+ *   row 3 (18-23) star-power boost + aura    -> golden score boost (invincible)
+ *   row 4 (24-29) cheer, fists (side)        -> spare celebration
+ *   row 5 (30-35) celebration gestures       -> combo cheer flash
+ *   row 6 (36-41) startled, sad, happy, crown, trophy, star
+ *   row 7 (42-44) knockout: stars, tumble, KO -> death anim (base only)
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player +
  * PlayerFacing. Skins remain 6x7 (no row 7); the death anim is base-only and
- * falls back to the sad-head frame.
+ * falls back to the sad frame.
  */
 
 /** Base sprite-sheet texture key for the default hero. */
@@ -41,14 +41,14 @@ export const ANIM_KEYS = {
   DEATH: 'player-death' // run-over knockout (base sheet only — row 7)
 } as const;
 
-/** Single-purpose, non-animated frames (row 6). */
+/** Single-purpose, non-animated emote frames (row 6). */
 export const CHAR_FRAMES = {
-  dizzy: 36,
-  sadCloud: 37,
-  trophy: 38,
-  crown: 39,
-  starHead: 40,
-  sadHead: 41
+  startled: 36, // surprised — hit / impact startle
+  sad: 37, // crying — game-over loss & death fallback
+  happy: 38, // calm happy — spare portrait
+  crown: 39, // crown — new record / win
+  trophy: 40, // holding a trophy — achievement icon
+  star: 41 // star-struck — high-combo icon
 } as const;
 
 /** Numbered combo-badge frames flashed on the hero (row 5, x2..x20). */
@@ -74,19 +74,26 @@ export interface CharAnimDef {
   repeat: number;
 }
 
+// Frame→animation mapping, aligned to the character notes sheet
+// (art-src/character/character-sprite-with-notes.png):
+//   row 0 -> HOVER, row 1 -> MOVE, row 2 -> MOVE HARD, row 3 -> BOOST.
+// The remaining clips (cheer, death) keep their curated frame lists.
 export const CHARACTER_ANIMS: Record<string, CharAnimDef> = {
+  // Row 0 (0-5): floating idle.
   [ANIM_KEYS.HOVER]: { start: 0, end: 5, frameRate: 7, repeat: -1 },
+  // Row 1 (6-11): normal flight.
   [ANIM_KEYS.MOVE]: { start: 6, end: 11, frameRate: 12, repeat: -1 },
+  // Row 2 (12-17): high-speed / straining flight.
   [ANIM_KEYS.MOVE_HARD]: { start: 12, end: 17, frameRate: 14, repeat: -1 },
-  // Golden boost: a calmer rate so the sparkly glow shimmers instead of flickering.
+  // Row 3 (18-23): golden star-power boost — a calmer rate so the sparkly glow
+  // shimmers instead of flickering.
   [ANIM_KEYS.BOOST]: { start: 18, end: 23, frameRate: 12, repeat: -1 },
-  // Celebration (combo flash + new-best screen): a lively fists-up cheer so a
-  // combo reads as motion, not a frozen pose. Uses row 5 (33/34/35: fists up
-  // with squeezed eyes, star eyes and a big grin) — a consistent two-arm
-  // silhouette so the loop never jitters. Avoids row 3 (boost grid-cloud aura)
-  // and row 4 (24-29); both have art that isn't finalized.
+  // Celebration (combo flash + new-best screen): a lively arms-up cheer so a
+  // combo reads as motion, not a frozen pose. Row 5 holds front-facing
+  // celebration gestures; 33/34/35 (arms up: big grin, star eyes, fists +
+  // sparkles) share a silhouette so the loop never jitters.
   [ANIM_KEYS.CHEER]: { frames: [33, 34, 35], frameRate: 8, repeat: -1 },
-  // Row 7 (base sheet only): full knockout beat — bonk, shout, eyes-shut, roll, roll,
-  // head-down fall — so death is a 2-beat reaction, not a static frame (DR-17/18).
-  [ANIM_KEYS.DEATH]: { frames: [42, 43, 44, 45, 46, 47], frameRate: 10, repeat: 0 }
+  // Row 7 (base sheet only): knockout beat — dizzy stars, tumble, KO — so death
+  // is a short reaction, not a static frame (DR-17/18).
+  [ANIM_KEYS.DEATH]: { frames: [42, 43, 44], frameRate: 8, repeat: 0 }
 } as const;
