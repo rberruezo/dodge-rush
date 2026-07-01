@@ -205,6 +205,50 @@ def cell_rgba(rgb):
     return out
 
 
+def _bands(proj, thresh, merge_gap, min_span):
+    """Group a 1-D projection into runs above `thresh`, merging runs separated by
+    a gap <= merge_gap, then keep runs whose merged span >= min_span. Returns a
+    list of (start, end) inclusive."""
+    on = proj > thresh
+    runs = []
+    s = None
+    for i, v in enumerate(on):
+        if v and s is None:
+            s = i
+        elif not v and s is not None:
+            runs.append([s, i - 1])
+            s = None
+    if s is not None:
+        runs.append([s, len(on) - 1])
+    # merge runs that are close together (propeller detached from body, etc.)
+    merged = []
+    for r in runs:
+        if merged and r[0] - merged[-1][1] <= merge_gap:
+            merged[-1][1] = r[1]
+        else:
+            merged.append(r)
+    return [(a, b) for a, b in merged if (b - a + 1) >= min_span]
+
+
+def detect_centers(arr):
+    """Find the real per-row / per-column character centres by projecting the
+    saturated-colour mask. The source art has caption text bands ("HOVER/IDLE",
+    "FLY"...) between rows that push the rows down irregularly, so a uniform
+    H/ROWS grid mis-aligns and clips the legs. Text is low-saturation grey, so a
+    saturation threshold isolates the coloured characters only."""
+    a = arr.astype(np.int16)
+    H, W, _ = a.shape
+    sat = a.max(2) - a.min(2)
+    colmask = sat > 55
+    row_proj = colmask.sum(1)
+    col_proj = colmask.sum(0)
+    rows = _bands(row_proj, W * 0.02, merge_gap=20, min_span=40)
+    cols = _bands(col_proj, H * 0.02, merge_gap=20, min_span=40)
+    row_c = [(s + e) // 2 for s, e in rows]
+    col_c = [(s + e) // 2 for s, e in cols]
+    return row_c, col_c
+
+
 def resize_rgba_premult(arr, size):
     """Premultiplied-alpha LANCZOS resize -> soft, clean edges with no dark
     fringe. arr: HxWx4 uint8. size: (w, h). Returns HxWx4 uint8."""
@@ -229,21 +273,31 @@ def main():
     im = Image.open(SRC).convert("RGB")
     arr = np.asarray(im)
     H, W, _ = arr.shape
-    cw, ch = W / COLS, H / ROWS
+    cw = W / COLS
 
-    # The sprites span a 160px vertical bounding box across all frames (-31 to 129 relative to cell origins).
-    # We will use a 160x160 capture window for ALL cells, shifted up to encompass the propeller jumps,
-    # then scale it exactly 0.75x to fit into the final 120x120 grid reliably, preserving artist alignment.
+    # Detect the REAL character centres per row/col. The source has caption text
+    # bands between rows that shift them down irregularly, so a uniform H/ROWS
+    # grid clips the legs and lets the row above bleed in. Fall back to the old
+    # uniform grid only if detection doesn't find the expected 6x8 layout.
+    row_c, col_c = detect_centers(arr)
+    if len(col_c) != COLS or len(row_c) != ROWS:
+        print(f"WARN detect found {len(col_c)} cols / {len(row_c)} rows; "
+              f"falling back to uniform grid")
+        col_c = [round(c * cw) + 75 for c in range(COLS)]
+        row_c = [round(r * (H / ROWS)) + 49 for r in range(ROWS)]
+    print("col centres", col_c)
+    print("row centres", row_c)
+
+    # 160px capture window scaled 0.75x into the 120px grid, centred on each
+    # detected character so the propeller (top) and legs (bottom) both fit.
     BOX_SIZE = 160
-    X_OFFSET = 75
-    Y_OFFSET = 49
 
     sheet = Image.new("RGBA", (COLS * CELL, ROWS * CELL), (0, 0, 0, 0))
     for r in range(ROWS):
         for c in range(COLS):
-            cx = round(c * cw) + X_OFFSET
-            cy = round(r * ch) + Y_OFFSET
-            
+            cx = col_c[c]
+            cy = row_c[r]
+
             # extract with padding if out of bounds. Pad with checkerboard grey (78)
             # so the edge-flood-fill correctly removes the padding instead of 
             # treating it as a black foreground solid box.
