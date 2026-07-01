@@ -205,7 +205,7 @@ export const OBSTACLE_CFG = {
   edgePadding: 26, // keep the hole away from the very screen edges
   reactionMinMs: 600, // guaranteed minimum reaction window (fairness)
   reachFactor: 0.82, // fraction of cross-screen travel a gap may shift per barrier
-  goldenGapReduceFactor: 0.8, // golden obstacles have a tighter gap (20% narrower) for added challenge
+  goldenGapReduceFactor: 0.5, // golden obstacles have a tighter gap (50% narrower) for added challenge
   poolSize: 10 // recycled barrier instances
 } as const;
 
