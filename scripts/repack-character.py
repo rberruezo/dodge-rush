@@ -269,6 +269,94 @@ def resize_rgba_premult(arr, size):
     return np.dstack([rgb, a8])
 
 
+def _dilate8(m):
+    """8-connected binary dilation (no scipy dependency)."""
+    o = m.copy()
+    o[1:, :] |= m[:-1, :]; o[:-1, :] |= m[1:, :]
+    o[:, 1:] |= m[:, :-1]; o[:, :-1] |= m[:, 1:]
+    o[1:, 1:] |= m[:-1, :-1]; o[:-1, :-1] |= m[1:, 1:]
+    o[1:, :-1] |= m[:-1, 1:]; o[:-1, 1:] |= m[1:, :-1]
+    return o
+
+
+def strip_jetpack_flame(sheet, rows):
+    """Erase the little jet-pack flame tufts from the given OUTPUT rows in-place.
+
+    The flame is a warm gold tuft (bright-yellow core, hue ~42-66) at the
+    character's feet / exhaust. Two poses make a plain colour filter unsafe:
+
+      * The EMOTE row (crying / laughing) has an upright body: its face carries
+        small bright-yellow specular highlights near the centre. A colour flood
+        seeded there floods the whole ORANGE (hue ~34) face. But on an upright
+        body the flame is always low (cell-y >= 82) while those face specks sit
+        higher (y ~68-73), so we simply seed the emote row from y >= 82 down.
+      * The DEATH row (dizzy / KO) has no bright-yellow face specks (eyes are
+        X'd or shut) and the body is tumbled, so every low-half yellow seed is a
+        real flame — we seed it from y >= 68.
+
+    From those seeds we grow through the wider warm range to sweep up the flame's
+    duller orange base, then feather the anti-aliased edge. The dizzy stars, the
+    star / crown / trophy props all sit in the UPPER half and are never seeded.
+    """
+    a = np.asarray(sheet).astype(np.float32)
+    R, G, B, A = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    mx = a[..., :3].max(2); mn = a[..., :3].min(2)
+    V = mx / 255.0; delta = mx - mn
+    S = np.where(mx > 0, delta / np.maximum(mx, 1), 0)
+    d = np.maximum(delta, 1)
+    h = np.zeros_like(mx)
+    h = np.where(mx == R, ((G - B) / d) % 6, h)
+    h = np.where(mx == G, ((B - R) / d) + 2, h)
+    h = np.where(mx == B, ((R - G) / d) + 4, h)
+    h = (h * 60) % 360
+    yy = np.arange(a.shape[0])[:, None] % CELL
+
+    # Restrict the whole operation to the requested output rows, and seed each
+    # row from its own vertical cut-off (emote row 6 starts lower to dodge the
+    # upright face highlights; every other row keeps the low-half default).
+    row_mask = np.zeros(a.shape[:2], bool)
+    y_ok = np.zeros(a.shape[:2], bool)
+    for r in rows:
+        row_mask[r * CELL:(r + 1) * CELL] = True
+        cut = 82 if r == 6 else 68
+        y_ok[r * CELL:(r + 1) * CELL] = yy[r * CELL:(r + 1) * CELL] >= cut
+
+    seed = row_mask & y_ok & (A > 40) & (h >= 42) & (h <= 66) & (V > 0.86) & (S >= 0.12) & (S <= 0.80)
+
+    # Grow through the wider warm range to sweep up the flame's duller orange
+    # base. Seeded only at the feet/exhaust, the flood stays on the flame.
+    warm = row_mask & (A > 22) & (h >= 14) & (h <= 72) & (V > 0.34) & (S >= 0.22)
+    flame = seed.copy()
+    for _ in range(16):
+        nxt = _dilate8(flame) & warm
+        if nxt.sum() == flame.sum():
+            break
+        flame = nxt
+
+    # Feather: also clear the flame's faint anti-aliased edge touching the blob.
+    flame |= _dilate8(flame) & row_mask & (A > 0) & (A < 170) & ~flame
+
+    a[flame] = 0
+
+    # Sweep up any tiny detached speck left behind by the flame's white-hot tip
+    # (very low saturation, so the warm grow skips it). Per cell keep the body
+    # (largest blob) and drop only small islands — the dizzy stars / props are
+    # far larger (>= ~50px) so they survive.
+    for r in rows:
+        for c in range(COLS):
+            band = a[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL]
+            fg = band[..., 3] > 40
+            if not fg.any():
+                continue
+            lab, blobs = components(fg)
+            body = max(blobs, key=lambda b: b["n"])
+            for b in blobs:
+                if b["id"] != body["id"] and b["n"] <= 10:
+                    band[lab == b["id"]] = 0
+
+    sheet.paste(Image.fromarray(a.astype(np.uint8), "RGBA"), (0, 0))
+
+
 def main():
     im = Image.open(SRC).convert("RGB")
     arr = np.asarray(im)
@@ -335,6 +423,11 @@ def main():
             rgba = cell_rgba(cell)
             small = resize_rgba_premult(rgba, (CELL, CELL))
             sheet.paste(Image.fromarray(small, "RGBA"), (c * CELL, r * CELL))
+
+    # The static emote frames (row 6) and knockout frames (row 7) are shown as
+    # UI icons / a grounded KO, where the jet-pack flame reads as an odd stray
+    # blob. Strip it from just those rows (the flight/boost rows keep it).
+    strip_jetpack_flame(sheet, rows=(6, 7))
 
     sheet.save(OUT)
     print(f"wrote {OUT} {sheet.size} (6x8, cell {CELL}x{CELL}, {COLS * ROWS} frames)")
