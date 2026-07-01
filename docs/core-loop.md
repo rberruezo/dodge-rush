@@ -110,8 +110,7 @@ La dificultad escala en fases. Cada fase introduce una nueva variable; nunca dos
 
 > **Reglas implementadas:** ver [`scoring.md`](./scoring.md) para el detalle técnico completo (puntos/segundo, bonos por pase, combo, riesgo↔recompensa, boost dorado). Esta sección describe la **intención de diseño**; si difiere del código, la divergencia se revisa en el ticket **GME-019** del backlog.
 
-**Score primario:** metros recorridos (distancia de caída). Simple, universalmente entendible. *(Implementación actual: tiempo de supervivencia a `pointsPerSecond` + bonos por obstáculo — ver `scoring.md`.)*
-
+**Score primario:** tiempo de supervivencia (puntos/segundo) + bonos por obstáculo. Métrica base es **segundos**, no metros; los bonos de riesgo y combo generan puntuación exponencial que incentiva skillful play sin "gating" por velocidad. El combo bonus de velocidad (+0.012/pase) hace imposible una conversión consistente metros↔segundos, por lo que el score se reporta en puntos crudos. *(Nota de diseño histórica: originalmente conceptualizamos score como "metros recorridos", pero implementación por tiempo de supervivencia es superior: determinística en device, desacoplada de physics variables, y más balanceada con combo multipliers.)*
 
 **Score secundario:** obstáculos esquivados. Se usa para misiones diarias, no para el score principal del jugador.
 

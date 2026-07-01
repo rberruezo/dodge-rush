@@ -52,7 +52,7 @@ Pendientes de producto/polish antes de salir al store:
 
 1. **Fondo visible en device físico — que se vean estrellas/skyboxes** (BG-005/BUG-008). 🔴 Necesita logcat de device.
 2. **Reconsiderar nombre del juego: Dodge Rush vs Fallcade vs SOOT IJI** (BRN-005). 🟡 Evaluación de opciones antes de store.
-3. **Revisar reglas de puntuación para el MVP** (GME-019). 🟡 Reglas asentadas en `docs/scoring.md`; validar balance y divergencia diseño-código antes de publicar.
+3. **Revisar reglas de puntuación para el MVP** (GME-019). ✅ DONE — Validación completada (2026-07-01), balance confirmado, divergencia diseño-código resuelta en core-loop.md.
 
 ✅ **Cerrados (no requieren más trabajo):** GME-017 (riesgo↔recompensa), OBS-008 (sprites obstáculo), SKN-007 (character sprite polish).
 
@@ -77,7 +77,7 @@ Primero los 3 puntos de producto, después el release ops (puro trámite, no con
 PRODUCTO (pendientes a trabajar):
 1. [BG-005]  Fondo visible en device físico (estrellas/skyboxes)
 2. [BRN-005] Reconsiderar nombre: Dodge Rush vs Fallcade vs SOOT IJI (evaluación pre-store)
-3. [GME-019] Revisar reglas scoring: validar balance y divergencias diseño-código
+3. [GME-019] ✅ Revisar reglas scoring: validar balance y divergencias diseño-código
 (GME-017 riesgo↔recompensa ✅ DONE, OBS-008 sprites ✅ DONE, SKN-007 character ✅ DONE — fuera de lista)
 
 RELEASE OPS (trámite, sin desarrollo de producto):
@@ -88,7 +88,7 @@ RELEASE OPS (trámite, sin desarrollo de producto):
 8. [AND-005→006]          Internal Testing → Open Testing → Production
 ```
 
-**Backlog de producto pre-store:** BG-005, BRN-005, GME-019 (GME-017 ✅ DONE, OBS-008 ✅ DONE, SKN-007 ✅ DONE).
+**Backlog de producto pre-store:** BG-005, BRN-005 (GME-019 ✅ DONE, GME-017 ✅ DONE, OBS-008 ✅ DONE, SKN-007 ✅ DONE).
 
 **Todo lo demás:** P2/P3 post-launch. Ads (MON-*), IAP, COPPA/parental gate y CMP → diferidos a V1.1 por la decisión ads-free.
 
