@@ -108,7 +108,10 @@ La dificultad escala en fases. Cada fase introduce una nueva variable; nunca dos
 
 ## Scoring
 
-**Score primario:** metros recorridos (distancia de caída). Simple, universalmente entendible.
+> **Reglas implementadas:** ver [`scoring.md`](./scoring.md) para el detalle técnico completo (puntos/segundo, bonos por pase, combo, riesgo↔recompensa, boost dorado). Esta sección describe la **intención de diseño**; si difiere del código, la divergencia se revisa en el ticket **GME-019** del backlog.
+
+**Score primario:** metros recorridos (distancia de caída). Simple, universalmente entendible. *(Implementación actual: tiempo de supervivencia a `pointsPerSecond` + bonos por obstáculo — ver `scoring.md`.)*
+
 
 **Score secundario:** obstáculos esquivados. Se usa para misiones diarias, no para el score principal del jugador.
 
