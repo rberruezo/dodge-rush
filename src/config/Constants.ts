@@ -205,6 +205,7 @@ export const OBSTACLE_CFG = {
   edgePadding: 26, // keep the hole away from the very screen edges
   reactionMinMs: 600, // guaranteed minimum reaction window (fairness)
   reachFactor: 0.82, // fraction of cross-screen travel a gap may shift per barrier
+  goldenGapReduceFactor: 0.8, // golden obstacles have a tighter gap (20% narrower) for added challenge
   poolSize: 10 // recycled barrier instances
 } as const;
 
@@ -245,7 +246,7 @@ export const DIFFICULTY_CFG = {
 export const SCORE_CFG = {
   pointsPerSecond: 10, // survival score
   pointsPerPass: 10, // base points per cleared obstacle (before combo multiplier)
-  goldenBonus: 250, // instant points for threading a golden obstacle
+  goldenBonus: 125, // instant points for threading a golden obstacle (reduced so boost is the primary reward)
   goldenBoostMs: 5000, // duration of the golden score boost
   goldenBoostMult: 2, // score multiplier while the golden boost is active
   nearMissBonus: 15, // extra points (× multiplier) for a tight pass

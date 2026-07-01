@@ -47,11 +47,23 @@ export class GapPlanner {
   plan(snapshot: DifficultySnapshot): PlannedGap {
     const def = this.pickType(snapshot.weights);
 
-    const gapWidth = clamp(
+    let gapWidth = clamp(
       snapshot.baseGap * def.gapFactor,
       OBSTACLE_CFG.gapMin * 0.66,
       GAME_WIDTH - OBSTACLE_CFG.edgePadding * 2
     );
+
+    // Golden obstacles have a tighter gap (20% narrower) to add challenge — the
+    // true reward is the boost, not the instant bonus. Center stays the same;
+    // only reduce the height of the opening. Clamped to ensure it stays passable.
+    if (def.golden) {
+      gapWidth = clamp(
+        gapWidth * OBSTACLE_CFG.goldenGapReduceFactor,
+        OBSTACLE_CFG.gapMin * 0.66,
+        GAME_WIDTH - OBSTACLE_CFG.edgePadding * 2
+      );
+    }
+
     const band = OBSTACLE_CFG.bandHeight * def.bandFactor;
 
     const half = gapWidth / 2;
