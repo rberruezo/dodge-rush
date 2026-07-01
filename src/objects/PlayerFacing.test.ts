@@ -4,9 +4,9 @@ import { poseFacesRight, shouldFlipX, POSE_FACES_RIGHT } from './PlayerFacing';
 const ALL_POSES = ['hover', 'move', 'moveHard', 'boost', 'celebrate', 'cheer', 'dizzy', 'impact', 'death'];
 
 describe('PlayerFacing — natural pose facing', () => {
-  it('side-flight poses face LEFT, idle/celebration poses face RIGHT', () => {
-    expect(poseFacesRight('move')).toBe(false);
-    expect(poseFacesRight('moveHard')).toBe(false);
+  it('all named poses face RIGHT in the current sheet', () => {
+    expect(poseFacesRight('move')).toBe(true);
+    expect(poseFacesRight('moveHard')).toBe(true);
     expect(poseFacesRight('hover')).toBe(true);
     expect(poseFacesRight('boost')).toBe(true);
     expect(poseFacesRight('cheer')).toBe(true);

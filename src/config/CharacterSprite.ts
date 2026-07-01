@@ -20,7 +20,7 @@
  *   row 5 (30-35) cheer, arms up (dup)       -> combo cheer flash
  *   row 6 (36-40) startled, sad, crown, trophy, star
  *   row 7 (42-45) knockout: stars, lying, flip, KO -> death anim (base only)
- * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player +
+ * The fly art faces RIGHT, so we mirror (flipX) when moving left — see Player +
  * PlayerFacing. Skins remain 6x7 (no row 7); the death anim is base-only and
  * falls back to the sad frame.
  */

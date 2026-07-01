@@ -2,13 +2,15 @@
  * Pure facing/mirroring logic for the player sprite (no Phaser dependency, so
  * it is unit-testable).
  *
- * The art is drawn facing a fixed side per pose: the side-flight poses
- * (move/moveHard) face LEFT, while idle/boost/celebration poses face RIGHT. We
- * mirror (flipX) per pose so the character always ends up facing the direction
- * it is travelling — otherwise e.g. celebrating would visually spin it around.
+ * The art is drawn facing a fixed side per pose. In the current sheet every
+ * pose faces RIGHT (the side-flight fly rows, boost, and the front-ish idle /
+ * celebration poses). We mirror (flipX) per pose so the character always ends
+ * up facing the direction it is travelling.
  */
 export const POSE_FACES_RIGHT: Record<string, boolean> = {
   hover: true,
+  move: true,
+  moveHard: true,
   dizzy: true,
   boost: true,
   cheer: true,
