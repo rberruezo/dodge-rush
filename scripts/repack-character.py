@@ -277,16 +277,30 @@ def main():
 
     # Detect the REAL character centres per row/col. The source has caption text
     # bands between rows that shift them down irregularly, so a uniform H/ROWS
-    # grid clips the legs and lets the row above bleed in. Fall back to the old
-    # uniform grid only if detection doesn't find the expected 6x8 layout.
+    # grid clips the legs and lets the row above bleed in.
+    #
+    # The game always ships a 6x8 (48-frame) grid so the skins + AnimationManager
+    # stay stable, but the source art comes in two shapes:
+    #   * 8-row sheet -> map straight through (row_map = identity).
+    #   * 6-row sheet (HOVER, FLY, BOOST, CHEER, EMOTES, DEATH) -> there is no
+    #     separate "diving" flight row nor a front-celebration row, so we DUPLICATE
+    #     FLY into MOVE_HARD (out r2) and CHEER into the celebration row (out r5):
+    #       out row: 0     1    2    3      4      5      6       7
+    #       src row: HOVER FLY  FLY  BOOST  CHEER  CHEER  EMOTES  DEATH
     row_c, col_c = detect_centers(arr)
-    if len(col_c) != COLS or len(row_c) != ROWS:
+    if len(col_c) == COLS and len(row_c) == ROWS:
+        row_map = list(range(ROWS))
+    elif len(col_c) == COLS and len(row_c) == 6:
+        row_map = [0, 1, 1, 2, 3, 3, 4, 5]
+    else:
         print(f"WARN detect found {len(col_c)} cols / {len(row_c)} rows; "
-              f"falling back to uniform grid")
+              f"falling back to uniform 6x8 grid")
         col_c = [round(c * cw) + 75 for c in range(COLS)]
         row_c = [round(r * (H / ROWS)) + 49 for r in range(ROWS)]
+        row_map = list(range(ROWS))
     print("col centres", col_c)
     print("row centres", row_c)
+    print("row map (out<-src)", row_map)
 
     # 160px capture window scaled 0.75x into the 120px grid, centred on each
     # detected character so the propeller (top) and legs (bottom) both fit.
@@ -296,7 +310,7 @@ def main():
     for r in range(ROWS):
         for c in range(COLS):
             cx = col_c[c]
-            cy = row_c[r]
+            cy = row_c[row_map[r]]
 
             # extract with padding if out of bounds. Pad with checkerboard grey (78)
             # so the edge-flood-fill correctly removes the padding instead of 

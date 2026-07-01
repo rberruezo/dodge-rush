@@ -8,14 +8,17 @@
  *
  * The base sheet is re-packed by `scripts/repack-character.py` into a clean 6x8
  * grid at `public/assets/character.png` (120px cells — rendered ~1:1 so it stays
- * crisp against the detailed background). Frame map (index = row*6 + col):
+ * crisp against the detailed background). The source art has 6 rows (HOVER, FLY,
+ * BOOST, CHEER, EMOTES, DEATH); the repack DUPLICATES the single FLY row into
+ * rows 1+2 and the single CHEER row into rows 4+5 so the 6x8 layout below holds.
+ * Frame map (index = row*6 + col):
  *   row 0 (0-5)   hover (front)             -> not steering (alive float)
- *   row 1 (6-11)  side flight, calm         -> moving, low effort
- *   row 2 (12-17) side flight, diving        -> moving held, high effort
+ *   row 1 (6-11)  side flight               -> moving, low effort
+ *   row 2 (12-17) side flight (dup of row 1) -> moving held, high effort
  *   row 3 (18-23) star-power boost + aura    -> golden score boost (invincible)
- *   row 4 (24-29) cheer, fists (side)        -> spare celebration
- *   row 5 (30-35) celebration gestures       -> combo cheer flash
- *   row 6 (36-41) startled, sad, happy, crown, trophy, star
+ *   row 4 (24-29) cheer, arms up             -> spare celebration
+ *   row 5 (30-35) cheer, arms up (dup)       -> combo cheer flash
+ *   row 6 (36-40) startled, sad, crown, trophy, star
  *   row 7 (42-44) knockout: stars, tumble, KO -> death anim (base only)
  * The fly art faces LEFT, so we mirror (flipX) when moving right — see Player +
  * PlayerFacing. Skins remain 6x7 (no row 7); the death anim is base-only and
@@ -45,10 +48,9 @@ export const ANIM_KEYS = {
 export const CHAR_FRAMES = {
   startled: 36, // surprised — hit / impact startle
   sad: 37, // crying — game-over loss & death fallback
-  happy: 38, // calm happy — spare portrait
-  crown: 39, // crown — new record / win
-  trophy: 40, // holding a trophy — achievement icon
-  star: 41 // star-struck — high-combo icon
+  crown: 38, // crown — new record / win
+  trophy: 39, // holding a trophy — achievement icon
+  star: 40 // star-struck — high-combo icon
 } as const;
 
 /** Numbered combo-badge frames flashed on the hero (row 5, x2..x20). */
