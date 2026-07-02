@@ -87,9 +87,9 @@ export interface BgLayer {
  * lights and near clouds stay crisp on top.
  */
 export const BG_LAYERS: readonly BgLayer[] = [
-  { key: 'bg_clouds_far',       parallax: 0.18, tile: 675,  tint: 'struct' },
-  { key: 'bg_spaceship',        parallax: 0.28, tile: 4800, tint: 'struct' },
-  { key: 'bg_airships',         parallax: 0.34, tile: 1800, tint: 'struct' },
+  { key: 'bg_clouds_far',       parallax: 0.18, tile: 675,  tint: 'none', additive: true },
+  { key: 'bg_spaceship',        parallax: 0.28, tile: 4800, tint: 'none', additive: true },
+  { key: 'bg_airships',         parallax: 0.34, tile: 1800, tint: 'none', additive: true },
   // --- per-zone atmospheric grade wash is drawn here ---
   { key: 'bg_spaceship_lights', parallax: 0.28, tile: 4800, tint: 'none', additive: true },
   { key: 'bg_airships_lights',  parallax: 0.34, tile: 1800, tint: 'none', additive: true },
